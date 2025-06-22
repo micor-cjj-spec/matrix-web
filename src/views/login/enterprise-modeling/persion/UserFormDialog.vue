@@ -127,79 +127,24 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
+import { useUserEditDialog } from '@/composables/login/enterprise-modeling/persion/useUserEditDialog.js'
 
-const props = defineProps({
-  visible: Boolean,
-  mode: String, // 'create' or 'edit'
-  user: Object,
-  loading: Boolean,
-})
-const emit = defineEmits(['update:visible', 'submit', 'cancel'])
+const {
+  props,
+  visible,
+  valid,
+  form,
+  formRef,
+  mode,
+  birthdayMenu,
+  hiredateMenu,
+  birthdayFormatted,
+  hiredateFormatted,
+  onSubmit,
+  onCancel,
+} = useUserEditDialog()
 
-const visible = computed({
-  get: () => props.visible,
-  set: v => emit('update:visible', v),
-})
-const valid = ref(false)
-const formRef = ref()
-const mode = computed(() => props.mode)
-
-const form = ref({
-  fid: null,
-  ftid: '',
-  fnumber: '',
-  fphone: '',
-  femail: '',
-  fstatus: '',
-  fgender: '',
-  fbirthday: '',
-  fidcard: '',
-  favatar: '',
-  favatarFile: null,
-  fnickname: '',
-  ffullpinyin: '',
-  fsimplepinyin: '',
-  fdptid: '',
-  fpositionid: '',
-  fsortcode: '',
-  fbillssatusfield: '',
-  fhiredate: '',
-  fenable: '',
-  fsource: '',
-  fmaintain: '',
-  fheadsculpture: '',
-  ftruename: '',
-  fcountryid: '',
-})
-
-watch(() => props.user, (val) => {
-  if (props.mode === 'edit' && val) {
-    Object.assign(form.value, val)
-  } else {
-    Object.keys(form.value).forEach(key => form.value[key] = '')
-    form.value.fid = null
-  }
-  form.value.favatarFile = null
-}, { immediate: true })
-
-// 日期处理
-const birthdayMenu = ref(false)
-const hiredateMenu = ref(false)
-const birthdayFormatted = computed(() =>
-    form.value.fbirthday ? (typeof form.value.fbirthday === 'string'
-            ? form.value.fbirthday.slice(0, 10)
-            : form.value.fbirthday?.toISOString?.().slice(0, 10) || ''
-    ) : ''
-)
-const hiredateFormatted = computed(() =>
-    form.value.fhiredate ? (typeof form.value.fhiredate === 'string'
-            ? form.value.fhiredate.slice(0, 10)
-            : form.value.fhiredate?.toISOString?.().slice(0, 10) || ''
-    ) : ''
-)
-
-// 头像图片选择
 function handleAvatarChange(files) {
   const file = Array.isArray(files) ? files[0] : files
   if (!file) return
@@ -208,16 +153,6 @@ function handleAvatarChange(files) {
     form.value.favatar = e.target.result
   }
   reader.readAsDataURL(file)
-}
-
-async function onSubmit() {
-  const validForm = await formRef.value?.validate?.()
-  if (!validForm) return
-  emit('submit', { ...form.value })
-}
-function onCancel() {
-  emit('cancel')
-  visible.value = false
 }
 </script>
 
