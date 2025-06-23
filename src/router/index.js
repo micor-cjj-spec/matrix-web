@@ -67,6 +67,13 @@ const routes = [
     { path: '/ledger', component: EmptyView, meta: { title: '总账' } },
     { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
     { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
+    { path: '/payable', component: EmptyView, meta: { title: '应付' } },
+    { path: '/estimated-payable', component: EmptyView, meta: { title: '暂估应付' } },
+    { path: '/payment-application', component: EmptyView, meta: { title: '付款申请' } },
+    { path: '/payment-processing', component: EmptyView, meta: { title: '付款处理' } },
+    { path: '/receivable', component: EmptyView, meta: { title: '应收' } },
+    { path: '/estimated-receivable', component: EmptyView, meta: { title: '暂估应收' } },
+    { path: '/settlement-processing', component: EmptyView, meta: { title: '结算处理' } },
 
     // 财务云 - 应付模块
     { path: '/payable', name: 'Payable', component: PayableView, meta: { title: '应付' } },
