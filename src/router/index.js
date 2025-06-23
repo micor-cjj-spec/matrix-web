@@ -4,6 +4,8 @@ import Portal from '../views/login/Portal.vue';
 import Register from '../views/login/Register.vue';
 import EnterpriseModelingView from '../views/login/enterprise-modeling/EnterpriseModelingView.vue';
 import PersonalView from '../views/login/enterprise-modeling/persion/PersonalView.vue';
+import BusinessUnitView from '../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue';
+import DeptDimensionView from '../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue';
 
 // 临时空页面组件
 const EmptyView = {
@@ -67,6 +69,18 @@ const routes = [
         name: 'Personal',
         component: PersonalView,
         meta: { title: '人员管理' }
+    },
+    {
+        path: '/business-unit',
+        name: 'BusinessUnit',
+        component: BusinessUnitView,
+        meta: { title: '业务单元管理' }
+    },
+    {
+        path: '/department-dimension',
+        name: 'DepartmentDimension',
+        component: DeptDimensionView,
+        meta: { title: '部门维度管理' }
     }
 ];
 
