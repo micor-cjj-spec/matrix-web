@@ -115,6 +115,13 @@ const modulesMap = {
     { name: '总账', path: '/ledger', icon: '📚', desc: '总账处理与报表' },
     { name: '费用核算', path: '/cost', icon: '💼', desc: '费用核算流程' },
     { name: '财务报表', path: '/reports', icon: '📊', desc: '财务分析报表' },
+    { name: '应付', path: '/payable', icon: '💳', desc: '应付业务管理' },
+    { name: '暂估应付', path: '/estimated-payable', icon: '⌛', desc: '应付暂估管理' },
+    { name: '付款申请', path: '/payment-application', icon: '📝', desc: '付款申请流程' },
+    { name: '付款处理', path: '/payment-processing', icon: '💵', desc: '付款执行处理' },
+    { name: '应收', path: '/receivable', icon: '💰', desc: '应收业务管理' },
+    { name: '暂估应收', path: '/estimated-receivable', icon: '⏳', desc: '应收暂估管理' },
+    { name: '结算处理', path: '/settlement-processing', icon: '🔄', desc: '结算清算处理' },
   ],
   '基础服务云': [
     { name: '企业建模', path: '/enterprise-modeling', icon: '🏗️', desc: '企业业务建模' },
