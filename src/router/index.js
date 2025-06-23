@@ -16,6 +16,8 @@ import BankInfoView from '../views/login/base-data/bank-info/BankInfoView.vue';
 import CountryView from '../views/login/base-data/country/CountryView.vue';
 import RegionView from '../views/login/base-data/region/RegionView.vue';
 import UnitView from '../views/login/base-data/unit/UnitView.vue';
+import PayableView from '../views/login/finance/PayableView.vue';
+import ReceivableView from '../views/login/finance/ReceivableView.vue';
 
 // 临时空页面组件
 const EmptyView = {
@@ -65,6 +67,19 @@ const routes = [
     { path: '/ledger', component: EmptyView, meta: { title: '总账' } },
     { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
     { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
+
+    // 财务云 - 应付模块
+    { path: '/payable', name: 'Payable', component: PayableView, meta: { title: '应付' } },
+    { path: '/payable/manage', component: EmptyView, meta: { title: '应付' } },
+    { path: '/payable/estimate', component: EmptyView, meta: { title: '暂估应付' } },
+    { path: '/payable/application', component: EmptyView, meta: { title: '付款申请' } },
+    { path: '/payable/processing', component: EmptyView, meta: { title: '付款处理' } },
+
+    // 财务云 - 应收模块
+    { path: '/receivable', name: 'Receivable', component: ReceivableView, meta: { title: '应收' } },
+    { path: '/receivable/manage', component: EmptyView, meta: { title: '应收' } },
+    { path: '/receivable/estimate', component: EmptyView, meta: { title: '暂估应收' } },
+    { path: '/receivable/settlement', component: EmptyView, meta: { title: '结算处理' } },
 
     {
         path: '/enterprise-modeling',
