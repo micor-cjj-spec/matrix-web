@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { getDepartmentList, createDepartment as createApi, editDepartment as editApi, deleteDepartment as deleteApi } from '@/api/deptDimension.js'
 
 const DEPT_FIELDS = ['fid', 'fname', 'fcode', 'fparentid', 'fstatus']
@@ -6,6 +6,7 @@ const DEPT_FIELDS = ['fid', 'fname', 'fcode', 'fparentid', 'fstatus']
 export function useDeptDimension() {
     const loading = ref(false)
     const deptList = ref([])
+    const deptTree = computed(() => buildTree(deptList.value))
 
     const fetchDepartmentList = async () => {
         loading.value = true
@@ -39,10 +40,28 @@ export function useDeptDimension() {
 
     return {
         deptList,
+        deptTree,
         loading,
         fetchDepartmentList,
         createDepartment,
         editDepartment,
         deleteDepartment,
     }
+}
+
+function buildTree(list, idKey = 'fid', parentKey = 'fparentid') {
+    const map = {}
+    const roots = []
+    list.forEach(item => {
+        map[item[idKey]] = { ...item, children: [] }
+    })
+    list.forEach(item => {
+        const parentId = item[parentKey]
+        if (parentId && map[parentId]) {
+            map[parentId].children.push(map[item[idKey]])
+        } else {
+            roots.push(map[item[idKey]])
+        }
+    })
+    return roots
 }

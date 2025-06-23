@@ -8,21 +8,19 @@
         </v-btn>
       </div>
 
-      <v-data-table
-          :headers="headers"
-          :items="deptList"
+      <v-treeview
+          :items="deptTree"
           :loading="loading"
-          loading-text="加载中..."
-          class="elevation-0"
-          item-key="fid"
-          hide-default-footer
-          dense
+          item-title="fname"
+          item-value="fid"
+          open-on-click
+          activatable
       >
-        <template #item.actions="{ item }">
-          <v-btn size="small" color="primary" @click="openEditDialog(item)" variant="tonal">编辑</v-btn>
-          <v-btn size="small" color="error" @click="openDeleteDialog(item)" variant="tonal" class="ml-1">删除</v-btn>
+        <template #append="{ item }">
+          <v-btn size="small" color="primary" @click.stop="openEditDialog(item)" variant="tonal">编辑</v-btn>
+          <v-btn size="small" color="error" @click.stop="openDeleteDialog(item)" variant="tonal" class="ml-1">删除</v-btn>
         </template>
-      </v-data-table>
+      </v-treeview>
     </v-card>
 
     <v-dialog v-model="dialog.visible" max-width="600" persistent>
@@ -32,7 +30,22 @@
           <v-form ref="formRef" v-model="dialog.valid">
             <v-text-field v-model="dialog.form.fname" label="名称" :rules="[v => !!v || '必填']" required />
             <v-text-field v-model="dialog.form.fcode" label="编码" />
-            <v-text-field v-model="dialog.form.fparentid" label="上级ID" />
+            <v-select
+              v-model="dialog.form.fparentid"
+              :items="deptList"
+              item-title="fname"
+              item-value="fid"
+              label="上级部门"
+              clearable
+            />
+            <v-select
+              v-model="dialog.form.fbizunitid"
+              :items="unitList"
+              item-title="fname"
+              item-value="fid"
+              label="所属业务单元"
+              clearable
+            />
             <v-select v-model="dialog.form.fstatus" :items="['启用','停用','草稿']" label="状态" clearable />
           </v-form>
         </v-card-text>
@@ -65,9 +78,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useDeptDimension } from '@/composables/login/enterprise-modeling/dept-dimension/useDeptDimension.js'
+import { useBusinessUnit } from '@/composables/login/enterprise-modeling/business-unit/useBusinessUnit.js'
 
 const {
   deptList,
+  deptTree,
   loading,
   fetchDepartmentList,
   createDepartment,
@@ -75,13 +90,8 @@ const {
   deleteDepartment,
 } = useDeptDimension()
 
-const headers = ref([
-  { title: '名称', value: 'fname', align: 'start' },
-  { title: '编码', value: 'fcode' },
-  { title: '上级ID', value: 'fparentid' },
-  { title: '状态', value: 'fstatus' },
-  { title: '操作', value: 'actions', sortable: false, align: 'center', width: 150 },
-])
+const { unitList, fetchBusinessUnitList } = useBusinessUnit()
+
 
 const snackbar = reactive({
   show: false,
@@ -97,6 +107,7 @@ const dialog = reactive({
     fname: '',
     fcode: '',
     fparentid: '',
+    fbizunitid: '',
     fstatus: '',
   },
   valid: false,
@@ -107,7 +118,7 @@ const formRef = ref()
 function openCreateDialog() {
   dialog.visible = true
   dialog.mode = 'create'
-  Object.assign(dialog.form, { fid: null, fname: '', fcode: '', fparentid: '', fstatus: '' })
+  Object.assign(dialog.form, { fid: null, fname: '', fcode: '', fparentid: '', fbizunitid: '', fstatus: '' })
   dialog.deptRef = null
 }
 function openEditDialog(dept) {
@@ -155,6 +166,7 @@ function showMsg(text, color = 'success') {
 
 onMounted(() => {
   fetchDepartmentList()
+  fetchBusinessUnitList()
 })
 </script>
 
