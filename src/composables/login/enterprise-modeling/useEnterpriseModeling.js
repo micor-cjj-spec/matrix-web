@@ -6,7 +6,7 @@ export function useEnterpriseModeling() {
             name: '组织人员',
             modules: [
                 { name: '人员', icon: '👤', path: '/personal' }, // 跳转人员管理
-                { name: '业务单元', icon: '🏢' },
+                { name: '业务单元', icon: '🏢', path: '/business-unit' },
                 { name: '部门维度管理', icon: '🏬' },
                 { name: '人员类型', icon: '👥' },
                 { name: '行政组织', icon: '🔗' }
