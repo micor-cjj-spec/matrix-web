@@ -78,17 +78,20 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useDeptDimension } from '@/composables/login/enterprise-modeling/dept-dimension/useDeptDimension.js'
+
 import { useBusinessUnit } from '@/composables/login/enterprise-modeling/business-unit/useBusinessUnit.js'
 
 const {
   deptList,
   deptTree,
+
   loading,
   fetchDepartmentList,
   createDepartment,
   editDepartment,
   deleteDepartment,
 } = useDeptDimension()
+
 
 const { unitList, fetchBusinessUnitList } = useBusinessUnit()
 
@@ -107,6 +110,7 @@ const dialog = reactive({
     fname: '',
     fcode: '',
     fparentid: '',
+
     fbizunitid: '',
     fstatus: '',
   },

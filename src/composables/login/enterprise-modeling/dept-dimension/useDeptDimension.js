@@ -1,3 +1,4 @@
+
 import { ref, computed } from 'vue'
 import { getDepartmentList, createDepartment as createApi, editDepartment as editApi, deleteDepartment as deleteApi } from '@/api/deptDimension.js'
 
@@ -6,7 +7,9 @@ const DEPT_FIELDS = ['fid', 'fname', 'fcode', 'fparentid', 'fstatus']
 export function useDeptDimension() {
     const loading = ref(false)
     const deptList = ref([])
+
     const deptTree = computed(() => buildTree(deptList.value))
+
 
     const fetchDepartmentList = async () => {
         loading.value = true
