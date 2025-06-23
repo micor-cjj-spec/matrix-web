@@ -3,7 +3,7 @@ import Login from '../views/login/Login.vue';
 import Portal from '../views/login/Portal.vue';
 import Register from '../views/login/Register.vue';
 import EnterpriseModelingView from '../views/login/enterprise-modeling/EnterpriseModelingView.vue';
-import PersonalView from '../views/login/enterprise-modeling/persion/PersonalView.vue';
+import PersonalView from '../views/login/enterprise-modeling/person/PersonalView.vue';
 import BusinessUnitView from '../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue';
 import DeptDimensionView from '../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue';
 import BaseDataView from '../views/login/base-data/BaseDataView.vue';

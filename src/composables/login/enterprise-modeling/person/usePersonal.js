@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { getUserList, createUser, editUser, deleteUser } from '@/api/user'
+import { getUserList, createUser, editUser, deleteUser } from '@/api/user.js'
 
 // 实体类的所有主要字段（根据后端字段覆盖即可，下面为示例）
 const USER_FIELDS = [

@@ -171,7 +171,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { usePersonal } from '@/composables/login/enterprise-modeling/persion/usePersonal.js'
+import { usePersonal } from '@/composables/login/enterprise-modeling/person/usePersonal.js'
 
 const {
   personalList,
