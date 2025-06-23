@@ -6,6 +6,16 @@ import EnterpriseModelingView from '../views/login/enterprise-modeling/Enterpris
 import PersonalView from '../views/login/enterprise-modeling/persion/PersonalView.vue';
 import BusinessUnitView from '../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue';
 import DeptDimensionView from '../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue';
+import BaseDataView from '../views/login/base-data/BaseDataView.vue';
+import MaterialView from '../views/login/base-data/material/MaterialView.vue';
+import CustomerView from '../views/login/base-data/customer/CustomerView.vue';
+import SupplierView from '../views/login/base-data/supplier/SupplierView.vue';
+import CurrencyView from '../views/login/base-data/currency/CurrencyView.vue';
+import ExchangeRateView from '../views/login/base-data/exchange-rate/ExchangeRateView.vue';
+import BankInfoView from '../views/login/base-data/bank-info/BankInfoView.vue';
+import CountryView from '../views/login/base-data/country/CountryView.vue';
+import RegionView from '../views/login/base-data/region/RegionView.vue';
+import UnitView from '../views/login/base-data/unit/UnitView.vue';
 
 // 临时空页面组件
 const EmptyView = {
@@ -62,6 +72,12 @@ const routes = [
         component: EnterpriseModelingView,
         meta: { title: '企业建模' }
     },
+    {
+        path: '/base-data',
+        name: 'BaseData',
+        component: BaseDataView,
+        meta: { title: '基础资料' }
+    },
 
     // 人员管理 → 独立新页面
     {
@@ -81,7 +97,16 @@ const routes = [
         name: 'DepartmentDimension',
         component: DeptDimensionView,
         meta: { title: '部门维度管理' }
-    }
+    },
+    { path: '/material', name: 'Material', component: MaterialView, meta: { title: '物料管理' } },
+    { path: '/customer', name: 'Customer', component: CustomerView, meta: { title: '客户管理' } },
+    { path: '/supplier', name: 'Supplier', component: SupplierView, meta: { title: '供应商管理' } },
+    { path: '/currency', name: 'Currency', component: CurrencyView, meta: { title: '币种管理' } },
+    { path: '/exchange-rate', name: 'ExchangeRate', component: ExchangeRateView, meta: { title: '汇率管理' } },
+    { path: '/bank-info', name: 'BankInfo', component: BankInfoView, meta: { title: '行名行号管理' } },
+    { path: '/country', name: 'Country', component: CountryView, meta: { title: '国家管理' } },
+    { path: '/region', name: 'Region', component: RegionView, meta: { title: '地区管理' } },
+    { path: '/unit', name: 'Unit', component: UnitView, meta: { title: '计量单位管理' } }
 ];
 
 // 创建路由实例

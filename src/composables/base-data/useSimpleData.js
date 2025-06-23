@@ -1,0 +1,39 @@
+import { ref } from 'vue'
+import request from '@/utils/request'
+
+export function useSimpleData(basePath, fields = ['fid','fname','fcode']) {
+  const list = ref([])
+  const loading = ref(false)
+
+  const fetchList = async () => {
+    loading.value = true
+    try {
+      const res = await request.get(`${basePath}/list`)
+      list.value = (res.data?.records || []).map(i => ({
+        ...fields.reduce((a,k) => ({ ...a, [k]: '' }), {}),
+        ...i
+      }))
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const createItem = async (item) => {
+    const data = { ...item }
+    delete data.fid
+    await request.post(basePath, data)
+    await fetchList()
+  }
+
+  const editItem = async (item) => {
+    await request.put(basePath, item)
+    await fetchList()
+  }
+
+  const deleteItem = async (item) => {
+    await request.delete(`${basePath}/${item.fid}`)
+    await fetchList()
+  }
+
+  return { list, loading, fetchList, createItem, editItem, deleteItem }
+}

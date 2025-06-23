@@ -118,6 +118,7 @@ const modulesMap = {
   ],
   '基础服务云': [
     { name: '企业建模', path: '/enterprise-modeling', icon: '🏗️', desc: '企业业务建模' },
+    { name: '基础资料', path: '/base-data', icon: '📚', desc: '主数据与公共数据管理' },
   ],
 }
 
