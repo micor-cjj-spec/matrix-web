@@ -15,15 +15,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': {
-        target: 'http://localhost:10001',
+      '/': {
+        target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/auth/, '/auth'),
-      },
-      '/user': {
-        target: 'http://localhost:10002',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/user/, '/user'),
       }
     }
   }
