@@ -138,16 +138,21 @@ const router = createRouter({
 });
 
 // 全局前置守卫
+import { updateActivity } from '@/utils/auth'
+
 router.beforeEach((to, from, next) => {
     // 设置页面 title
     if (to.meta?.title) {
         document.title = to.meta.title;
     }
 
-    // 示例逻辑（后期可做鉴权）
-    // if (to.path !== '/' && !localStorage.getItem('token')) {
-    //     return next('/');
-    // }
+    const publicPages = ['/', '/login', '/register']
+    const token = localStorage.getItem('token')
+    if (!token && !publicPages.includes(to.path)) {
+        return next('/login')
+    }
+
+    if (token) updateActivity()
 
     next();
 });
