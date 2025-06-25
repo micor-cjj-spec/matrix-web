@@ -80,6 +80,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { clearToken } from '@/utils/auth'
 
 const router = useRouter()
 
@@ -147,7 +148,8 @@ function handleLogout() {
     text: '已退出登录',
     color: 'success',
   }
-  setTimeout(() => router.push('/'), 900)
+  clearToken()
+  setTimeout(() => router.push('/login'), 900)
 }
 </script>
 

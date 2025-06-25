@@ -7,6 +7,7 @@ import {
     checkQrStatus,
     sendSmsCode,
 } from '@/api/auth.js'
+import { saveToken } from '@/utils/auth'
 
 export function useLogin(router, snackbar) {
     const activeTab = ref('account')
@@ -77,6 +78,8 @@ export function useLogin(router, snackbar) {
             try {
                 const res = await checkQrStatus(form.qrcode.token)
                 if (res.data?.status === 'success') {
+                    const token = res.data?.token
+                    if (token) saveToken(token)
                     showMsg('扫码登录成功', 'success')
                     clearInterval(form.qrcode.pollingTimer)
                     form.qrcode.pollingTimer = null
@@ -143,7 +146,9 @@ export function useLogin(router, snackbar) {
             if (valid) {
                 loading.value = true
                 try {
-                    await loginByAccount({ ...form.account })
+                    const res = await loginByAccount({ ...form.account })
+                    const token = res?.token || res?.data?.token
+                    if (token) saveToken(token)
                     showMsg('登录成功', 'success')
                     resetAll()
                     router.push('/portal')
@@ -159,7 +164,9 @@ export function useLogin(router, snackbar) {
             if (valid) {
                 loading.value = true
                 try {
-                    await loginByPhone({ ...form.phone })
+                    const res = await loginByPhone({ ...form.phone })
+                    const token = res?.token || res?.data?.token
+                    if (token) saveToken(token)
                     showMsg('登录成功', 'success')
                     resetAll()
                     router.push('/portal')
