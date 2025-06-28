@@ -81,8 +81,13 @@
               <v-col cols="12" md="6">
                 <v-select v-model="dialog.form.fstatus" :items="['启用','停用','草稿','离职']" label="数据状态" clearable />
               </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.fenable" :items="['Y','N']" label="是否启用" clearable />
+              <v-col cols="12" md="6" class="d-flex align-center">
+                <v-checkbox
+                    v-model="dialog.form.fenable"
+                    true-value="Y"
+                    false-value="N"
+                    label="是否启用"
+                />
               </v-col>
               <v-col cols="12" md="6">
                 <v-select v-model="dialog.form.fsource" :items="['manual','import','register','sync']" label="来源" clearable />
@@ -172,6 +177,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { usePersonal } from '@/composables/login/enterprise-modeling/person/usePersonal.js'
+import { uploadToOss } from '@/api/oss.js'
 
 const {
   personalList,
@@ -206,7 +212,7 @@ const dialog = reactive({
   mode: 'create',
   form: {
     fid: null, ftid: '', ftruename: '', fnickname: '', fgender: '', fphone: '', femail: '',
-    fidcard: '', fnumber: '', fdptid: '', fpositionid: '', fstatus: '', fenable: '',
+    fidcard: '', fnumber: '', fdptid: '', fpositionid: '', fstatus: '', fenable: 'Y',
     fsource: '', fmaintain: '', favatar: '', favatarFile: null,
     fhiredate: '', fbirthday: '', fcountryid: '', fsortcode: '', fbillssatusfield: '',
     ffullpinyin: '', fsimplepinyin: '',
@@ -233,14 +239,21 @@ const birthdayFormatted = computed(() =>
         : ''
 )
 
-function handleAvatarChange(files) {
+async function handleAvatarChange(files) {
   const file = Array.isArray(files) ? files[0] : files
   if (!file) return
+  // preview first
   const reader = new FileReader()
   reader.onload = e => {
     dialog.form.favatar = e.target.result
   }
   reader.readAsDataURL(file)
+  try {
+    const url = await uploadToOss(file)
+    if (url) dialog.form.favatar = url
+  } catch (e) {
+    showMsg('头像上传失败', 'error')
+  }
 }
 
 function openCreateDialog() {
@@ -248,7 +261,7 @@ function openCreateDialog() {
   dialog.mode = 'create'
   Object.assign(dialog.form, {
     fid: null, ftid: '', ftruename: '', fnickname: '', fgender: '', fphone: '', femail: '',
-    fidcard: '', fnumber: '', fdptid: '', fpositionid: '', fstatus: '', fenable: '',
+    fidcard: '', fnumber: '', fdptid: '', fpositionid: '', fstatus: '', fenable: 'Y',
     fsource: '', fmaintain: '', favatar: '', favatarFile: null,
     fhiredate: '', fbirthday: '', fcountryid: '', fsortcode: '', fbillssatusfield: '',
     ffullpinyin: '', fsimplepinyin: '',
