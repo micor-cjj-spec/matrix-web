@@ -65,7 +65,9 @@ const snackbar = ref({
 
 function handleModuleClick(module) {
   if (module.path) {
-    router.push(module.path)
+    // 使用新标签页打开目标路由
+    const url = router.resolve(module.path).href
+    window.open(url, '_blank')
   } else {
     showMsg(`点击了模块：${module.name}`, 'info')
   }
