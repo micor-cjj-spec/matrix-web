@@ -134,12 +134,9 @@ const snackbar = ref({
 })
 
 function navigateTo(path) {
-  snackbar.value = {
-    show: true,
-    text: `跳转到 ${path} 页面`,
-    color: 'info',
-  }
-  setTimeout(() => router.push(path), 800)
+  // 打开新标签页访问目标路由
+  const url = router.resolve(path).href
+  window.open(url, '_blank')
 }
 
 function handleLogout() {

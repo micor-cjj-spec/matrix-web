@@ -42,7 +42,8 @@ const snackbar = ref({ show: false, text: '', color: 'info' })
 
 function handleModuleClick(module) {
   if (module.path) {
-    router.push(module.path)
+    const url = router.resolve(module.path).href
+    window.open(url, '_blank')
   } else {
     snackbar.value = {
       show: true,
