@@ -28,7 +28,7 @@ const groups = ref([
   {
     name: '基础资料',
     modules: [
-      { name: '基础资料', icon: '📚', path: '/ledger/base-data' }
+      { name: '基础资料', icon: '📚', path: '/finance/base-data' }
     ]
   },
   {

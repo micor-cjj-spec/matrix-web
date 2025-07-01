@@ -19,7 +19,9 @@ import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
 import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
-import LedgerBaseDataView from '../views/login/ledger/base-data/LedgerBaseDataView.vue';
+import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDataView.vue';
+import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
+
 
 // 临时空页面组件
 const EmptyView = {
@@ -67,7 +69,8 @@ const routes = [
     { path: '/workbench', component: EmptyView, meta: { title: '报账工作台' } },
 
     { path: '/ledger', name: 'Ledger', component: GeneralLedgerView, meta: { title: '总账' } },
-    { path: '/ledger/base-data', name: 'LedgerBaseData', component: LedgerBaseDataView, meta: { title: '基础资料' } },
+    { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '基础资料' } },
+    { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
     { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
     { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
     { path: '/payable', component: EmptyView, meta: { title: '应付' } },
