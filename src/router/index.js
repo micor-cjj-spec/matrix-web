@@ -18,6 +18,8 @@ import RegionView from '../views/login/base-data/region/RegionView.vue';
 import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
+import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
+import LedgerBaseDataView from '../views/login/ledger/base-data/LedgerBaseDataView.vue';
 
 // 临时空页面组件
 const EmptyView = {
@@ -64,7 +66,8 @@ const routes = [
     { path: '/expenses', component: EmptyView, meta: { title: '人人费用' } },
     { path: '/workbench', component: EmptyView, meta: { title: '报账工作台' } },
 
-    { path: '/ledger', component: EmptyView, meta: { title: '总账' } },
+    { path: '/ledger', name: 'Ledger', component: GeneralLedgerView, meta: { title: '总账' } },
+    { path: '/ledger/base-data', name: 'LedgerBaseData', component: LedgerBaseDataView, meta: { title: '基础资料' } },
     { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
     { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
     { path: '/payable', component: EmptyView, meta: { title: '应付' } },
