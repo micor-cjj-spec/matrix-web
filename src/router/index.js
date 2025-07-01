@@ -22,6 +22,7 @@ import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
 import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDataView.vue';
 import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
 
+
 // 临时空页面组件
 const EmptyView = {
     template: '<div style="padding: 20px; font-size: 18px;">这里是占位页面：{{ $route.path }}</div>'
