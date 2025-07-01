@@ -114,6 +114,7 @@ const modulesMap = {
   ],
   '财务云': [
     { name: '总账', path: '/ledger', icon: '📚', desc: '总账处理与报表' },
+    { name: '基础资料', path: '/finance/base-data', icon: '📚', desc: '财务基础资料' },
     { name: '费用核算', path: '/cost', icon: '💼', desc: '费用核算流程' },
     { name: '财务报表', path: '/reports', icon: '📊', desc: '财务分析报表' },
     { name: '应付', path: '/payable', icon: '💳', desc: '应付业务管理' },
