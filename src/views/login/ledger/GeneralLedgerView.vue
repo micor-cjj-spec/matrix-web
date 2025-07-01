@@ -26,12 +26,6 @@ const router = useRouter()
 
 const groups = ref([
   {
-    name: '基础资料',
-    modules: [
-      { name: '基础资料', icon: '📚', path: '/finance/base-data' }
-    ]
-  },
-  {
     name: '凭证处理',
     modules: [
       { name: '凭证', icon: '📄' },
