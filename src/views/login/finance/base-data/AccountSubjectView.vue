@@ -13,88 +13,6 @@
       </v-data-table>
     </v-card>
 
-    <v-dialog v-model="dialog.visible" max-width="600" persistent>
-      <v-card>
-        <v-card-title>{{ dialog.mode === 'create' ? '创建科目' : '编辑科目' }}</v-card-title>
-        <v-card-text>
-          <v-form ref="formRef" v-model="dialog.valid">
-            <v-row dense>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="dialog.form.fcode" label="编码" :rules="[v=>!!v||'必填']" required />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="dialog.form.fname" label="名称" :rules="[v=>!!v||'必填']" required />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.forg" :items="orgOptions" label="核算组织" required />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="dialog.form.flongName" label="长名称" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.ftype" :items="acctTypeOptions" label="科目类型" required />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-autocomplete v-model="dialog.form.fparent" :items="subjectOptions" label="上级" clearable />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.fpltype" :items="profitLossOptions" label="损益类型" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.fdirection" :items="['借','贷']" label="余额方向" required />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fisDetail" label="明细科目" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-autocomplete v-model="dialog.form.freportItem" :items="reportItemOptions" label="报表项目" clearable />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-autocomplete v-model="dialog.form.flevel1" :items="level1Options" label="一级科目" clearable />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.fentryControl" :items="entryControlOptions" label="科目录入方向控制" required />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-select v-model="dialog.form.fcontrolLevel" :items="controlLevelOptions" label="控制级次" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fallowChild" label="允许公司增加下级科目" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fmanualEntry" label="手工录入" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fcash" label="现金科目" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fbank" label="银行科目" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fequivalent" label="现金等价物" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fisEntry" label="登记记账" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fnotice" label="往来通知" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fexchange" label="期末调汇" />
-              </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center">
-                <v-checkbox v-model="dialog.form.fqtyAccounting" label="数量核算" />
-              </v-col>
-            </v-row>
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="closeDialog">取消</v-btn>
-          <v-btn variant="text" color="primary" @click="handleConfirm">{{ dialog.mode === 'create' ? '创建' : '保存' }}</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <v-dialog v-model="deleteDialog.visible" max-width="350">
       <v-card>
@@ -116,6 +34,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
 
 const fields = [
@@ -143,37 +62,14 @@ const controlLevelOptions = ref([])
 const reportItemOptions = ref([])
 const level1Options = ref([])
 
+const router = useRouter()
 const snackbar = reactive({ show: false, text: '', color: 'success' })
-const dialog = reactive({
-  visible: false,
-  mode: 'create',
-  form: Object.fromEntries(fields.map(k => [k, ''])),
-  valid: false,
-})
-const formRef = ref()
 
 function openCreateDialog() {
-  dialog.visible = true
-  dialog.mode = 'create'
-  Object.keys(dialog.form).forEach(k => dialog.form[k] = '')
+  router.push('/finance/base-data/account-subject/form')
 }
 function openEditDialog(item) {
-  dialog.visible = true
-  dialog.mode = 'edit'
-  Object.assign(dialog.form, item)
-}
-function closeDialog() { dialog.visible = false }
-async function handleConfirm() {
-  const valid = await formRef.value?.validate?.()
-  if (!valid) return
-  if (dialog.mode === 'create') {
-    await createItem({ ...dialog.form })
-    showMsg('创建成功')
-  } else {
-    await editItem({ ...dialog.form })
-    showMsg('保存成功')
-  }
-  closeDialog()
+  router.push(`/finance/base-data/account-subject/form/${item.fid}`)
 }
 const deleteDialog = reactive({ visible: false, item: null })
 function openDeleteDialog(item) { deleteDialog.visible = true; deleteDialog.item = item }
