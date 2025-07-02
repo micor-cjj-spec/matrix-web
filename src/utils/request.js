@@ -3,6 +3,9 @@ import axios from 'axios'
 // 判断环境，自动切换 baseURL
 const baseURL = '/';     // 生产环境改成正式接口地址
 
+// 后端统一前缀
+const API_PREFIX = '/api'
+
 
 const service = axios.create({
     baseURL,
@@ -19,6 +22,15 @@ service.interceptors.request.use(
         const token = localStorage.getItem('token')
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`
+        }
+        // 统一为所有接口加上 /api 前缀
+        const url = config.url || ''
+        if (!url.startsWith(API_PREFIX) && !/^https?:/.test(url)) {
+            if (url.startsWith('/')) {
+                config.url = API_PREFIX + url
+            } else {
+                config.url = `${API_PREFIX}/${url}`
+            }
         }
         return config
     },
