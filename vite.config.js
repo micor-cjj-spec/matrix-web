@@ -15,36 +15,16 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': {
+      '/api/auth': {
         target: 'http://localhost:10001',
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/auth/, '/auth'),
+        rewrite: path => path.replace(/^\/api\/auth/, '/auth'),
       },
-      '/user': {
+      '/api': {
         target: 'http://localhost:10002',
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/user/, '/user'),
+        rewrite: path => path.replace(/^\/api/, ''),
       },
-      '/biz-unit': {
-        target: 'http://localhost:10002',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/biz-unit/, '/biz-unit'),
-      },
-      '/dept-dim': {
-        target: 'http://localhost:10002',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/dept-dim/, '/dept-dim'),
-      },
-      '/account-subject': {
-        target: 'http://localhost:10002',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/account-subject/, '/account-subject'),
-      },
-      '/oss': {
-        target: 'http://localhost:10002',
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/oss/, '/oss'),
-      }
-    }
-  }
+    },
+  },
 })
