@@ -24,6 +24,26 @@ export default defineConfig({
         target: 'http://localhost:10002',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/user/, '/user'),
+      },
+      '/biz-unit': {
+        target: 'http://localhost:10002',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/biz-unit/, '/biz-unit'),
+      },
+      '/dept-dim': {
+        target: 'http://localhost:10002',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/dept-dim/, '/dept-dim'),
+      },
+      '/account-subject': {
+        target: 'http://localhost:10002',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/account-subject/, '/account-subject'),
+      },
+      '/oss': {
+        target: 'http://localhost:10002',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/oss/, '/oss'),
       }
     }
   }
