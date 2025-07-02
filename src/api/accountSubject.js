@@ -19,3 +19,10 @@ export function editAccountSubject(data) {
 export function deleteAccountSubject(fid) {
     return request.delete(`/account-subject/${fid}`)
 }
+
+export default {
+    fetchList: getAccountSubjectList,
+    createItem: createAccountSubject,
+    editItem: editAccountSubject,
+    deleteItem: deleteAccountSubject,
+}

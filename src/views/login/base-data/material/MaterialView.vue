@@ -51,8 +51,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
+import materialApi from '@/api/material'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData('/material')
+const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(materialApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },

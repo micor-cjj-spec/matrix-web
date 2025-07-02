@@ -51,8 +51,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
+import regionApi from '@/api/region'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData('/region')
+const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(regionApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },

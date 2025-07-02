@@ -51,8 +51,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
+import exchangeRateApi from '@/api/exchangeRate'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData('/exchange-rate')
+const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(exchangeRateApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },

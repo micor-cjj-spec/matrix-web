@@ -36,6 +36,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
+import accountSubjectApi from '@/api/accountSubject'
 
 const fields = [
   'fid','fcode','fname','forg','flongName','ftype','fparent','fpltype','fdirection','fisDetail',
@@ -43,7 +44,7 @@ const fields = [
   'fcash','fbank','fequivalent','fisEntry','fnotice','fexchange','fqtyAccounting'
 ]
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData('/account-subject', fields)
+const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(accountSubjectApi, fields)
 
 const headers = ref([
   { title: '编码', value: 'fcode', align: 'start' },
