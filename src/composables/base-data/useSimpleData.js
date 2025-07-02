@@ -1,5 +1,10 @@
 import { ref } from 'vue'
-import request from '@/utils/request'
+import {
+  fetchSimpleList,
+  createSimpleData,
+  editSimpleData,
+  deleteSimpleData,
+} from '@/api/simpleData'
 
 export function useSimpleData(basePath, fields = ['fid','fname','fcode']) {
   const list = ref([])
@@ -8,10 +13,10 @@ export function useSimpleData(basePath, fields = ['fid','fname','fcode']) {
   const fetchList = async () => {
     loading.value = true
     try {
-      const res = await request.get(`${basePath}/list`)
+      const res = await fetchSimpleList(basePath)
       list.value = (res.data?.records || []).map(i => ({
-        ...fields.reduce((a,k) => ({ ...a, [k]: '' }), {}),
-        ...i
+        ...fields.reduce((a, k) => ({ ...a, [k]: '' }), {}),
+        ...i,
       }))
     } finally {
       loading.value = false
@@ -21,17 +26,17 @@ export function useSimpleData(basePath, fields = ['fid','fname','fcode']) {
   const createItem = async (item) => {
     const data = { ...item }
     delete data.fid
-    await request.post(basePath, data)
+    await createSimpleData(basePath, data)
     await fetchList()
   }
 
   const editItem = async (item) => {
-    await request.put(basePath, item)
+    await editSimpleData(basePath, item)
     await fetchList()
   }
 
   const deleteItem = async (item) => {
-    await request.delete(`${basePath}/${item.fid}`)
+    await deleteSimpleData(basePath, item.fid)
     await fetchList()
   }
 

@@ -103,7 +103,11 @@
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import request from '@/utils/request'
+import {
+  getAccountSubjectDetail,
+  createAccountSubject,
+  editAccountSubject,
+} from '@/api/accountSubject'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,7 +136,7 @@ const isEdit = computed(() => !!fid)
 
 async function fetchDetail() {
   if (!fid) return
-  const res = await request.get(`/account-subject/${fid}`)
+  const res = await getAccountSubjectDetail(fid)
   Object.assign(form, res.data || {})
 }
 
@@ -140,11 +144,11 @@ async function handleSave() {
   const ok = await formRef.value?.validate?.()
   if (!ok) return
   if (fid) {
-    await request.put('/account-subject', { ...form, fid })
+    await editAccountSubject({ ...form, fid })
   } else {
     const data = { ...form }
     delete data.fid
-    await request.post('/account-subject', data)
+    await createAccountSubject(data)
   }
   router.push('/finance/base-data/account-subject')
 }
