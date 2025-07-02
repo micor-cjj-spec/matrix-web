@@ -51,8 +51,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
+import customerApi from '@/api/customer'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData('/customer')
+const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(customerApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },

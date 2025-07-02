@@ -51,8 +51,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
+import currencyApi from '@/api/currency'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData('/currency')
+const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(currencyApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },
