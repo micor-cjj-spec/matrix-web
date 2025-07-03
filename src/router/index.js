@@ -7,6 +7,7 @@ import PersonalView from '../views/login/enterprise-modeling/person/PersonalView
 import BusinessUnitView from '../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue';
 import DeptDimensionView from '../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue';
 import OrgFunctionTypeView from '../views/login/enterprise-modeling/org-function-type/OrgFunctionTypeView.vue';
+import OrgPatternView from '../views/login/enterprise-modeling/org-pattern/OrgPatternView.vue';
 import BaseDataView from '../views/login/base-data/BaseDataView.vue';
 import MaterialView from '../views/login/base-data/material/MaterialView.vue';
 import CustomerView from '../views/login/base-data/customer/CustomerView.vue';
@@ -134,6 +135,12 @@ const routes = [
         name: 'OrgFunctionType',
         component: OrgFunctionTypeView,
         meta: { title: '组织职能类型管理' }
+    },
+    {
+        path: '/org-pattern',
+        name: 'OrgPattern',
+        component: OrgPatternView,
+        meta: { title: '组织形态管理' }
     },
     { path: '/material', name: 'Material', component: MaterialView, meta: { title: '物料管理' } },
     { path: '/customer', name: 'Customer', component: CustomerView, meta: { title: '客户管理' } },
