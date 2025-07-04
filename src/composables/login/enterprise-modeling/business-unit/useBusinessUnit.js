@@ -1,7 +1,16 @@
 import { ref } from 'vue'
 import { getBusinessUnitList, createBusinessUnit as createApi, editBusinessUnit as editApi, deleteBusinessUnit as deleteApi } from '@/api/bizUnit.js'
 
-const UNIT_FIELDS = ['fid', 'fname', 'fcode', 'fmanagerid', 'fstatus']
+// Fields of business unit entity
+const UNIT_FIELDS = [
+    'fid',
+    'fcode',
+    'fname',
+    'fshort_name',
+    'fmanage_org_code',
+    'fmanage_org_name',
+    'fusagestatus',
+]
 
 export function useBusinessUnit() {
     const loading = ref(false)
