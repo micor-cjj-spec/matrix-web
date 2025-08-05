@@ -28,7 +28,7 @@ const groups = ref([
   {
     name: '凭证处理',
     modules: [
-      { name: '凭证', icon: '📄' },
+      { name: '凭证', icon: '📄', path: '/ledger/voucher' },
       { name: '凭证汇总表', icon: '📊' },
       { name: '结转清单', icon: '🧾' }
     ]

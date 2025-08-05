@@ -21,6 +21,7 @@ import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
 import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
+import VoucherView from '../views/login/ledger/VoucherView.vue';
 import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDataView.vue';
 import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
 import AccountSubjectForm from '../views/login/finance/base-data/account-subject/AccountSubjectForm.vue';
@@ -72,6 +73,7 @@ const routes = [
     { path: '/workbench', component: EmptyView, meta: { title: '报账工作台' } },
 
     { path: '/ledger', name: 'Ledger', component: GeneralLedgerView, meta: { title: '总账' } },
+    { path: '/ledger/voucher', name: 'Voucher', component: VoucherView, meta: { title: '凭证' } },
     { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '基础资料' } },
     { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
     { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '科目维护' } },
