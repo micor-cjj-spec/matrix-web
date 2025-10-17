@@ -35,6 +35,7 @@ import AuxDetailLedgerView from '../views/login/ledger/aux-detail-ledger/AuxDeta
 import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDataView.vue';
 import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
 import AccountSubjectForm from '../views/login/finance/base-data/account-subject/AccountSubjectForm.vue';
+import SharedOperationsView from '../views/login/shared/SharedOperationsView.vue';
 
 
 // 临时空页面组件
@@ -119,6 +120,9 @@ const routes = [
     { path: '/receivable/manage', component: EmptyView, meta: { title: '应收' } },
     { path: '/receivable/estimate', component: EmptyView, meta: { title: '暂估应收' } },
     { path: '/receivable/settlement', component: EmptyView, meta: { title: '结算处理' } },
+
+    // 共享云 - 共享运营管理
+    { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },
 
     {
         path: '/enterprise-modeling',
