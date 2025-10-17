@@ -6,6 +6,8 @@ import EnterpriseModelingView from '../views/login/enterprise-modeling/Enterpris
 import PersonalView from '../views/login/enterprise-modeling/person/PersonalView.vue';
 import BusinessUnitView from '../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue';
 import DeptDimensionView from '../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue';
+import OrgFunctionTypeView from '../views/login/enterprise-modeling/org-function-type/OrgFunctionTypeView.vue';
+import OrgPatternView from '../views/login/enterprise-modeling/org-pattern/OrgPatternView.vue';
 import BaseDataView from '../views/login/base-data/BaseDataView.vue';
 import MaterialView from '../views/login/base-data/material/MaterialView.vue';
 import CustomerView from '../views/login/base-data/customer/CustomerView.vue';
@@ -19,6 +21,17 @@ import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
 import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
+import VoucherView from '../views/login/ledger/VoucherView.vue';
+
+import SubjectBalanceView from '../views/login/ledger/subject-balance/SubjectBalanceView.vue';
+import GeneralLedgerBookView from '../views/login/ledger/general-ledger/GeneralLedgerBookView.vue';
+import DetailLedgerView from '../views/login/ledger/detail-ledger/DetailLedgerView.vue';
+import DailyReportView from '../views/login/ledger/daily-report/DailyReportView.vue';
+import DimensionBalanceView from '../views/login/ledger/dimension-balance/DimensionBalanceView.vue';
+import AuxDimensionBalanceView from '../views/login/ledger/aux-dimension-balance/AuxDimensionBalanceView.vue';
+import AuxGeneralLedgerView from '../views/login/ledger/aux-general-ledger/AuxGeneralLedgerView.vue';
+import AuxDetailLedgerView from '../views/login/ledger/aux-detail-ledger/AuxDetailLedgerView.vue';
+
 import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDataView.vue';
 import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
 import AccountSubjectForm from '../views/login/finance/base-data/account-subject/AccountSubjectForm.vue';
@@ -70,6 +83,17 @@ const routes = [
     { path: '/workbench', component: EmptyView, meta: { title: '报账工作台' } },
 
     { path: '/ledger', name: 'Ledger', component: GeneralLedgerView, meta: { title: '总账' } },
+    { path: '/ledger/voucher', name: 'Voucher', component: VoucherView, meta: { title: '凭证' } },
+
+    { path: '/ledger/subject-balance', name: 'SubjectBalance', component: SubjectBalanceView, meta: { title: '科目余额表' } },
+    { path: '/ledger/general-ledger', name: 'GeneralLedgerBook', component: GeneralLedgerBookView, meta: { title: '总分类账' } },
+    { path: '/ledger/detail-ledger', name: 'DetailLedger', component: DetailLedgerView, meta: { title: '明细分类账' } },
+    { path: '/ledger/daily-report', name: 'DailyReport', component: DailyReportView, meta: { title: '日报表' } },
+    { path: '/ledger/dimension-balance', name: 'DimensionBalance', component: DimensionBalanceView, meta: { title: '核算维度余额表' } },
+    { path: '/ledger/aux-dimension-balance', name: 'AuxDimensionBalance', component: AuxDimensionBalanceView, meta: { title: '辅助核算维度余额表' } },
+    { path: '/ledger/aux-general-ledger', name: 'AuxGeneralLedger', component: AuxGeneralLedgerView, meta: { title: '辅助总账' } },
+    { path: '/ledger/aux-detail-ledger', name: 'AuxDetailLedger', component: AuxDetailLedgerView, meta: { title: '辅助明细账' } },
+
     { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '基础资料' } },
     { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
     { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '科目维护' } },
@@ -127,6 +151,18 @@ const routes = [
         name: 'DepartmentDimension',
         component: DeptDimensionView,
         meta: { title: '部门维度管理' }
+    },
+    {
+        path: '/org-function-type',
+        name: 'OrgFunctionType',
+        component: OrgFunctionTypeView,
+        meta: { title: '组织职能类型管理' }
+    },
+    {
+        path: '/org-pattern',
+        name: 'OrgPattern',
+        component: OrgPatternView,
+        meta: { title: '组织形态管理' }
     },
     { path: '/material', name: 'Material', component: MaterialView, meta: { title: '物料管理' } },
     { path: '/customer', name: 'Customer', component: CustomerView, meta: { title: '客户管理' } },

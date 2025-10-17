@@ -32,8 +32,9 @@
           <v-form ref="formRef" v-model="dialog.valid">
             <v-text-field v-model="dialog.form.fname" label="名称" :rules="[v => !!v || '必填']" required />
             <v-text-field v-model="dialog.form.fcode" label="编码" />
-            <v-text-field v-model="dialog.form.fmanagerid" label="负责人ID" />
-            <v-select v-model="dialog.form.fstatus" :items="['启用','停用','草稿']" label="状态" clearable />
+            <v-text-field v-model="dialog.form.fshort_name" label="简称" />
+            <v-text-field v-model="dialog.form.fmanage_org_code" label="管理组织编码" />
+            <v-select v-model="dialog.form.fusagestatus" :items="['启用','停用','草稿']" label="使用状态" clearable />
           </v-form>
         </v-card-text>
         <v-card-actions>
@@ -78,8 +79,9 @@ const {
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },
   { title: '编码', value: 'fcode' },
-  { title: '负责人ID', value: 'fmanagerid' },
-  { title: '状态', value: 'fstatus' },
+  { title: '简称', value: 'fshort_name' },
+  { title: '管理组织编码', value: 'fmanage_org_code' },
+  { title: '使用状态', value: 'fusagestatus' },
   { title: '操作', value: 'actions', sortable: false, align: 'center', width: 150 },
 ])
 
@@ -96,8 +98,9 @@ const dialog = reactive({
     fid: null,
     fname: '',
     fcode: '',
-    fmanagerid: '',
-    fstatus: '',
+    fshort_name: '',
+    fmanage_org_code: '',
+    fusagestatus: '',
   },
   valid: false,
   unitRef: null,
@@ -107,7 +110,7 @@ const formRef = ref()
 function openCreateDialog() {
   dialog.visible = true
   dialog.mode = 'create'
-  Object.assign(dialog.form, { fid: null, fname: '', fcode: '', fmanagerid: '', fstatus: '' })
+  Object.assign(dialog.form, { fid: null, fname: '', fcode: '', fshort_name: '', fmanage_org_code: '', fusagestatus: '' })
   dialog.unitRef = null
 }
 function openEditDialog(unit) {

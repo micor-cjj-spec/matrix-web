@@ -8,6 +8,8 @@ export function useEnterpriseModeling() {
                 { name: '人员', icon: '👤', path: '/personal' }, // 跳转人员管理
                 { name: '业务单元', icon: '🏢', path: '/business-unit' },
                 { name: '部门维度管理', icon: '🏬', path: '/department-dimension' },
+                { name: '组织职能类型', icon: '🧩', path: '/org-function-type' },
+                { name: '组织形态', icon: '🏷️', path: '/org-pattern' },
                 { name: '人员类型', icon: '👥' },
                 { name: '行政组织', icon: '🔗' }
             ]
