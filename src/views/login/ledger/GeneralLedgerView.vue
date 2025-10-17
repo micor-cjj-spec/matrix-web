@@ -36,14 +36,14 @@ const groups = ref([
   {
     name: '账表查询',
     modules: [
-      { name: '科目余额表', icon: '📈' },
-      { name: '总分类账', icon: '📂' },
-      { name: '明细分类账', icon: '📑' },
-      { name: '日报表', icon: '🗓️' },
-      { name: '核算维度余额表', icon: '📊' },
-      { name: '辅助核算维度余额表', icon: '📊' },
-      { name: '辅助总账', icon: '📋' },
-      { name: '辅助明细账', icon: '📋' }
+      { name: '科目余额表', icon: '📈', path: '/ledger/subject-balance' },
+      { name: '总分类账', icon: '📂', path: '/ledger/general-ledger' },
+      { name: '明细分类账', icon: '📑', path: '/ledger/detail-ledger' },
+      { name: '日报表', icon: '🗓️', path: '/ledger/daily-report' },
+      { name: '核算维度余额表', icon: '📊', path: '/ledger/dimension-balance' },
+      { name: '辅助核算维度余额表', icon: '📊', path: '/ledger/aux-dimension-balance' },
+      { name: '辅助总账', icon: '📋', path: '/ledger/aux-general-ledger' },
+      { name: '辅助明细账', icon: '📋', path: '/ledger/aux-detail-ledger' }
     ]
   },
   {
