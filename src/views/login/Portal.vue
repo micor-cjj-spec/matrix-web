@@ -93,6 +93,7 @@ const sideMenus = [
   { name: '资金云' },
   { name: '员工服务云' },
   { name: '财务云' },
+  { name: '共享云' },
   { name: '基础服务云' },
 ]
 
@@ -119,6 +120,9 @@ const modulesMap = {
     { name: '财务报表', path: '/reports', icon: '📊', desc: '财务分析报表' },
     { name: '应付', path: '/payable', icon: '💳', desc: '应付业务管理' },
     { name: '应收', path: '/receivable', icon: '💰', desc: '应收业务管理' },
+  ],
+  '共享云': [
+    { name: '共享运营管理', path: '/shared/operations', icon: '🤝', desc: '共享任务池与协同运营' },
   ],
   '基础服务云': [
     { name: '企业建模', path: '/enterprise-modeling', icon: '🏗️', desc: '企业业务建模' },
