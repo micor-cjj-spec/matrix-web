@@ -45,14 +45,14 @@
                 class="login-input"
                 density="comfortable"
             />
-            <div class="captcha-box">
+            <div v-if="needCaptcha" class="captcha-box">
               <v-text-field
                   v-model="form.account.captcha"
                   label="验证码"
                   clearable
                   class="captcha-input"
                   prepend-inner-icon="mdi-shield-key"
-                  :rules="[v => !!v || '请输入验证码']"
+                  :rules="captchaRules"
                   density="comfortable"
               />
               <img :src="captchaUrl" class="captcha-img" @click="refreshCaptcha" alt="验证码" />
@@ -163,6 +163,8 @@ const {
   showPassword,
   sendSms,
   smsCountdown,
+  needCaptcha,
+  captchaRules,
 } = useLogin(router, snackbar)
 </script>
 
