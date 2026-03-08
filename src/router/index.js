@@ -187,6 +187,19 @@ const router = createRouter({
 import { updateActivity } from '@/utils/auth'
 
 router.beforeEach((to, from, next) => {
+    // APP(H5)免登桥接：支持 /portal?token=xxx&from=uniapp
+    const urlToken = typeof to.query?.token === 'string' ? to.query.token : ''
+    if (urlToken) {
+        localStorage.setItem('token', urlToken)
+        localStorage.setItem('lastActivityTime', Date.now().toString())
+
+        // 清理地址栏 token，避免泄露
+        const query = { ...to.query }
+        delete query.token
+        delete query.from
+        return next({ path: to.path, query, replace: true })
+    }
+
     // 设置页面 title
     if (to.meta?.title) {
         document.title = to.meta.title;
