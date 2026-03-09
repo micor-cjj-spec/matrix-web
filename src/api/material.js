@@ -20,9 +20,24 @@ export function getMaterialDetail(fid) {
   return request.get(`/material/${fid}`)
 }
 
+export function submitMaterial(fid) {
+  return request.post(`/material/${fid}/submit`)
+}
+
+export function auditMaterial(fid) {
+  return request.post(`/material/${fid}/audit`)
+}
+
+export function rejectMaterial(fid) {
+  return request.post(`/material/${fid}/reject`)
+}
+
 export default {
   fetchList: getMaterialList,
   createItem: createMaterial,
   editItem: editMaterial,
+  submitItem: submitMaterial,
+  auditItem: auditMaterial,
+  rejectItem: rejectMaterial,
   deleteItem: deleteMaterial,
 }

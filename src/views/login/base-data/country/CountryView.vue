@@ -6,9 +6,15 @@
         <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">创建国家</v-btn>
       </div>
       <v-data-table :headers="headers" :items="list" :loading="loading" class="elevation-0" item-key="fid" hide-default-footer dense>
+        <template #item.fstatus="{ item }">
+          {{ statusLabel(item.fstatus) }}
+        </template>
         <template #item.actions="{ item }">
-          <v-btn size="small" color="primary" variant="tonal" @click="openEditDialog(item)">编辑</v-btn>
-          <v-btn size="small" color="error" variant="tonal" class="ml-1" @click="openDeleteDialog(item)">删除</v-btn>
+          <v-btn size="small" color="primary" variant="tonal" @click="openEditDialog(item)" :disabled="item.fstatus === 'AUDITED'">编辑</v-btn>
+          <v-btn size="small" color="warning" variant="tonal" class="ml-1" @click="handleSubmit(item)" :disabled="item.fstatus !== 'DRAFT'">提交审核</v-btn>
+          <v-btn size="small" color="success" variant="tonal" class="ml-1" @click="handleAudit(item)" :disabled="item.fstatus !== 'SUBMITTED'">审核通过</v-btn>
+          <v-btn size="small" color="secondary" variant="tonal" class="ml-1" @click="handleReject(item)" :disabled="item.fstatus !== 'SUBMITTED'">驳回</v-btn>
+          <v-btn size="small" color="error" variant="tonal" class="ml-1" @click="openDeleteDialog(item)" :disabled="item.fstatus === 'AUDITED'">删除</v-btn>
         </template>
       </v-data-table>
     </v-card>
@@ -53,12 +59,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
 import countryApi from '@/api/country'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(countryApi)
+const { list, loading, fetchList, createItem, editItem, deleteItem, submitItem, auditItem, rejectItem } = useSimpleData(countryApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },
   { title: '编码', value: 'fcode' },
-  { title: '操作', value: 'actions', sortable: false, align: 'center', width: 150 },
+  { title: '状态', value: 'fstatus', align: 'center', width: 120 },
+  { title: '操作', value: 'actions', sortable: false, align: 'center', width: 320 },
 ])
 
 const snackbar = reactive({ show: false, text: '', color: 'success' })
@@ -109,6 +116,26 @@ function showMsg(text, color = 'success') {
   snackbar.text = text
   snackbar.color = color
   snackbar.show = true
+}
+
+function statusLabel(status) {
+  const map = { DRAFT: '草稿', SUBMITTED: '已提交', AUDITED: '已审核', REJECTED: '已驳回' }
+  return map[status] || status || '草稿'
+}
+
+async function handleSubmit(item) {
+  await submitItem(item)
+  showMsg('提交审核成功')
+}
+
+async function handleAudit(item) {
+  await auditItem(item)
+  showMsg('审核通过')
+}
+
+async function handleReject(item) {
+  await rejectItem(item)
+  showMsg('已驳回', 'warning')
 }
 
 onMounted(() => {
