@@ -315,7 +315,7 @@ async function handleConfirm() {
     closeDialog()
     await fetchVouchers()
   } catch (e) {
-    showMsg(e?.message || '操作失败', 'error')
+    showMsg(getErrMsg(e, '操作失败'), 'error')
   }
 }
 
@@ -327,7 +327,7 @@ async function openLineDialog() {
     if (!lineDialog.lines.length) addLine()
     lineDialog.visible = true
   } catch (e) {
-    showMsg(e?.message || '加载分录失败', 'error')
+    showMsg(getErrMsg(e, '加载分录失败'), 'error')
   }
 }
 
@@ -358,7 +358,7 @@ async function saveLines() {
     showMsg('分录保存成功', 'success')
     await fetchVouchers()
   } catch (e) {
-    showMsg(e?.message || '保存分录失败', 'error')
+    showMsg(getErrMsg(e, '保存分录失败'), 'error')
   }
 }
 
@@ -377,7 +377,7 @@ async function handleDelete() {
     selectedItem.value = null
     await fetchVouchers()
   } catch (e) {
-    showMsg(e?.message || '删除失败', 'error')
+    showMsg(getErrMsg(e, '删除失败'), 'error')
   }
 }
 
@@ -391,7 +391,7 @@ async function runAction(apiFn, successMsg) {
       selectedItem.value = vouchers.value.find(v => v.fid === selectedItem.value.fid) || null
     }
   } catch (e) {
-    showMsg(e?.message || '操作失败', 'error')
+    showMsg(getErrMsg(e, '操作失败'), 'error')
   }
 }
 
@@ -423,8 +423,12 @@ async function printSelected() {
     w.focus()
     w.print()
   } catch (e) {
-    showMsg(e?.message || '打印准备失败', 'error')
+    showMsg(getErrMsg(e, '打印准备失败'), 'error')
   }
+}
+
+function getErrMsg(err, fallback = '操作失败') {
+  return err?.response?.data?.message || err?.response?.data?.msg || err?.message || fallback
 }
 
 function showMsg(text, color = 'info') {
