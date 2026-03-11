@@ -12,8 +12,38 @@ export function editVoucher(data) {
   return request.put('/voucher', data)
 }
 
+export function deleteVoucher(fid) {
+  return request.delete(`/voucher/${fid}`)
+}
+
+export function submitVoucher(fid) {
+  return request.post(`/voucher/submit/${fid}`)
+}
+
+export function auditVoucher(fid) {
+  return request.post(`/voucher/audit/${fid}`)
+}
+
+export function postVoucher(fid) {
+  return request.post(`/voucher/post/${fid}`)
+}
+
+export function rejectVoucher(fid) {
+  return request.post(`/voucher/reject/${fid}`)
+}
+
+export function reverseVoucher(fid) {
+  return request.post(`/voucher/reverse/${fid}`)
+}
+
 export default {
   fetchList: getVoucherList,
   createItem: createVoucher,
   editItem: editVoucher,
+  deleteItem: deleteVoucher,
+  submitItem: submitVoucher,
+  auditItem: auditVoucher,
+  postItem: postVoucher,
+  rejectItem: rejectVoucher,
+  reverseItem: reverseVoucher,
 }
