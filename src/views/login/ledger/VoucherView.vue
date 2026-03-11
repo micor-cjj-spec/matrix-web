@@ -6,6 +6,7 @@
         <div class="toolbar">
           <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">新增凭证</v-btn>
           <v-btn color="primary" variant="tonal" class="ml-2" @click="openEditDialog(selectedItem)" :disabled="!canEdit">编辑</v-btn>
+          <v-btn color="teal" variant="tonal" class="ml-2" @click="openLineDialog" :disabled="!canEdit">分录</v-btn>
           <v-btn color="warning" variant="tonal" class="ml-2" @click="handleSubmitSelected" :disabled="!canSubmit">提交</v-btn>
           <v-btn color="success" variant="tonal" class="ml-2" @click="handleAuditSelected" :disabled="!canAudit">审核</v-btn>
           <v-btn color="indigo" variant="tonal" class="ml-2" @click="handlePostSelected" :disabled="!canPost">过账</v-btn>
@@ -54,6 +55,45 @@
           <v-spacer />
           <v-btn variant="text" @click="closeDialog">取消</v-btn>
           <v-btn variant="text" color="primary" @click="handleConfirm">{{ dialog.mode === 'create' ? '创建' : '保存' }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="lineDialog.visible" max-width="980" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>分录维护 - {{ selectedItem?.fnumber || '-' }}</span>
+          <v-btn size="small" color="primary" variant="tonal" @click="addLine">新增行</v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-table density="compact">
+            <thead>
+              <tr>
+                <th style="width:60px;">行号</th>
+                <th>科目</th>
+                <th>摘要</th>
+                <th style="width:140px;">借方</th>
+                <th style="width:140px;">贷方</th>
+                <th style="width:90px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(line, idx) in lineDialog.lines" :key="idx">
+                <td>{{ idx + 1 }}</td>
+                <td><v-text-field v-model="line.faccountCode" density="compact" hide-details variant="outlined" /></td>
+                <td><v-text-field v-model="line.fsummary" density="compact" hide-details variant="outlined" /></td>
+                <td><v-text-field v-model.number="line.fdebitAmount" type="number" density="compact" hide-details variant="outlined" /></td>
+                <td><v-text-field v-model.number="line.fcreditAmount" type="number" density="compact" hide-details variant="outlined" /></td>
+                <td><v-btn size="x-small" color="error" variant="tonal" @click="removeLine(idx)">删除</v-btn></td>
+              </tr>
+            </tbody>
+          </v-table>
+          <div class="mt-3 line-total">借方合计：{{ lineTotals.debit.toFixed(2) }} ｜ 贷方合计：{{ lineTotals.credit.toFixed(2) }}</div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="lineDialog.visible = false">取消</v-btn>
+          <v-btn variant="text" color="primary" @click="saveLines">保存分录</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -108,9 +148,15 @@ const dialog = reactive({
   }
 })
 const deleteDialog = reactive({ visible: false, item: null })
+const lineDialog = reactive({ visible: false, lines: [] })
+
+const lineTotals = computed(() => ({
+  debit: lineDialog.lines.reduce((s, it) => s + Number(it.fdebitAmount || 0), 0),
+  credit: lineDialog.lines.reduce((s, it) => s + Number(it.fcreditAmount || 0), 0)
+}))
 
 const canEdit = computed(() => selectedItem.value && ['DRAFT', 'REJECTED'].includes(selectedItem.value.fstatus))
-const canSubmit = computed(() => selectedItem.value && selectedItem.value.fstatus === 'DRAFT')
+const canSubmit = computed(() => selectedItem.value && ['DRAFT', 'REJECTED'].includes(selectedItem.value.fstatus))
 const canAudit = computed(() => selectedItem.value && selectedItem.value.fstatus === 'SUBMITTED')
 const canPost = computed(() => selectedItem.value && selectedItem.value.fstatus === 'AUDITED')
 const canReject = computed(() => selectedItem.value && selectedItem.value.fstatus === 'SUBMITTED')
@@ -191,6 +237,49 @@ async function handleConfirm() {
   }
 }
 
+async function openLineDialog() {
+  if (!selectedItem.value?.fid) return
+  try {
+    const res = await voucherApi.fetchLines(selectedItem.value.fid)
+    lineDialog.lines = (res.data || []).map(it => ({ ...it }))
+    if (!lineDialog.lines.length) addLine()
+    lineDialog.visible = true
+  } catch (e) {
+    showMsg(e?.message || '加载分录失败', 'error')
+  }
+}
+
+function addLine() {
+  lineDialog.lines.push({
+    faccountCode: '',
+    fsummary: selectedItem.value?.fsummary || '',
+    fdebitAmount: 0,
+    fcreditAmount: 0
+  })
+}
+
+function removeLine(index) {
+  lineDialog.lines.splice(index, 1)
+}
+
+async function saveLines() {
+  if (!selectedItem.value?.fid) return
+  try {
+    const payload = lineDialog.lines.map((it, idx) => ({
+      ...it,
+      flineNo: idx + 1,
+      fdebitAmount: Number(it.fdebitAmount || 0),
+      fcreditAmount: Number(it.fcreditAmount || 0)
+    }))
+    await voucherApi.saveLines(selectedItem.value.fid, payload)
+    lineDialog.visible = false
+    showMsg('分录保存成功', 'success')
+    await fetchVouchers()
+  } catch (e) {
+    showMsg(e?.message || '保存分录失败', 'error')
+  }
+}
+
 function openDeleteDialog(item) {
   if (!item) return
   deleteDialog.visible = true
@@ -245,5 +334,6 @@ onMounted(fetchVouchers)
 .title { font-size: 22px; font-weight: bold; color: #27324c; letter-spacing: 2px; margin-bottom: 12px; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin-bottom: 8px; }
 .selected-tip { font-size: 13px; color: #5f6b84; }
+.line-total { font-size: 13px; color: #334155; font-weight: 600; }
 :deep(.selected-row) { background: #e8f1ff !important; }
 </style>

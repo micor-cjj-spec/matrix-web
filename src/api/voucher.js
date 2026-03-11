@@ -36,6 +36,14 @@ export function reverseVoucher(fid) {
   return request.post(`/voucher/reverse/${fid}`)
 }
 
+export function getVoucherLines(fid) {
+  return request.get(`/voucher/${fid}/lines`)
+}
+
+export function saveVoucherLines(fid, lines = []) {
+  return request.put(`/voucher/${fid}/lines`, lines)
+}
+
 export default {
   fetchList: getVoucherList,
   createItem: createVoucher,
@@ -46,4 +54,6 @@ export default {
   postItem: postVoucher,
   rejectItem: rejectVoucher,
   reverseItem: reverseVoucher,
+  fetchLines: getVoucherLines,
+  saveLines: saveVoucherLines,
 }
