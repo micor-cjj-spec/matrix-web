@@ -9,6 +9,7 @@ export function deleteArapDoc(fid) { return request.delete(`/arap-doc/${fid}`) }
 export function submitArapDoc(fid) { return request.post(`/arap-doc/submit/${fid}`) }
 export function auditArapDoc(fid) { return request.post(`/arap-doc/audit/${fid}`) }
 export function rejectArapDoc(fid) { return request.post(`/arap-doc/reject/${fid}`) }
+export function generateVoucher(fid) { return request.post(`/arap-doc/voucher/${fid}`) }
 
 export default {
   fetchList: getArapDocList,
@@ -18,4 +19,5 @@ export default {
   submitItem: submitArapDoc,
   auditItem: auditArapDoc,
   rejectItem: rejectArapDoc,
+  generateVoucher,
 }
