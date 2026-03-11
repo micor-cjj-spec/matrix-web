@@ -13,9 +13,18 @@
           <v-btn color="secondary" variant="tonal" class="ml-2" @click="handleRejectSelected" :disabled="!canReject">驳回</v-btn>
           <v-btn color="deep-purple" variant="tonal" class="ml-2" @click="handleReverseSelected" :disabled="!canReverse">冲销</v-btn>
           <v-btn color="error" variant="tonal" class="ml-2" @click="openDeleteDialog(selectedItem)" :disabled="!canDelete">删除</v-btn>
+          <v-btn color="info" variant="tonal" class="ml-2" @click="printSelected" :disabled="!selectedItem">打印</v-btn>
         </div>
         <div class="selected-tip">
           当前选中：{{ selectedItem ? `${selectedItem.fnumber || '-'}（${statusLabel(selectedItem.fstatus)}）` : '未选择，请点击表格行' }}
+        </div>
+        <div class="filters">
+          <v-text-field v-model="filters.number" label="凭证号" density="compact" variant="outlined" hide-details class="mr-2" />
+          <v-select v-model="filters.status" :items="statusOptions" label="状态" density="compact" variant="outlined" hide-details class="mr-2" style="max-width: 160px;" />
+          <v-text-field v-model="filters.startDate" type="date" label="开始日期" density="compact" variant="outlined" hide-details class="mr-2" style="max-width: 180px;" />
+          <v-text-field v-model="filters.endDate" type="date" label="结束日期" density="compact" variant="outlined" hide-details class="mr-2" style="max-width: 180px;" />
+          <v-btn color="primary" variant="tonal" class="mr-2" @click="handleSearch">查询</v-btn>
+          <v-btn variant="tonal" @click="handleReset">重置</v-btn>
         </div>
       </div>
 
@@ -37,7 +46,8 @@
           {{ Number(item.famount || 0).toFixed(2) }}
         </template>
         <template #item.flink="{ item }">
-          <span class="link-text">{{ linkLabel(item) }}</span>
+          <v-btn v-if="linkLabel(item) !== '-'" size="x-small" color="indigo" variant="text" @click.stop="goLinked(item)">{{ linkLabel(item) }}</v-btn>
+          <span v-else class="link-text">-</span>
         </template>
       </v-data-table>
     </v-card>
@@ -138,6 +148,21 @@ const headers = [
 
 const snackbar = reactive({ show: false, text: '', color: 'info' })
 const formRef = ref()
+const filters = reactive({
+  number: '',
+  status: '',
+  startDate: '',
+  endDate: ''
+})
+const statusOptions = [
+  { title: '全部', value: '' },
+  { title: '草稿', value: 'DRAFT' },
+  { title: '已提交', value: 'SUBMITTED' },
+  { title: '已审核', value: 'AUDITED' },
+  { title: '已过账', value: 'POSTED' },
+  { title: '已驳回', value: 'REJECTED' },
+  { title: '已冲销', value: 'REVERSED' }
+]
 const dialog = reactive({
   visible: false,
   mode: 'create',
@@ -192,10 +217,50 @@ function linkLabel(item) {
   return '-'
 }
 
-async function fetchVouchers() {
+function handleSearch() {
+  fetchVouchers()
+}
+
+function handleReset() {
+  filters.number = ''
+  filters.status = ''
+  filters.startDate = ''
+  filters.endDate = ''
+  fetchVouchers()
+}
+
+function goLinked(item) {
+  if (!item) return
+  const remark = item.fremark || ''
+  if (item.fstatus === 'REVERSED') {
+    const m = remark.match(/已冲销到凭证:([^；\s]+)/)
+    if (!m) return showMsg('未找到关联凭证号', 'warning')
+    const target = vouchers.value.find(v => v.fnumber === m[1])
+    if (!target) return showMsg(`未在当前列表找到 ${m[1]}`, 'warning')
+    selectedItem.value = target
+    return
+  }
+  if ((item.fsummary || '').startsWith('冲销:')) {
+    const m = remark.match(/冲销原凭证ID=([0-9]+)/)
+    if (!m) return showMsg('未找到原凭证ID', 'warning')
+    const target = vouchers.value.find(v => String(v.fid) === String(m[1]))
+    if (!target) return showMsg(`未在当前列表找到 ID=${m[1]}`, 'warning')
+    selectedItem.value = target
+  }
+}
+
+async function fetchVouchers(extraQuery = {}) {
   loading.value = true
   try {
-    const res = await voucherApi.fetchList({ page: 1, size: 500 })
+    const res = await voucherApi.fetchList({
+      page: 1,
+      size: 500,
+      number: filters.number || undefined,
+      status: filters.status || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+      ...extraQuery
+    })
     vouchers.value = res.data?.records || []
   } catch (e) {
     showMsg('加载凭证失败', 'error')
@@ -336,6 +401,32 @@ const handlePostSelected = () => runAction(voucherApi.postItem, '过账成功')
 const handleRejectSelected = () => runAction(voucherApi.rejectItem, '驳回成功')
 const handleReverseSelected = () => runAction(voucherApi.reverseItem, '冲销成功')
 
+async function printSelected() {
+  if (!selectedItem.value?.fid) return
+  try {
+    const res = await voucherApi.fetchLines(selectedItem.value.fid)
+    const lines = res.data || []
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>凭证打印</title>
+      <style>body{font-family:Arial;padding:24px;}h2{margin:0 0 12px 0;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{text-align:left;background:#f5f5f5;} .meta{margin:8px 0 16px;color:#333;} .right{text-align:right;}</style>
+      </head><body>
+      <h2>凭证打印</h2>
+      <div class="meta">凭证号：${selectedItem.value.fnumber || '-'} ｜ 日期：${selectedItem.value.fdate || '-'} ｜ 状态：${statusLabel(selectedItem.value.fstatus)}</div>
+      <div class="meta">摘要：${selectedItem.value.fsummary || '-'}</div>
+      <table><thead><tr><th>行号</th><th>科目</th><th>摘要</th><th>借方</th><th>贷方</th></tr></thead><tbody>
+      ${lines.map((it, idx) => `<tr><td>${idx + 1}</td><td>${it.faccountCode || ''}</td><td>${it.fsummary || ''}</td><td class="right">${Number(it.fdebitAmount || 0).toFixed(2)}</td><td class="right">${Number(it.fcreditAmount || 0).toFixed(2)}</td></tr>`).join('')}
+      </tbody></table>
+      </body></html>`
+    const w = window.open('', '_blank')
+    if (!w) return showMsg('浏览器拦截了打印窗口', 'warning')
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    w.print()
+  } catch (e) {
+    showMsg(e?.message || '打印准备失败', 'error')
+  }
+}
+
 function showMsg(text, color = 'info') {
   snackbar.text = text
   snackbar.color = color
@@ -350,7 +441,8 @@ onMounted(fetchVouchers)
 .header { margin-bottom: 22px; }
 .title { font-size: 22px; font-weight: bold; color: #27324c; letter-spacing: 2px; margin-bottom: 12px; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin-bottom: 8px; }
-.selected-tip { font-size: 13px; color: #5f6b84; }
+.selected-tip { font-size: 13px; color: #5f6b84; margin-bottom: 8px; }
+.filters { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
 .line-total { font-size: 13px; color: #334155; font-weight: 600; }
 .link-text { font-size: 12px; color: #4f46e5; }
 :deep(.selected-row) { background: #e8f1ff !important; }
