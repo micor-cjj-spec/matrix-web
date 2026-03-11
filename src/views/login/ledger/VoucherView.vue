@@ -36,6 +36,9 @@
         <template #item.famount="{ item }">
           {{ Number(item.famount || 0).toFixed(2) }}
         </template>
+        <template #item.flink="{ item }">
+          <span class="link-text">{{ linkLabel(item) }}</span>
+        </template>
       </v-data-table>
     </v-card>
 
@@ -130,6 +133,7 @@ const headers = [
   { title: '摘要', value: 'fsummary' },
   { title: '金额', value: 'famount' },
   { title: '状态', value: 'fstatus', align: 'center', width: 120 },
+  { title: '关联', value: 'flink', align: 'center', width: 220 },
 ]
 
 const snackbar = reactive({ show: false, text: '', color: 'info' })
@@ -173,6 +177,19 @@ function statusLabel(status) {
     REVERSED: '已冲销'
   }
   return map[status] || status || '-'
+}
+
+function linkLabel(item) {
+  const remark = item?.fremark || ''
+  if (item?.fstatus === 'REVERSED') {
+    const m = remark.match(/已冲销到凭证:([^；\s]+)/)
+    return m ? `冲销至 ${m[1]}` : '已冲销'
+  }
+  if ((item?.fsummary || '').startsWith('冲销:')) {
+    const m = remark.match(/冲销原凭证ID=([0-9]+)/)
+    return m ? `冲销自ID ${m[1]}` : '冲销凭证'
+  }
+  return '-'
 }
 
 async function fetchVouchers() {
@@ -335,5 +352,6 @@ onMounted(fetchVouchers)
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin-bottom: 8px; }
 .selected-tip { font-size: 13px; color: #5f6b84; }
 .line-total { font-size: 13px; color: #334155; font-weight: 600; }
+.link-text { font-size: 12px; color: #4f46e5; }
 :deep(.selected-row) { background: #e8f1ff !important; }
 </style>
