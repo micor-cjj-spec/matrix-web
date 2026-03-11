@@ -20,6 +20,7 @@ import RegionView from '../views/login/base-data/region/RegionView.vue';
 import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
+import ArapDocView from '../views/login/finance/ArapDocView.vue';
 import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
 import VoucherView from '../views/login/ledger/VoucherView.vue';
 
@@ -108,16 +109,16 @@ const routes = [
 
     // 财务云 - 应付模块
     { path: '/payable', name: 'Payable', component: PayableView, meta: { title: '应付' } },
-    { path: '/payable/manage', component: EmptyView, meta: { title: '应付' } },
-    { path: '/payable/estimate', component: EmptyView, meta: { title: '暂估应付' } },
-    { path: '/payable/application', component: EmptyView, meta: { title: '付款申请' } },
-    { path: '/payable/processing', component: EmptyView, meta: { title: '付款处理' } },
+    { path: '/payable/manage', component: ArapDocView, meta: { title: '应付', docType: 'AP' } },
+    { path: '/payable/estimate', component: ArapDocView, meta: { title: '暂估应付', docType: 'AP_ESTIMATE' } },
+    { path: '/payable/application', component: ArapDocView, meta: { title: '付款申请', docType: 'AP_PAYMENT_APPLY' } },
+    { path: '/payable/processing', component: ArapDocView, meta: { title: '付款处理', docType: 'AP_PAYMENT_PROCESS' } },
 
     // 财务云 - 应收模块
     { path: '/receivable', name: 'Receivable', component: ReceivableView, meta: { title: '应收' } },
-    { path: '/receivable/manage', component: EmptyView, meta: { title: '应收' } },
-    { path: '/receivable/estimate', component: EmptyView, meta: { title: '暂估应收' } },
-    { path: '/receivable/settlement', component: EmptyView, meta: { title: '结算处理' } },
+    { path: '/receivable/manage', component: ArapDocView, meta: { title: '应收', docType: 'AR' } },
+    { path: '/receivable/estimate', component: ArapDocView, meta: { title: '暂估应收', docType: 'AR_ESTIMATE' } },
+    { path: '/receivable/settlement', component: ArapDocView, meta: { title: '结算处理', docType: 'AR_SETTLEMENT' } },
 
     // 共享云 - 共享运营管理
     { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },
