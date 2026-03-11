@@ -15,7 +15,7 @@
           当前选中：{{ selectedItem ? `${selectedItem.fname || '-'}（${statusLabel(selectedItem.fstatus)}）` : '未选择，请点击表格行' }}
         </div>
       </div>
-      <v-data-table :headers="headers" :items="list" :loading="loading" class="elevation-0" item-key="fid" hide-default-footer dense @click:row="handleRowClick">
+      <v-data-table :headers="headers" :items="list" :loading="loading" class="elevation-0" item-key="fid" hide-default-footer dense @click:row="handleRowClick" :row-props="getRowProps">
         <template #item.fstatus="{ item }">
           {{ statusLabel(item.fstatus) }}
         </template>
@@ -93,6 +93,10 @@ function openCreateDialog() {
 
 function handleRowClick(_, row) {
   selectedItem.value = row?.item || null
+}
+
+function getRowProps({ item }) {
+  return item?.fid && selectedItem.value?.fid === item.fid ? { class: 'selected-row' } : {}
 }
 
 function handleEditSelected() {
@@ -186,4 +190,5 @@ onMounted(() => {
 .title { font-size: 22px; font-weight: bold; color: #27324c; letter-spacing: 2px; margin-bottom: 12px; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin-bottom: 8px; }
 .selected-tip { font-size: 13px; color: #5f6b84; }
+:deep(.selected-row) { background: #e8f1ff !important; }
 </style>
