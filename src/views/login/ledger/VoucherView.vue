@@ -14,8 +14,10 @@
           <v-btn color="deep-purple" variant="tonal" class="ml-2" @click="handleReverseSelected" :disabled="!canReverse">冲销</v-btn>
           <v-btn color="error" variant="tonal" class="ml-2" @click="openDeleteDialog(selectedItem)" :disabled="!canDelete">删除</v-btn>
           <v-btn color="teal" variant="tonal" class="ml-2" @click="triggerImport" :loading="importing">导入</v-btn>
+          <v-btn color="deep-purple" variant="tonal" class="ml-2" @click="triggerOcrImport" :loading="ocrParsing">OCR导入</v-btn>
           <v-btn color="info" variant="tonal" class="ml-2" @click="printSelected" :disabled="!selectedItem">打印</v-btn>
           <input ref="importInputRef" type="file" accept=".csv,text/csv" style="display:none" @change="handleImportFile" />
+          <input ref="ocrInputRef" type="file" accept="image/*,.pdf,application/pdf" style="display:none" @change="handleOcrFile" />
         </div>
         <div class="selected-tip">
           当前选中：{{ selectedItem ? `${selectedItem.fnumber || '-'}（${statusLabel(selectedItem.fstatus)}）` : '未选择，请点击表格行' }}
@@ -128,6 +130,24 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="ocrDialog.visible" max-width="760" persistent>
+      <v-card>
+        <v-card-title>OCR导入预览</v-card-title>
+        <v-card-text>
+          <v-text-field v-model="ocrDialog.form.fdate" type="date" label="凭证日期" />
+          <v-text-field v-model="ocrDialog.form.fsummary" label="摘要" />
+          <v-text-field v-model.number="ocrDialog.form.famount" type="number" label="金额" />
+          <v-textarea v-model="ocrDialog.rawText" label="OCR原文（可核对）" rows="8" auto-grow />
+          <div class="text-caption text-medium-emphasis">当前MVP：先导入凭证头，分录请在“分录”按钮中补充。</div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="ocrDialog.visible=false">取消</v-btn>
+          <v-btn color="primary" variant="text" @click="confirmOcrImport">确认导入</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2200">
       {{ snackbar.text }}
     </v-snackbar>
@@ -143,8 +163,10 @@ const route = useRoute()
 const vouchers = ref([])
 const loading = ref(false)
 const importing = ref(false)
+const ocrParsing = ref(false)
 const selectedItem = ref(null)
 const importInputRef = ref()
+const ocrInputRef = ref()
 
 const headers = [
   { title: '凭证号', value: 'fnumber' },
@@ -187,6 +209,15 @@ const dialog = reactive({
 })
 const deleteDialog = reactive({ visible: false, item: null })
 const lineDialog = reactive({ visible: false, lines: [] })
+const ocrDialog = reactive({
+  visible: false,
+  rawText: '',
+  form: {
+    fdate: '',
+    fsummary: '',
+    famount: 1
+  }
+})
 
 const lineTotals = computed(() => ({
   debit: lineDialog.lines.reduce((s, it) => s + Number(it.fdebitAmount || 0), 0),
@@ -478,6 +509,48 @@ async function handleImportFile(event) {
   } finally {
     importing.value = false
     if (event?.target) event.target.value = ''
+  }
+}
+
+function triggerOcrImport() {
+  ocrInputRef.value?.click()
+}
+
+async function handleOcrFile(event) {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+  try {
+    ocrParsing.value = true
+    const res = await voucherApi.ocrParse(file)
+    const data = res.data || {}
+    const voucher = data.voucher || {}
+    ocrDialog.rawText = data.rawText || ''
+    ocrDialog.form.fdate = voucher.fdate || new Date().toISOString().slice(0, 10)
+    ocrDialog.form.fsummary = voucher.fsummary || 'OCR导入凭证'
+    ocrDialog.form.famount = Number(voucher.famount || 1)
+    ocrDialog.visible = true
+    showMsg(data.warning || 'OCR解析完成，请核对后导入', 'info')
+  } catch (e) {
+    showMsg(getErrMsg(e, 'OCR解析失败'), 'error')
+  } finally {
+    ocrParsing.value = false
+    if (event?.target) event.target.value = ''
+  }
+}
+
+async function confirmOcrImport() {
+  try {
+    await voucherApi.ocrConfirm({
+      fdate: ocrDialog.form.fdate,
+      fsummary: ocrDialog.form.fsummary,
+      famount: Number(ocrDialog.form.famount || 1),
+      fremark: 'OCR导入'
+    })
+    ocrDialog.visible = false
+    showMsg('OCR导入成功（已生成草稿凭证）', 'success')
+    await fetchVouchers()
+  } catch (e) {
+    showMsg(getErrMsg(e, 'OCR导入失败'), 'error')
   }
 }
 

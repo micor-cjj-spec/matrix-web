@@ -44,6 +44,18 @@ export function saveVoucherLines(fid, lines = []) {
   return request.put(`/voucher/${fid}/lines`, lines)
 }
 
+export function ocrParseVoucher(file) {
+  const form = new FormData()
+  form.append('file', file)
+  return request.post('/voucher/import/ocr/parse', form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export function ocrConfirmVoucher(data) {
+  return request.post('/voucher/import/ocr/confirm', data)
+}
+
 export default {
   fetchList: getVoucherList,
   createItem: createVoucher,
@@ -56,4 +68,6 @@ export default {
   reverseItem: reverseVoucher,
   fetchLines: getVoucherLines,
   saveLines: saveVoucherLines,
+  ocrParse: ocrParseVoucher,
+  ocrConfirm: ocrConfirmVoucher,
 }
