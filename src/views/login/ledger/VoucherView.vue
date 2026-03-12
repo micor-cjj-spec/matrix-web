@@ -13,7 +13,9 @@
           <v-btn color="secondary" variant="tonal" class="ml-2" @click="handleRejectSelected" :disabled="!canReject">驳回</v-btn>
           <v-btn color="deep-purple" variant="tonal" class="ml-2" @click="handleReverseSelected" :disabled="!canReverse">冲销</v-btn>
           <v-btn color="error" variant="tonal" class="ml-2" @click="openDeleteDialog(selectedItem)" :disabled="!canDelete">删除</v-btn>
+          <v-btn color="teal" variant="tonal" class="ml-2" @click="triggerImport" :loading="importing">导入</v-btn>
           <v-btn color="info" variant="tonal" class="ml-2" @click="printSelected" :disabled="!selectedItem">打印</v-btn>
+          <input ref="importInputRef" type="file" accept=".csv,text/csv" style="display:none" @change="handleImportFile" />
         </div>
         <div class="selected-tip">
           当前选中：{{ selectedItem ? `${selectedItem.fnumber || '-'}（${statusLabel(selectedItem.fstatus)}）` : '未选择，请点击表格行' }}
@@ -140,7 +142,9 @@ import voucherApi from '@/api/voucher'
 const route = useRoute()
 const vouchers = ref([])
 const loading = ref(false)
+const importing = ref(false)
 const selectedItem = ref(null)
+const importInputRef = ref()
 
 const headers = [
   { title: '凭证号', value: 'fnumber' },
@@ -405,6 +409,77 @@ const handleAuditSelected = () => runAction(voucherApi.auditItem, '审核成功'
 const handlePostSelected = () => runAction(voucherApi.postItem, '过账成功')
 const handleRejectSelected = () => runAction(voucherApi.rejectItem, '驳回成功')
 const handleReverseSelected = () => runAction(voucherApi.reverseItem, '冲销成功')
+
+function triggerImport() {
+  importInputRef.value?.click()
+}
+
+function parseCsvRow(line) {
+  const result = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(cur)
+      cur = ''
+    } else {
+      cur += ch
+    }
+  }
+  result.push(cur)
+  return result.map(v => (v || '').trim())
+}
+
+async function handleImportFile(event) {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+  try {
+    importing.value = true
+    const text = await file.text()
+    const lines = text.split(/\r?\n/).filter(Boolean)
+    if (lines.length < 2) throw new Error('导入文件为空')
+
+    // 模板：凭证号,日期,摘要,金额,备注
+    const rows = lines.slice(1).map(parseCsvRow)
+    let ok = 0
+    let fail = 0
+
+    for (const row of rows) {
+      const [fnumber, fdate, fsummary, famount, fremark] = row
+      if (!fdate || !fsummary || !famount) {
+        fail++
+        continue
+      }
+      try {
+        await voucherApi.createItem({
+          fnumber: fnumber || undefined,
+          fdate,
+          fsummary,
+          famount: Number(famount),
+          fremark: fremark || ''
+        })
+        ok++
+      } catch (_) {
+        fail++
+      }
+    }
+    showMsg(`导入完成：成功 ${ok} 条，失败 ${fail} 条`, fail ? 'warning' : 'success')
+    await fetchVouchers()
+  } catch (e) {
+    showMsg(getErrMsg(e, '导入失败'), 'error')
+  } finally {
+    importing.value = false
+    if (event?.target) event.target.value = ''
+  }
+}
 
 async function printSelected() {
   if (!selectedItem.value?.fid) return
