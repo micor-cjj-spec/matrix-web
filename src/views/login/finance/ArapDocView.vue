@@ -6,9 +6,9 @@
         <div class="toolbar">
           <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">创建</v-btn>
           <v-btn color="primary" variant="tonal" class="ml-2" @click="openEditDialog(selectedItem)" :disabled="!canEdit">编辑</v-btn>
-          <v-btn color="warning" variant="tonal" class="ml-2" @click="runAction(api.submitItem, '提交成功')" :disabled="!canSubmit">提交</v-btn>
-          <v-btn color="success" variant="tonal" class="ml-2" @click="runAction(api.auditItem, '审核成功')" :disabled="!canAudit">审核</v-btn>
-          <v-btn color="secondary" variant="tonal" class="ml-2" @click="runAction(api.rejectItem, '驳回成功')" :disabled="!canReject">驳回</v-btn>
+          <v-btn color="warning" variant="tonal" class="ml-2" @click="submitDoc" :disabled="!canSubmit">提交</v-btn>
+          <v-btn color="success" variant="tonal" class="ml-2" @click="auditDoc" :disabled="!canAudit">审核</v-btn>
+          <v-btn color="secondary" variant="tonal" class="ml-2" @click="rejectDoc" :disabled="!canReject">驳回</v-btn>
           <v-btn color="deep-purple" variant="tonal" class="ml-2" @click="generateVoucher" :disabled="!canGenerateVoucher">生成凭证</v-btn>
           <v-btn color="error" variant="tonal" class="ml-2" @click="openDeleteDialog(selectedItem)" :disabled="!canDelete">删除</v-btn>
           <v-btn color="info" variant="tonal" class="ml-2" @click="exportCsv">导出</v-btn>
@@ -184,10 +184,14 @@ async function handleConfirm() {
 function openDeleteDialog(item){ if(!item) return; deleteDialog.visible=true; deleteDialog.item=item }
 async function handleDelete(){ try { await api.deleteItem(deleteDialog.item.fid); deleteDialog.visible=false; selectedItem.value=null; show('删除成功'); await fetchList() } catch (e) { show(e?.response?.data?.message || '删除失败','error') } }
 
-async function runAction(fn, msg) {
-  if (!selectedItem.value?.fid) return
-  try { await fn(selectedItem.value.fid); show(msg); await fetchList(); selectedItem.value = null } catch (e) { show(e?.response?.data?.message || e?.message || '操作失败','error') }
+async function runActionByNumber(fn, msg) {
+  if (!selectedItem.value?.fnumber) return
+  try { await fn(selectedItem.value.fnumber); show(msg); await fetchList(); selectedItem.value = null } catch (e) { show(e?.response?.data?.message || e?.message || '操作失败','error') }
 }
+
+function submitDoc() { return runActionByNumber(api.submitByNumber, '提交成功') }
+function auditDoc() { return runActionByNumber(api.auditByNumber, '审核成功') }
+function rejectDoc() { return runActionByNumber(api.rejectByNumber, '驳回成功') }
 
 async function generateVoucher() {
   if (!selectedItem.value?.fnumber) return
