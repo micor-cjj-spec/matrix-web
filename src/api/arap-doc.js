@@ -10,6 +10,7 @@ export function submitArapDoc(fid) { return request.post(`/arap-doc/submit/${fid
 export function auditArapDoc(fid) { return request.post(`/arap-doc/audit/${fid}`) }
 export function rejectArapDoc(fid) { return request.post(`/arap-doc/reject/${fid}`) }
 export function generateVoucher(fid) { return request.post(`/arap-doc/voucher/${fid}`) }
+export function generateVoucherByNumber(number) { return request.post('/arap-doc/voucher/by-number', null, { params: { number } }) }
 
 export default {
   fetchList: getArapDocList,
@@ -20,4 +21,5 @@ export default {
   auditItem: auditArapDoc,
   rejectItem: rejectArapDoc,
   generateVoucher,
+  generateVoucherByNumber,
 }

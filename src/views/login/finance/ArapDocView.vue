@@ -190,9 +190,9 @@ async function runAction(fn, msg) {
 }
 
 async function generateVoucher() {
-  if (!selectedItem.value?.fid) return
+  if (!selectedItem.value?.fnumber) return
   try {
-    await api.generateVoucher(selectedItem.value.fid)
+    await api.generateVoucherByNumber(selectedItem.value.fnumber)
     show('已生成凭证')
     await fetchList()
   } catch (e) {
