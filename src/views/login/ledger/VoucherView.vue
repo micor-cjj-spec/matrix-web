@@ -39,6 +39,9 @@
         @click:row="handleRowClick"
         :row-props="getRowProps"
       >
+        <template #item.fnumber="{ item }">
+          <v-btn size="small" variant="text" color="primary" @click.stop="openEditDialog(item)">{{ item.fnumber }}</v-btn>
+        </template>
         <template #item.fstatus="{ item }">
           {{ statusLabel(item.fstatus) }}
         </template>
@@ -131,8 +134,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import voucherApi from '@/api/voucher'
 
+const route = useRoute()
 const vouchers = ref([])
 const loading = ref(false)
 const selectedItem = ref(null)
@@ -437,7 +442,12 @@ function showMsg(text, color = 'info') {
   snackbar.show = true
 }
 
-onMounted(fetchVouchers)
+onMounted(() => {
+  if (route.query?.number) {
+    filters.number = String(route.query.number)
+  }
+  fetchVouchers()
+})
 </script>
 
 <style scoped>

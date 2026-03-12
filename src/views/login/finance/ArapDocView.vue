@@ -27,8 +27,14 @@
       </div>
 
       <v-data-table :headers="headers" :items="list" :loading="loading" item-key="fid" hide-default-footer dense @click:row="handleRowClick" :row-props="getRowProps">
+        <template #item.fnumber="{ item }">
+          <v-btn size="small" variant="text" color="primary" @click.stop="openEditDialog(item)">{{ item.fnumber }}</v-btn>
+        </template>
         <template #item.fstatus="{ item }">{{ statusLabel(item.fstatus) }}</template>
-        <template #item.fvoucherNumber="{ item }">{{ item.fvoucherNumber || '-' }}</template>
+        <template #item.fvoucherNumber="{ item }">
+          <v-btn v-if="item.fvoucherNumber" size="small" variant="text" color="indigo" @click.stop="goVoucher(item)">{{ item.fvoucherNumber }}</v-btn>
+          <span v-else>-</span>
+        </template>
       </v-data-table>
     </v-card>
 
@@ -77,10 +83,11 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/arap-doc'
 
 const route = useRoute()
+const router = useRouter()
 const docType = computed(() => route.meta?.docType || 'AR')
 const title = computed(() => route.meta?.title || '单据')
 
@@ -191,6 +198,15 @@ async function generateVoucher() {
   } catch (e) {
     show(e?.response?.data?.message || e?.message || '生成凭证失败', 'error')
   }
+}
+
+function goVoucher(item) {
+  if (!item?.fvoucherNumber) return
+  const url = router.resolve({
+    path: '/ledger/voucher',
+    query: { number: item.fvoucherNumber }
+  }).href
+  window.open(url, '_blank')
 }
 
 function exportCsv() {
