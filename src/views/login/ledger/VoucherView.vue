@@ -137,8 +137,25 @@
           <v-text-field v-model="ocrDialog.form.fdate" type="date" label="凭证日期" />
           <v-text-field v-model="ocrDialog.form.fsummary" label="摘要" />
           <v-text-field v-model.number="ocrDialog.form.famount" type="number" label="金额" />
-          <v-textarea v-model="ocrDialog.rawText" label="OCR原文（可核对）" rows="8" auto-grow />
-          <div class="text-caption text-medium-emphasis">当前MVP：先导入凭证头，分录请在“分录”按钮中补充。</div>
+          <v-textarea v-model="ocrDialog.rawText" label="OCR原文（可核对）" rows="6" auto-grow />
+          <v-table density="compact" class="mt-3">
+            <thead>
+              <tr>
+                <th>科目</th><th>摘要</th><th>借方</th><th>贷方</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(line, idx) in ocrDialog.lines" :key="idx">
+                <td><v-text-field v-model="line.faccountCode" density="compact" hide-details variant="outlined" /></td>
+                <td><v-text-field v-model="line.fsummary" density="compact" hide-details variant="outlined" /></td>
+                <td><v-text-field v-model.number="line.fdebitAmount" type="number" density="compact" hide-details variant="outlined" /></td>
+                <td><v-text-field v-model.number="line.fcreditAmount" type="number" density="compact" hide-details variant="outlined" /></td>
+                <td><v-btn size="x-small" color="error" variant="tonal" @click="ocrDialog.lines.splice(idx,1)">删</v-btn></td>
+              </tr>
+            </tbody>
+          </v-table>
+          <v-btn size="small" class="mt-2" variant="tonal" @click="addOcrLine">新增分录</v-btn>
+          <div class="text-caption text-medium-emphasis mt-1">借方合计：{{ ocrTotals.debit.toFixed(2) }} ｜ 贷方合计：{{ ocrTotals.credit.toFixed(2) }}</div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -212,6 +229,7 @@ const lineDialog = reactive({ visible: false, lines: [] })
 const ocrDialog = reactive({
   visible: false,
   rawText: '',
+  lines: [],
   form: {
     fdate: '',
     fsummary: '',
@@ -222,6 +240,11 @@ const ocrDialog = reactive({
 const lineTotals = computed(() => ({
   debit: lineDialog.lines.reduce((s, it) => s + Number(it.fdebitAmount || 0), 0),
   credit: lineDialog.lines.reduce((s, it) => s + Number(it.fcreditAmount || 0), 0)
+}))
+
+const ocrTotals = computed(() => ({
+  debit: ocrDialog.lines.reduce((s, it) => s + Number(it.fdebitAmount || 0), 0),
+  credit: ocrDialog.lines.reduce((s, it) => s + Number(it.fcreditAmount || 0), 0)
 }))
 
 const canEdit = computed(() => selectedItem.value && ['DRAFT', 'REJECTED'].includes(selectedItem.value.fstatus))
@@ -528,6 +551,13 @@ async function handleOcrFile(event) {
     ocrDialog.form.fdate = voucher.fdate || new Date().toISOString().slice(0, 10)
     ocrDialog.form.fsummary = voucher.fsummary || 'OCR导入凭证'
     ocrDialog.form.famount = Number(voucher.famount || 1)
+    ocrDialog.lines = (data.lines || []).map(it => ({
+      faccountCode: it.faccountCode || '',
+      fsummary: it.fsummary || ocrDialog.form.fsummary,
+      fdebitAmount: Number(it.fdebitAmount || 0),
+      fcreditAmount: Number(it.fcreditAmount || 0)
+    }))
+    if (!ocrDialog.lines.length) addOcrLine()
     ocrDialog.visible = true
     showMsg(data.warning || 'OCR解析完成，请核对后导入', 'info')
   } catch (e) {
@@ -538,16 +568,42 @@ async function handleOcrFile(event) {
   }
 }
 
+function addOcrLine() {
+  ocrDialog.lines.push({
+    faccountCode: '',
+    fsummary: ocrDialog.form.fsummary || 'OCR导入凭证',
+    fdebitAmount: 0,
+    fcreditAmount: 0
+  })
+}
+
 async function confirmOcrImport() {
   try {
+    if (!ocrDialog.lines.length) {
+      showMsg('请至少保留一条分录', 'warning')
+      return
+    }
+    if (Number(ocrTotals.debit.toFixed(2)) !== Number(ocrTotals.credit.toFixed(2))) {
+      showMsg('借贷不平衡，请先调整分录', 'warning')
+      return
+    }
     await voucherApi.ocrConfirm({
-      fdate: ocrDialog.form.fdate,
-      fsummary: ocrDialog.form.fsummary,
-      famount: Number(ocrDialog.form.famount || 1),
-      fremark: 'OCR导入'
+      voucher: {
+        fdate: ocrDialog.form.fdate,
+        fsummary: ocrDialog.form.fsummary,
+        famount: Number(ocrDialog.form.famount || 1),
+        fremark: 'OCR导入'
+      },
+      lines: ocrDialog.lines.map((it, idx) => ({
+        flineNo: idx + 1,
+        faccountCode: it.faccountCode,
+        fsummary: it.fsummary,
+        fdebitAmount: Number(it.fdebitAmount || 0),
+        fcreditAmount: Number(it.fcreditAmount || 0)
+      }))
     })
     ocrDialog.visible = false
-    showMsg('OCR导入成功（已生成草稿凭证）', 'success')
+    showMsg('OCR导入成功（凭证+分录）', 'success')
     await fetchVouchers()
   } catch (e) {
     showMsg(getErrMsg(e, 'OCR导入失败'), 'error')
