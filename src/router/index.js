@@ -21,6 +21,7 @@ import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
 import ArapDocView from '../views/login/finance/ArapDocView.vue';
+import AgingCreditView from '../views/login/finance/AgingCreditView.vue';
 import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
 import VoucherView from '../views/login/ledger/VoucherView.vue';
 
@@ -113,12 +114,14 @@ const routes = [
     { path: '/payable/estimate', component: ArapDocView, meta: { title: '暂估应付', docType: 'AP_ESTIMATE' } },
     { path: '/payable/application', component: ArapDocView, meta: { title: '付款申请', docType: 'AP_PAYMENT_APPLY' } },
     { path: '/payable/processing', component: ArapDocView, meta: { title: '付款处理', docType: 'AP_PAYMENT_PROCESS' } },
+    { path: '/payable/aging-credit', component: AgingCreditView, meta: { title: '应付账龄与信用预警', titleRoot: '应付', docTypeRoot: 'AP' } },
 
     // 财务云 - 应收模块
     { path: '/receivable', name: 'Receivable', component: ReceivableView, meta: { title: '应收' } },
     { path: '/receivable/manage', component: ArapDocView, meta: { title: '应收', docType: 'AR' } },
     { path: '/receivable/estimate', component: ArapDocView, meta: { title: '暂估应收', docType: 'AR_ESTIMATE' } },
     { path: '/receivable/settlement', component: ArapDocView, meta: { title: '结算处理', docType: 'AR_SETTLEMENT' } },
+    { path: '/receivable/aging-credit', component: AgingCreditView, meta: { title: '应收账龄与信用预警', titleRoot: '应收', docTypeRoot: 'AR' } },
 
     // 共享云 - 共享运营管理
     { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },

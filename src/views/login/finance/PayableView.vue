@@ -35,7 +35,8 @@ const modules = [
   { name: '应付', icon: '💳', path: '/payable/manage' },
   { name: '暂估应付', icon: '⌛', path: '/payable/estimate' },
   { name: '付款申请', icon: '📝', path: '/payable/application' },
-  { name: '付款处理', icon: '💵', path: '/payable/processing' }
+  { name: '付款处理', icon: '💵', path: '/payable/processing' },
+  { name: '账龄与信用预警', icon: '🚨', path: '/payable/aging-credit' }
 ]
 
 const snackbar = ref({ show: false, text: '', color: 'info' })

@@ -14,6 +14,10 @@ export function rejectArapDoc(fid) { return request.post(`/arap-doc/reject/${fid
 export function rejectArapDocByNumber(number) { return request.post('/arap-doc/reject/by-number', null, { params: { number } }) }
 export function generateVoucher(fid) { return request.post(`/arap-doc/voucher/${fid}`) }
 export function generateVoucherByNumber(number) { return request.post('/arap-doc/voucher/by-number', null, { params: { number } }) }
+export function getAgingSummary(params = {}) { return request.get('/arap-doc/aging/summary', { params }) }
+export function getCreditWarnings(params = {}) { return request.get('/arap-doc/credit/warnings', { params }) }
+export function saveCreditConfig(data, operator) { return request.post('/arap-doc/credit/config', data, { params: { operator } }) }
+export function getCreditConfigList(params = {}) { return request.get('/arap-doc/credit/config/list', { params }) }
 
 export default {
   fetchList: getArapDocList,
@@ -28,4 +32,8 @@ export default {
   rejectByNumber: rejectArapDocByNumber,
   generateVoucher,
   generateVoucherByNumber,
+  getAgingSummary,
+  getCreditWarnings,
+  saveCreditConfig,
+  getCreditConfigList,
 }
