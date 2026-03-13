@@ -86,6 +86,10 @@
           <v-list density="compact" class="risk-list">
             <v-list-item v-for="(tip, idx) in riskDialog.tips" :key="idx" :title="tip" />
           </v-list>
+          <div class="mt-2" v-if="riskDialog.suggestions.length">
+            <div class="text-subtitle-2 mb-1">建议动作</div>
+            <v-chip v-for="(s, idx) in riskDialog.suggestions" :key="idx" size="small" color="indigo" variant="tonal" class="mr-1 mb-1">{{ s }}</v-chip>
+          </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -135,7 +139,7 @@ const filters = reactive({ number: '', counterparty: '', status: '', startDate: 
 
 const dialog = reactive({ visible: false, mode: 'create', valid: false, form: { fid: null, fdoctype: '', fnumber: '', fdate: '', fcounterparty: '', famount: null, fremark: '', fpayMethod: '', fplannedPayDate: '', fsettleMethod: '', fwriteoffDetail: '', fsourceBillNo: '' } })
 const deleteDialog = reactive({ visible: false, item: null })
-const riskDialog = reactive({ visible: false, counterparty: '', tips: [], resolver: null })
+const riskDialog = reactive({ visible: false, counterparty: '', tips: [], suggestions: [], resolver: null })
 const snackbar = reactive({ show: false, text: '', color: 'success' })
 
 const canEdit = computed(() => selectedItem.value && ['DRAFT','REJECTED'].includes(selectedItem.value.fstatus))
@@ -207,10 +211,11 @@ function getDocTypeRoot() {
   return String(docType.value || '').startsWith('AP') ? 'AP' : 'AR'
 }
 
-function askRiskConfirm(counterparty, tips = []) {
+function askRiskConfirm(counterparty, tips = [], suggestions = []) {
   return new Promise((resolve) => {
     riskDialog.counterparty = counterparty || ''
     riskDialog.tips = tips
+    riskDialog.suggestions = suggestions
     riskDialog.visible = true
     riskDialog.resolver = resolve
   })
@@ -222,6 +227,7 @@ function resolveRisk(pass) {
     riskDialog.resolver(!!pass)
   }
   riskDialog.resolver = null
+  riskDialog.suggestions = []
 }
 
 async function confirmRiskIfNeeded() {
@@ -237,9 +243,16 @@ async function confirmRiskIfNeeded() {
     if (!hit) return true
 
     const tips = []
-    if (hit.overLimit) tips.push(`超额度：未结 ${hit.totalOutstanding} > 额度 ${hit.creditLimit}`)
-    if (hit.overdue) tips.push(`超逾期：最大逾期 ${hit.maxOverdueDays} 天 > 阈值 ${hit.overdueDaysThreshold} 天`)
-    return await askRiskConfirm(item.fcounterparty, tips)
+    const suggestions = []
+    if (hit.overLimit) {
+      tips.push(`超额度：未结 ${hit.totalOutstanding} > 额度 ${hit.creditLimit}${hit.blockOnOverLimit ? '（硬拦截）' : ''}`)
+      suggestions.push('先收款/降额后再提交')
+    }
+    if (hit.overdue) {
+      tips.push(`超逾期：最大逾期 ${hit.maxOverdueDays} 天 > 阈值 ${hit.overdueDaysThreshold} 天${hit.blockOnOverdue ? '（硬拦截）' : ''}`)
+      suggestions.push('走特批流程或先处理逾期')
+    }
+    return await askRiskConfirm(item.fcounterparty, tips, suggestions)
   } catch (e) {
     show('风险预警检查失败，已放行操作', 'warning')
     return true
