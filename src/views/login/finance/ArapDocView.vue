@@ -184,13 +184,43 @@ async function handleConfirm() {
 function openDeleteDialog(item){ if(!item) return; deleteDialog.visible=true; deleteDialog.item=item }
 async function handleDelete(){ try { await api.deleteItem(deleteDialog.item.fid); deleteDialog.visible=false; selectedItem.value=null; show('删除成功'); await fetchList() } catch (e) { show(e?.response?.data?.message || '删除失败','error') } }
 
-async function runActionByNumber(fn, msg) {
+function getDocTypeRoot() {
+  return String(docType.value || '').startsWith('AP') ? 'AP' : 'AR'
+}
+
+async function confirmRiskIfNeeded() {
+  const item = selectedItem.value
+  if (!item?.fcounterparty) return true
+  try {
+    const res = await api.getCreditWarnings({
+      docTypeRoot: getDocTypeRoot(),
+      asOfDate: item.fdate || new Date().toISOString().slice(0, 10),
+    })
+    const warnings = res.data || []
+    const hit = warnings.find(w => w.counterparty === item.fcounterparty)
+    if (!hit) return true
+
+    const tips = []
+    if (hit.overLimit) tips.push(`超额度：未结 ${hit.totalOutstanding} > 额度 ${hit.creditLimit}`)
+    if (hit.overdue) tips.push(`超逾期：最大逾期 ${hit.maxOverdueDays} 天 > 阈值 ${hit.overdueDaysThreshold} 天`)
+    return window.confirm(`【风险预警】${item.fcounterparty}\n${tips.join('\n')}\n\n是否继续操作？`)
+  } catch (e) {
+    show('风险预警检查失败，已放行操作', 'warning')
+    return true
+  }
+}
+
+async function runActionByNumber(fn, msg, withRiskCheck = false) {
   if (!selectedItem.value?.fnumber) return
+  if (withRiskCheck) {
+    const pass = await confirmRiskIfNeeded()
+    if (!pass) return
+  }
   try { await fn(selectedItem.value.fnumber); show(msg); await fetchList(); selectedItem.value = null } catch (e) { show(e?.response?.data?.message || e?.message || '操作失败','error') }
 }
 
-function submitDoc() { return runActionByNumber(api.submitByNumber, '提交成功') }
-function auditDoc() { return runActionByNumber(api.auditByNumber, '审核成功') }
+function submitDoc() { return runActionByNumber(api.submitByNumber, '提交成功', true) }
+function auditDoc() { return runActionByNumber(api.auditByNumber, '审核成功', true) }
 function rejectDoc() { return runActionByNumber(api.rejectByNumber, '驳回成功') }
 
 async function generateVoucher() {
