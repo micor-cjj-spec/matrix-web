@@ -77,6 +77,24 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="riskDialog.visible" max-width="560" persistent>
+      <v-card>
+        <v-card-title class="text-h6">风险预警</v-card-title>
+        <v-card-text>
+          <div class="mb-2">往来方：<b>{{ riskDialog.counterparty }}</b></div>
+          <v-alert type="warning" variant="tonal" density="compact" class="mb-2">检测到信用风险，请确认是否继续。</v-alert>
+          <v-list density="compact" class="risk-list">
+            <v-list-item v-for="(tip, idx) in riskDialog.tips" :key="idx" :title="tip" />
+          </v-list>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="resolveRisk(false)">取消</v-btn>
+          <v-btn color="warning" variant="tonal" @click="resolveRisk(true)">继续操作</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="1800">{{ snackbar.text }}</v-snackbar>
   </div>
 </template>
@@ -117,6 +135,7 @@ const filters = reactive({ number: '', counterparty: '', status: '', startDate: 
 
 const dialog = reactive({ visible: false, mode: 'create', valid: false, form: { fid: null, fdoctype: '', fnumber: '', fdate: '', fcounterparty: '', famount: null, fremark: '', fpayMethod: '', fplannedPayDate: '', fsettleMethod: '', fwriteoffDetail: '', fsourceBillNo: '' } })
 const deleteDialog = reactive({ visible: false, item: null })
+const riskDialog = reactive({ visible: false, counterparty: '', tips: [], resolver: null })
 const snackbar = reactive({ show: false, text: '', color: 'success' })
 
 const canEdit = computed(() => selectedItem.value && ['DRAFT','REJECTED'].includes(selectedItem.value.fstatus))
@@ -188,6 +207,23 @@ function getDocTypeRoot() {
   return String(docType.value || '').startsWith('AP') ? 'AP' : 'AR'
 }
 
+function askRiskConfirm(counterparty, tips = []) {
+  return new Promise((resolve) => {
+    riskDialog.counterparty = counterparty || ''
+    riskDialog.tips = tips
+    riskDialog.visible = true
+    riskDialog.resolver = resolve
+  })
+}
+
+function resolveRisk(pass) {
+  riskDialog.visible = false
+  if (typeof riskDialog.resolver === 'function') {
+    riskDialog.resolver(!!pass)
+  }
+  riskDialog.resolver = null
+}
+
 async function confirmRiskIfNeeded() {
   const item = selectedItem.value
   if (!item?.fcounterparty) return true
@@ -203,7 +239,7 @@ async function confirmRiskIfNeeded() {
     const tips = []
     if (hit.overLimit) tips.push(`超额度：未结 ${hit.totalOutstanding} > 额度 ${hit.creditLimit}`)
     if (hit.overdue) tips.push(`超逾期：最大逾期 ${hit.maxOverdueDays} 天 > 阈值 ${hit.overdueDaysThreshold} 天`)
-    return window.confirm(`【风险预警】${item.fcounterparty}\n${tips.join('\n')}\n\n是否继续操作？`)
+    return await askRiskConfirm(item.fcounterparty, tips)
   } catch (e) {
     show('风险预警检查失败，已放行操作', 'warning')
     return true
@@ -261,5 +297,5 @@ onMounted(fetchList)
 </script>
 
 <style scoped>
-.page{padding:24px}.header{margin-bottom:16px}.title{font-size:22px;font-weight:bold;color:#27324c;letter-spacing:2px;margin-bottom:12px}.toolbar{display:flex;flex-wrap:wrap;align-items:center;margin-bottom:8px}.filter-row{display:flex;flex-wrap:wrap;align-items:center;margin-bottom:8px}.selected-row{background:#e8f1ff !important}
+.page{padding:24px}.header{margin-bottom:16px}.title{font-size:22px;font-weight:bold;color:#27324c;letter-spacing:2px;margin-bottom:12px}.toolbar{display:flex;flex-wrap:wrap;align-items:center;margin-bottom:8px}.filter-row{display:flex;flex-wrap:wrap;align-items:center;margin-bottom:8px}.selected-row{background:#e8f1ff !important}.risk-list{max-height:220px;overflow:auto}
 </style>
