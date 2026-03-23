@@ -38,6 +38,7 @@ import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDat
 import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
 import AccountSubjectForm from '../views/login/finance/base-data/account-subject/AccountSubjectForm.vue';
 import SharedOperationsView from '../views/login/shared/SharedOperationsView.vue';
+import AiAssistantView from '../views/ai/AiAssistantView.vue';
 
 
 // 临时空页面组件
@@ -125,6 +126,7 @@ const routes = [
 
     // 共享云 - 共享运营管理
     { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },
+    { path: '/ai/assistant', name: 'AiAssistant', component: AiAssistantView, meta: { title: 'AI 助手' } },
 
     {
         path: '/enterprise-modeling',
