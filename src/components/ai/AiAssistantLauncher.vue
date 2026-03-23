@@ -55,12 +55,14 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { chatWithAi } from '@/api/ai'
 
 const route = useRoute()
 const router = useRouter()
 
 const drawer = ref(false)
 const question = ref('')
+const sending = ref(false)
 const messages = ref([
   { role: 'assistant', text: '你好，我是 AI 助手。你可以先问我业务流程、报表口径或系统功能。' },
 ])
@@ -71,13 +73,23 @@ const showLauncher = computed(() => {
   return !!localStorage.getItem('token')
 })
 
-function handleAsk() {
+async function handleAsk() {
   const content = question.value.trim()
-  if (!content) return
+  if (!content || sending.value) return
 
   messages.value.push({ role: 'user', text: content })
-  messages.value.push({ role: 'assistant', text: '已收到。当前是前端占位回复，后续会接入 /api/ai/chat 实时回答。' })
   question.value = ''
+  sending.value = true
+
+  try {
+    const resp = await chatWithAi({ userMessage: content, stream: false })
+    const answer = resp?.data?.answer || '抱歉，暂时没有生成回复。'
+    messages.value.push({ role: 'assistant', text: answer })
+  } catch (error) {
+    messages.value.push({ role: 'assistant', text: 'AI 服务暂不可用，请稍后重试。' })
+  } finally {
+    sending.value = false
+  }
 }
 
 function goFullPage() {
