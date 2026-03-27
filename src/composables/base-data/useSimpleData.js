@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export function useSimpleData(api, fields = ['fid','fname','fcode']) {
+export function useSimpleData(api, fields = ['fid','fname','fcode','fstatus']) {
   const list = ref([])
   const loading = ref(false)
 
@@ -34,5 +34,23 @@ export function useSimpleData(api, fields = ['fid','fname','fcode']) {
     await fetchList()
   }
 
-  return { list, loading, fetchList, createItem, editItem, deleteItem }
+  const submitItem = async (item) => {
+    if (!api.submitItem) return
+    await api.submitItem(item.fid)
+    await fetchList()
+  }
+
+  const auditItem = async (item) => {
+    if (!api.auditItem) return
+    await api.auditItem(item.fid)
+    await fetchList()
+  }
+
+  const rejectItem = async (item) => {
+    if (!api.rejectItem) return
+    await api.rejectItem(item.fid)
+    await fetchList()
+  }
+
+  return { list, loading, fetchList, createItem, editItem, deleteItem, submitItem, auditItem, rejectItem }
 }

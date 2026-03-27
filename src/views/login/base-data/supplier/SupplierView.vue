@@ -3,12 +3,21 @@
     <v-card elevation="4" class="pa-6">
       <div class="header">
         <h2 class="title">供应商管理</h2>
-        <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">创建供应商</v-btn>
+        <div class="toolbar">
+          <v-btn color="primary" @click="openCreateDialog" prepend-icon="mdi-plus">创建供应商</v-btn>
+          <v-btn color="primary" variant="tonal" class="ml-2" @click="handleEditSelected" :disabled="!canEdit">编辑</v-btn>
+          <v-btn color="warning" variant="tonal" class="ml-2" @click="handleSubmitSelected" :disabled="!canSubmit">提交审核</v-btn>
+          <v-btn color="success" variant="tonal" class="ml-2" @click="handleAuditSelected" :disabled="!canAudit">审核通过</v-btn>
+          <v-btn color="secondary" variant="tonal" class="ml-2" @click="handleRejectSelected" :disabled="!canAudit">驳回</v-btn>
+          <v-btn color="error" variant="tonal" class="ml-2" @click="handleDeleteSelected" :disabled="!canDelete">删除</v-btn>
+        </div>
+        <div class="selected-tip">
+          当前选中：{{ selectedItem ? `${selectedItem.fname || '-'}（${statusLabel(selectedItem.fstatus)}）` : '未选择，请点击表格行' }}
+        </div>
       </div>
-      <v-data-table :headers="headers" :items="list" :loading="loading" class="elevation-0" item-key="fid" hide-default-footer dense>
-        <template #item.actions="{ item }">
-          <v-btn size="small" color="primary" variant="tonal" @click="openEditDialog(item)">编辑</v-btn>
-          <v-btn size="small" color="error" variant="tonal" class="ml-1" @click="openDeleteDialog(item)">删除</v-btn>
+      <v-data-table :headers="headers" :items="list" :loading="loading" class="elevation-0" item-key="fid" hide-default-footer dense @click:row="handleRowClick" :row-props="getRowProps">
+        <template #item.fstatus="{ item }">
+          {{ statusLabel(item.fstatus) }}
         </template>
       </v-data-table>
     </v-card>
@@ -49,17 +58,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useSimpleData } from '@/composables/base-data/useSimpleData'
 import supplierApi from '@/api/supplier'
 
-const { list, loading, fetchList, createItem, editItem, deleteItem } = useSimpleData(supplierApi)
+const { list, loading, fetchList, createItem, editItem, deleteItem, submitItem, auditItem, rejectItem } = useSimpleData(supplierApi)
 
 const headers = ref([
   { title: '名称', value: 'fname', align: 'start' },
   { title: '编码', value: 'fcode' },
-  { title: '操作', value: 'actions', sortable: false, align: 'center', width: 150 },
+  { title: '状态', value: 'fstatus', align: 'center', width: 120 },
 ])
+
+const selectedItem = ref(null)
+const canEdit = computed(() => selectedItem.value && selectedItem.value.fstatus !== 'AUDITED')
+const canSubmit = computed(() => selectedItem.value && selectedItem.value.fstatus === 'DRAFT')
+const canAudit = computed(() => selectedItem.value && selectedItem.value.fstatus === 'SUBMITTED')
+const canDelete = computed(() => selectedItem.value && selectedItem.value.fstatus !== 'AUDITED')
 
 const snackbar = reactive({ show: false, text: '', color: 'success' })
 const dialog = reactive({
@@ -74,6 +89,39 @@ function openCreateDialog() {
   dialog.visible = true
   dialog.mode = 'create'
   Object.assign(dialog.form, { fid: null, fname: '', fcode: '' })
+}
+
+function handleRowClick(_, row) {
+  selectedItem.value = row?.item || null
+}
+
+function getRowProps({ item }) {
+  return item?.fid && selectedItem.value?.fid === item.fid ? { class: 'selected-row' } : {}
+}
+
+function handleEditSelected() {
+  if (!selectedItem.value) return
+  openEditDialog(selectedItem.value)
+}
+
+async function handleSubmitSelected() {
+  if (!selectedItem.value) return
+  await handleSubmit(selectedItem.value)
+}
+
+async function handleAuditSelected() {
+  if (!selectedItem.value) return
+  await handleAudit(selectedItem.value)
+}
+
+async function handleRejectSelected() {
+  if (!selectedItem.value) return
+  await handleReject(selectedItem.value)
+}
+
+function handleDeleteSelected() {
+  if (!selectedItem.value) return
+  openDeleteDialog(selectedItem.value)
 }
 function openEditDialog(item) {
   dialog.visible = true
@@ -111,6 +159,26 @@ function showMsg(text, color = 'success') {
   snackbar.show = true
 }
 
+function statusLabel(status) {
+  const map = { DRAFT: '草稿', SUBMITTED: '已提交', AUDITED: '已审核', REJECTED: '已驳回' }
+  return map[status] || status || '草稿'
+}
+
+async function handleSubmit(item) {
+  await submitItem(item)
+  showMsg('提交审核成功')
+}
+
+async function handleAudit(item) {
+  await auditItem(item)
+  showMsg('审核通过')
+}
+
+async function handleReject(item) {
+  await rejectItem(item)
+  showMsg('已驳回', 'warning')
+}
+
 onMounted(() => {
   fetchList()
 })
@@ -118,6 +186,9 @@ onMounted(() => {
 
 <style scoped>
 .supplier-page { padding: 24px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
-.title { font-size: 22px; font-weight: bold; color: #27324c; letter-spacing: 2px; }
+.header { margin-bottom: 22px; }
+.title { font-size: 22px; font-weight: bold; color: #27324c; letter-spacing: 2px; margin-bottom: 12px; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin-bottom: 8px; }
+.selected-tip { font-size: 13px; color: #5f6b84; }
+:deep(.selected-row) { background: #e8f1ff !important; }
 </style>
