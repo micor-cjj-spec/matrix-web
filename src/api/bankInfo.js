@@ -20,9 +20,24 @@ export function getBankInfoDetail(fid) {
   return request.get(`/bank-info/${fid}`)
 }
 
+export function submitBankInfo(fid) {
+  return request.post(`/bank-info/${fid}/submit`)
+}
+
+export function auditBankInfo(fid) {
+  return request.post(`/bank-info/${fid}/audit`)
+}
+
+export function rejectBankInfo(fid) {
+  return request.post(`/bank-info/${fid}/reject`)
+}
+
 export default {
   fetchList: getBankInfoList,
   createItem: createBankInfo,
   editItem: editBankInfo,
+  submitItem: submitBankInfo,
+  auditItem: auditBankInfo,
+  rejectItem: rejectBankInfo,
   deleteItem: deleteBankInfo,
 }

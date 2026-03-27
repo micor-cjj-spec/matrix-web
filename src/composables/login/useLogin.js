@@ -18,6 +18,7 @@ export function useLogin(router, snackbar) {
     const phoneFormRef = ref()
     const validAccount = ref(false)
     const validPhone = ref(false)
+    const needCaptcha = ref(false)
 
     // 新增：短信验证码倒计时
     const smsCountdown = ref(0)
@@ -139,6 +140,10 @@ export function useLogin(router, snackbar) {
         }
     }
 
+    const captchaRules = [
+        (v) => !needCaptcha.value || !!v || '请输入验证码',
+    ]
+
     // 登录逻辑
     const handleLogin = async () => {
         if (activeTab.value === 'account') {
@@ -153,8 +158,12 @@ export function useLogin(router, snackbar) {
                     resetAll()
                     router.push('/portal')
                 } catch (e) {
-                    showMsg(e.response?.data?.message || '登录失败', 'error')
-                    refreshCaptcha()
+                    const msg = e.response?.data?.message || '登录失败'
+                    if (msg.includes('登录失败3次及以上') || msg.includes('验证码')) {
+                        needCaptcha.value = true
+                        refreshCaptcha()
+                    }
+                    showMsg(msg, 'error')
                 } finally {
                     loading.value = false
                 }
@@ -207,6 +216,7 @@ export function useLogin(router, snackbar) {
         form.account.password = ''
         form.account.captcha = ''
         form.account.captchaKey = ''
+        needCaptcha.value = false
         form.phone.mobile = ''
         form.phone.code = ''
         if (form.qrcode.pollingTimer) {
@@ -244,5 +254,7 @@ export function useLogin(router, snackbar) {
         showPassword,
         sendSms,
         smsCountdown,
+        needCaptcha,
+        captchaRules,
     }
 }

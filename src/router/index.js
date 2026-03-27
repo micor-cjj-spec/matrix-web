@@ -20,6 +20,8 @@ import RegionView from '../views/login/base-data/region/RegionView.vue';
 import UnitView from '../views/login/base-data/unit/UnitView.vue';
 import PayableView from '../views/login/finance/PayableView.vue';
 import ReceivableView from '../views/login/finance/ReceivableView.vue';
+import ArapDocView from '../views/login/finance/ArapDocView.vue';
+import AgingCreditView from '../views/login/finance/AgingCreditView.vue';
 import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue';
 import VoucherView from '../views/login/ledger/VoucherView.vue';
 
@@ -36,6 +38,7 @@ import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDat
 import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue';
 import AccountSubjectForm from '../views/login/finance/base-data/account-subject/AccountSubjectForm.vue';
 import SharedOperationsView from '../views/login/shared/SharedOperationsView.vue';
+import AiAssistantView from '../views/ai/AiAssistantView.vue';
 
 
 // 临时空页面组件
@@ -100,29 +103,30 @@ const routes = [
     { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '科目维护' } },
     { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
     { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
-    { path: '/payable', component: EmptyView, meta: { title: '应付' } },
     { path: '/estimated-payable', component: EmptyView, meta: { title: '暂估应付' } },
     { path: '/payment-application', component: EmptyView, meta: { title: '付款申请' } },
     { path: '/payment-processing', component: EmptyView, meta: { title: '付款处理' } },
-    { path: '/receivable', component: EmptyView, meta: { title: '应收' } },
     { path: '/estimated-receivable', component: EmptyView, meta: { title: '暂估应收' } },
     { path: '/settlement-processing', component: EmptyView, meta: { title: '结算处理' } },
 
     // 财务云 - 应付模块
     { path: '/payable', name: 'Payable', component: PayableView, meta: { title: '应付' } },
-    { path: '/payable/manage', component: EmptyView, meta: { title: '应付' } },
-    { path: '/payable/estimate', component: EmptyView, meta: { title: '暂估应付' } },
-    { path: '/payable/application', component: EmptyView, meta: { title: '付款申请' } },
-    { path: '/payable/processing', component: EmptyView, meta: { title: '付款处理' } },
+    { path: '/payable/manage', component: ArapDocView, meta: { title: '应付', docType: 'AP' } },
+    { path: '/payable/estimate', component: ArapDocView, meta: { title: '暂估应付', docType: 'AP_ESTIMATE' } },
+    { path: '/payable/application', component: ArapDocView, meta: { title: '付款申请', docType: 'AP_PAYMENT_APPLY' } },
+    { path: '/payable/processing', component: ArapDocView, meta: { title: '付款处理', docType: 'AP_PAYMENT_PROCESS' } },
+    { path: '/payable/aging-credit', component: AgingCreditView, meta: { title: '应付账龄与信用预警', titleRoot: '应付', docTypeRoot: 'AP' } },
 
     // 财务云 - 应收模块
     { path: '/receivable', name: 'Receivable', component: ReceivableView, meta: { title: '应收' } },
-    { path: '/receivable/manage', component: EmptyView, meta: { title: '应收' } },
-    { path: '/receivable/estimate', component: EmptyView, meta: { title: '暂估应收' } },
-    { path: '/receivable/settlement', component: EmptyView, meta: { title: '结算处理' } },
+    { path: '/receivable/manage', component: ArapDocView, meta: { title: '应收', docType: 'AR' } },
+    { path: '/receivable/estimate', component: ArapDocView, meta: { title: '暂估应收', docType: 'AR_ESTIMATE' } },
+    { path: '/receivable/settlement', component: ArapDocView, meta: { title: '结算处理', docType: 'AR_SETTLEMENT' } },
+    { path: '/receivable/aging-credit', component: AgingCreditView, meta: { title: '应收账龄与信用预警', titleRoot: '应收', docTypeRoot: 'AR' } },
 
     // 共享云 - 共享运营管理
     { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },
+    { path: '/ai/assistant', name: 'AiAssistant', component: AiAssistantView, meta: { title: 'AI 助手' } },
 
     {
         path: '/enterprise-modeling',
@@ -189,6 +193,19 @@ const router = createRouter({
 import { updateActivity } from '@/utils/auth'
 
 router.beforeEach((to, from, next) => {
+    // APP(H5)免登桥接：支持 /portal?token=xxx&from=uniapp
+    const urlToken = typeof to.query?.token === 'string' ? to.query.token : ''
+    if (urlToken) {
+        localStorage.setItem('token', urlToken)
+        localStorage.setItem('lastActivityTime', Date.now().toString())
+
+        // 清理地址栏 token，避免泄露
+        const query = { ...to.query }
+        delete query.token
+        delete query.from
+        return next({ path: to.path, query, replace: true })
+    }
+
     // 设置页面 title
     if (to.meta?.title) {
         document.title = to.meta.title;

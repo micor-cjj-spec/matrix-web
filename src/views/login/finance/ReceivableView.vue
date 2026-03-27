@@ -34,7 +34,8 @@ const router = useRouter()
 const modules = [
   { name: '应收', icon: '💰', path: '/receivable/manage' },
   { name: '暂估应收', icon: '⏳', path: '/receivable/estimate' },
-  { name: '结算处理', icon: '🔄', path: '/receivable/settlement' }
+  { name: '结算处理', icon: '🔄', path: '/receivable/settlement' },
+  { name: '账龄与信用预警', icon: '🚨', path: '/receivable/aging-credit' }
 ]
 
 const snackbar = ref({ show: false, text: '', color: 'info' })
