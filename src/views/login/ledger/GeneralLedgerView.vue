@@ -127,8 +127,8 @@ const groups = [
     name: '基础设置',
     modules: [
       { name: '凭证类型', badge: 'VT' },
-      { name: '现金流量项目', badge: 'CF' },
-      { name: '科目现金流映射关系', badge: 'CM' },
+      { name: '现金流量项目', badge: 'CF', path: '/ledger/cashflow-item' },
+      { name: '报表科目映射关系', badge: 'CM', path: '/ledger/report-account-map' },
       { name: '核算维度关系设置', badge: 'DR' },
       { name: '核算维度值范围设置', badge: 'DV' },
       { name: '所有者权益变动类型', badge: 'EQ' },

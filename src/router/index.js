@@ -41,6 +41,12 @@ import DimensionBalanceView from '../views/login/ledger/dimension-balance/Dimens
 import AuxDimensionBalanceView from '../views/login/ledger/aux-dimension-balance/AuxDimensionBalanceView.vue'
 import AuxGeneralLedgerView from '../views/login/ledger/aux-general-ledger/AuxGeneralLedgerView.vue'
 import AuxDetailLedgerView from '../views/login/ledger/aux-detail-ledger/AuxDetailLedgerView.vue'
+import ReportItemView from '../views/login/ledger/report/ReportItemView.vue'
+import BalanceSheetView from '../views/login/ledger/report/BalanceSheetView.vue'
+import ProfitStatementView from '../views/login/ledger/report/ProfitStatementView.vue'
+import CashFlowView from '../views/login/ledger/report/CashFlowView.vue'
+import CashflowItemView from '../views/login/ledger/report/CashflowItemView.vue'
+import ReportAccountMapView from '../views/login/ledger/report/ReportAccountMapView.vue'
 
 import SharedOperationsView from '../views/login/shared/SharedOperationsView.vue'
 import AiAssistantView from '../views/ai/AiAssistantView.vue'
@@ -75,14 +81,16 @@ const routes = [
   { path: '/ledger/aux-dimension-balance', name: 'AuxDimensionBalance', component: AuxDimensionBalanceView, meta: { title: '辅助核算维度余额表' } },
   { path: '/ledger/aux-general-ledger', name: 'AuxGeneralLedger', component: AuxGeneralLedgerView, meta: { title: '辅助总账' } },
   { path: '/ledger/aux-detail-ledger', name: 'AuxDetailLedger', component: AuxDetailLedgerView, meta: { title: '辅助明细账' } },
-  { path: '/ledger/report-item', name: 'ReportItem', component: EmptyView, meta: { title: '报表项目' } },
-  { path: '/ledger/balance-sheet', name: 'BalanceSheet', component: EmptyView, meta: { title: '资产负债表' } },
-  { path: '/ledger/profit-statement', name: 'ProfitStatement', component: EmptyView, meta: { title: '利润表' } },
-  { path: '/ledger/cash-flow', name: 'CashFlow', component: EmptyView, meta: { title: '现金流量表' } },
+  { path: '/ledger/report-item', name: 'ReportItem', component: ReportItemView, meta: { title: '报表项目' } },
+  { path: '/ledger/balance-sheet', name: 'BalanceSheet', component: BalanceSheetView, meta: { title: '资产负债表' } },
+  { path: '/ledger/profit-statement', name: 'ProfitStatement', component: ProfitStatementView, meta: { title: '利润表' } },
+  { path: '/ledger/cash-flow', name: 'CashFlow', component: CashFlowView, meta: { title: '现金流量表' } },
+  { path: '/ledger/cashflow-item', name: 'CashflowItem', component: CashflowItemView, meta: { title: '现金流量项目' } },
+  { path: '/ledger/report-account-map', name: 'ReportAccountMap', component: ReportAccountMapView, meta: { title: '报表科目映射' } },
 
   { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '财务基础资料' } },
   { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
-  { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '科目维护' } },
+  { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '会计科目维护' } },
   { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
   { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
   { path: '/estimated-payable', component: EmptyView, meta: { title: '暂估应付' } },

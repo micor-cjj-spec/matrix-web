@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="voucher-page">
     <v-card elevation="4" class="pa-6">
       <div class="header">
