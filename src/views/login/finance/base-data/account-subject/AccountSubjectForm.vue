@@ -94,8 +94,6 @@
 
       <div class="actions">
         <v-btn color="primary" @click="handleSave">保存</v-btn>
-        <v-btn class="ml-3" color="secondary" variant="tonal" v-if="isEdit" @click="handleSubmitReview">提交审核</v-btn>
-        <v-btn class="ml-3" color="error" variant="tonal" v-if="isEdit" @click="handleDelete">删除</v-btn>
         <v-btn class="ml-3" @click="goBack">取消</v-btn>
       </div>
     </v-form>
@@ -109,9 +107,7 @@ import {
   getAccountSubjectDetail,
   createAccountSubject,
   editAccountSubject,
-  deleteAccountSubject,
 } from '@/api/accountSubject'
-import { useReviewActions } from '@/composables/useReview'
 
 const route = useRoute()
 const router = useRouter()
@@ -137,7 +133,6 @@ const reportItemOptions = ref([])
 const level1Options = ref([])
 
 const isEdit = computed(() => !!fid)
-const { submitting, submitOne } = useReviewActions()
 
 async function fetchDetail() {
   if (!fid) return
@@ -156,16 +151,6 @@ async function handleSave() {
     await createAccountSubject(data)
   }
   router.push('/finance/base-data/account-subject')
-}
-
-async function handleDelete() {
-  if (!fid) return
-  await deleteAccountSubject(fid)
-  router.push('/finance/base-data/account-subject')
-}
-
-async function handleSubmitReview() {
-  await submitOne({ fid, fcode: form.fcode, fname: form.fname })
 }
 
 function goBack() {
