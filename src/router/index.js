@@ -44,6 +44,7 @@ import AuxDetailLedgerView from '../views/login/ledger/aux-detail-ledger/AuxDeta
 import ReportItemView from '../views/login/ledger/report/ReportItemView.vue'
 import BalanceSheetView from '../views/login/ledger/report/BalanceSheetView.vue'
 import ProfitStatementView from '../views/login/ledger/report/ProfitStatementView.vue'
+import CashFlowView from '../views/login/ledger/report/CashFlowView.vue'
 
 import SharedOperationsView from '../views/login/shared/SharedOperationsView.vue'
 import AiAssistantView from '../views/ai/AiAssistantView.vue'
@@ -81,6 +82,7 @@ const routes = [
   { path: '/ledger/report-item', name: 'ReportItem', component: ReportItemView, meta: { title: '报表项目' } },
   { path: '/ledger/balance-sheet', name: 'BalanceSheet', component: BalanceSheetView, meta: { title: '资产负债表' } },
   { path: '/ledger/profit-statement', name: 'ProfitStatement', component: ProfitStatementView, meta: { title: '利润表' } },
+  { path: '/ledger/cash-flow', name: 'CashFlow', component: CashFlowView, meta: { title: '现金流量表' } },
 
   { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '财务基础资料' } },
   { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },

@@ -33,7 +33,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const groups = ref([
+const groups = [
   {
     name: '凭证处理',
     modules: [
@@ -58,7 +58,7 @@ const groups = ref([
   {
     name: '现金流量',
     modules: [
-      { name: '现金流量表', badge: 'CF' },
+      { name: '现金流量表', badge: 'CF', path: '/ledger/cash-flow' },
       { name: '现金流量查询', badge: 'CQ' },
       { name: '补充资料', badge: 'EX' },
     ],
@@ -112,7 +112,7 @@ const groups = ref([
       { name: '资产负债表', badge: 'BS', path: '/ledger/balance-sheet' },
       { name: '利润表', badge: 'PL', path: '/ledger/profit-statement' },
       { name: '企业纳税表', badge: 'TX' },
-      { name: '现金流量表', badge: 'CF' },
+      { name: '现金流量表', badge: 'CF', path: '/ledger/cash-flow' },
     ],
   },
   {
@@ -137,7 +137,7 @@ const groups = ref([
       { name: '成本性质', badge: 'CT' },
     ],
   },
-])
+]
 
 const snackbar = ref({ show: false, text: '', color: 'info' })
 
@@ -168,52 +168,52 @@ function handleModuleClick(module) {
 }
 
 .group-title {
-  font-size: 17px;
-  font-weight: 700;
   margin-bottom: 18px;
   color: #2850a7;
+  font-size: 17px;
+  font-weight: 700;
   letter-spacing: 1px;
 }
 
 .module-card {
-  background: #fff;
+  display: flex;
+  min-height: 120px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #e5eaf3;
   border-radius: 12px;
+  background: #fff;
   padding: 22px 12px 18px;
   text-align: center;
   cursor: pointer;
   transition: box-shadow 0.26s, transform 0.18s, border-color 0.18s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
 }
 
 .module-card:hover {
-  box-shadow: 0 8px 24px rgba(71, 109, 200, 0.12);
   transform: translateY(-3px);
   border-color: #90bafd;
   background: #fafdff;
+  box-shadow: 0 8px 24px rgba(71, 109, 200, 0.12);
 }
 
 .module-badge {
+  display: flex;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 12px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #ecf3ff 0%, #dbe9ff 100%);
   color: #2850a7;
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 12px;
 }
 
 .module-name {
-  font-size: 15px;
   color: #24457a;
+  font-size: 15px;
   font-weight: 500;
   line-height: 1.4;
 }
