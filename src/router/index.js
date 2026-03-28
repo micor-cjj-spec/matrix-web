@@ -4,6 +4,7 @@ import { updateActivity } from '@/utils/auth'
 import Login from '../views/login/Login.vue'
 import Portal from '../views/login/Portal.vue'
 import Register from '../views/login/Register.vue'
+import BalanceSheetView from '../views/login/ledger/report/BalanceSheetView.vue'
 
 const EnterpriseModelingView = () => import('../views/login/enterprise-modeling/EnterpriseModelingView.vue')
 const PersonalView = () => import('../views/login/enterprise-modeling/person/PersonalView.vue')
@@ -42,7 +43,6 @@ const AuxDimensionBalanceView = () => import('../views/login/ledger/aux-dimensio
 const AuxGeneralLedgerView = () => import('../views/login/ledger/aux-general-ledger/AuxGeneralLedgerView.vue')
 const AuxDetailLedgerView = () => import('../views/login/ledger/aux-detail-ledger/AuxDetailLedgerView.vue')
 const ReportItemView = () => import('../views/login/ledger/report/ReportItemView.vue')
-const BalanceSheetView = () => import('../views/login/ledger/report/BalanceSheetView.vue')
 const ProfitStatementView = () => import('../views/login/ledger/report/ProfitStatementView.vue')
 const CashFlowView = () => import('../views/login/ledger/report/CashFlowView.vue')
 const CashflowItemView = () => import('../views/login/ledger/report/CashflowItemView.vue')
