@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2 class="title">{{ isEdit ? '编辑会计科目' : '新建会计科目' }}</h2>
-        <div class="subtitle">补齐报表项目、损益分类和现金类标记后，三大报表取数会更稳定。</div>
+        <div class="subtitle">组织字段已改为引用企业建模中的业务单元，避免财务主数据继续手工输组织文本。</div>
       </div>
     </div>
 
@@ -13,52 +13,31 @@
         <v-card-text>
           <v-row dense>
             <v-col cols="12" md="4">
-              <v-text-field
-                v-model.trim="form.fcode"
-                label="科目编码"
-                :rules="[requiredRule]"
-                required
-              />
+              <v-text-field v-model.trim="form.fcode" label="科目编码" :rules="[requiredRule]" required />
             </v-col>
             <v-col cols="12" md="4">
-              <v-text-field
-                v-model.trim="form.fname"
-                label="科目名称"
-                :rules="[requiredRule]"
-                required
-              />
+              <v-text-field v-model.trim="form.fname" label="科目名称" :rules="[requiredRule]" required />
             </v-col>
             <v-col cols="12" md="4">
-              <v-combobox
+              <v-autocomplete
                 v-model="form.forg"
                 :items="orgOptions"
-                label="核算组织 ID"
+                item-title="label"
+                item-value="value"
+                label="业务单元"
                 clearable
-                hint="没有组织主数据接口时，可直接输入组织 ID；下拉会优先展示已有值。"
-                persistent-hint
-                variant="outlined"
+                :rules="[requiredRule]"
+                required
               />
             </v-col>
             <v-col cols="12" md="6">
               <v-text-field v-model.trim="form.flongName" label="科目全称" />
             </v-col>
             <v-col cols="12" md="3">
-              <v-select
-                v-model="form.ftype"
-                :items="accountTypeOptions"
-                label="科目类型"
-                :rules="[requiredRule]"
-                required
-              />
+              <v-select v-model="form.ftype" :items="accountTypeOptions" label="科目类型" :rules="[requiredRule]" required />
             </v-col>
             <v-col cols="12" md="3">
-              <v-select
-                v-model="form.fdirection"
-                :items="directionOptions"
-                label="余额方向"
-                :rules="[requiredRule]"
-                required
-              />
+              <v-select v-model="form.fdirection" :items="directionOptions" label="余额方向" :rules="[requiredRule]" required />
             </v-col>
             <v-col cols="12" md="6">
               <v-autocomplete
@@ -94,7 +73,7 @@
                 :items="profitLossTypeOptions"
                 label="损益类型"
                 clearable
-                hint="建议优先使用“收入 / 成本 / 费用”，与当前利润表识别逻辑保持一致。"
+                hint="建议优先使用收入、成本、费用，与当前利润表识别逻辑保持一致。"
                 persistent-hint
               />
             </v-col>
@@ -117,61 +96,22 @@
         <v-card-text>
           <v-row dense>
             <v-col cols="12" md="4">
-              <v-select
-                v-model="form.fentryControl"
-                :items="entryControlOptions"
-                label="分录录入控制"
-                :rules="[requiredRule]"
-                required
-              />
+              <v-select v-model="form.fentryControl" :items="entryControlOptions" label="分录录入控制" :rules="[requiredRule]" required />
             </v-col>
             <v-col cols="12" md="4">
-              <v-combobox
-                v-model="form.fcontrolLevel"
-                :items="controlLevelOptions"
-                label="控制级次"
-                clearable
-              />
+              <v-combobox v-model="form.fcontrolLevel" :items="controlLevelOptions" label="控制级次" clearable />
             </v-col>
             <v-col cols="12" md="4" class="switch-col">
-              <v-switch
-                v-model="form.fisDetail"
-                label="末级科目"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                inset
-              />
+              <v-switch v-model="form.fisDetail" label="末级科目" :true-value="1" :false-value="0" color="primary" inset />
             </v-col>
             <v-col cols="12" md="4" class="switch-col">
-              <v-switch
-                v-model="form.fallowChild"
-                label="允许新增下级"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                inset
-              />
+              <v-switch v-model="form.fallowChild" label="允许新增下级" :true-value="1" :false-value="0" color="primary" inset />
             </v-col>
             <v-col cols="12" md="4" class="switch-col">
-              <v-switch
-                v-model="form.fmanualEntry"
-                label="允许手工录入"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                inset
-              />
+              <v-switch v-model="form.fmanualEntry" label="允许手工录入" :true-value="1" :false-value="0" color="primary" inset />
             </v-col>
             <v-col cols="12" md="4" class="switch-col">
-              <v-switch
-                v-model="form.fisEntry"
-                label="允许凭证分录使用"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                inset
-              />
+              <v-switch v-model="form.fisEntry" label="允许凭证分录使用" :true-value="1" :false-value="0" color="primary" inset />
             </v-col>
           </v-row>
         </v-card-text>
@@ -182,64 +122,22 @@
         <v-card-text>
           <v-row dense>
             <v-col cols="12" md="3">
-              <v-checkbox
-                v-model="form.fcash"
-                label="现金科目"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                hide-details
-              />
+              <v-checkbox v-model="form.fcash" label="现金科目" :true-value="1" :false-value="0" color="primary" hide-details />
             </v-col>
             <v-col cols="12" md="3">
-              <v-checkbox
-                v-model="form.fbank"
-                label="银行科目"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                hide-details
-              />
+              <v-checkbox v-model="form.fbank" label="银行科目" :true-value="1" :false-value="0" color="primary" hide-details />
             </v-col>
             <v-col cols="12" md="3">
-              <v-checkbox
-                v-model="form.fequivalent"
-                label="现金等价物"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                hide-details
-              />
+              <v-checkbox v-model="form.fequivalent" label="现金等价物" :true-value="1" :false-value="0" color="primary" hide-details />
             </v-col>
             <v-col cols="12" md="3">
-              <v-checkbox
-                v-model="form.fexchange"
-                label="外币科目"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                hide-details
-              />
+              <v-checkbox v-model="form.fexchange" label="外币科目" :true-value="1" :false-value="0" color="primary" hide-details />
             </v-col>
             <v-col cols="12" md="3">
-              <v-checkbox
-                v-model="form.fnotice"
-                label="往来通知"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                hide-details
-              />
+              <v-checkbox v-model="form.fnotice" label="往来通知" :true-value="1" :false-value="0" color="primary" hide-details />
             </v-col>
             <v-col cols="12" md="3">
-              <v-checkbox
-                v-model="form.fqtyAccounting"
-                label="数量核算"
-                :true-value="1"
-                :false-value="0"
-                color="primary"
-                hide-details
-              />
+              <v-checkbox v-model="form.fqtyAccounting" label="数量核算" :true-value="1" :false-value="0" color="primary" hide-details />
             </v-col>
           </v-row>
         </v-card-text>
@@ -265,6 +163,7 @@ import accountSubjectApi, {
   editAccountSubject,
   getAccountSubjectDetail,
 } from '@/api/accountSubject'
+import { getBusinessUnitList } from '@/api/bizUnit'
 import reportItemApi from '@/api/reportItem'
 import reportTemplateApi from '@/api/reportTemplate'
 
@@ -284,20 +183,16 @@ const snackbar = reactive({ show: false, text: '', color: 'success' })
 const subjects = ref([])
 const reportItems = ref([])
 const templates = ref([])
+const businessUnits = ref([])
 
 const isEdit = computed(() => !!fid)
-
 const form = reactive(defaultForm())
 
 const orgOptions = computed(() =>
-  Array.from(
-    new Set(
-      subjects.value
-        .map((item) => normalizeNumber(item.forg))
-        .concat(normalizeNumber(form.forg))
-        .filter((value) => value !== null),
-    ),
-  ).sort((left, right) => left - right),
+  businessUnits.value.map((item) => ({
+    label: `${item.fcode || '-'} - ${item.fname}`,
+    value: item.fid,
+  })),
 )
 
 const parentOptions = computed(() =>
@@ -347,15 +242,17 @@ watch(
 )
 
 async function loadLookups() {
-  const [subjectRes, reportItemRes, templateRes] = await Promise.all([
+  const [subjectRes, reportItemRes, templateRes, businessUnitRes] = await Promise.all([
     accountSubjectApi.fetchList({ page: 1, size: 1000 }),
     reportItemApi.listReportItems({ page: 1, size: 1000 }),
     reportTemplateApi.fetchList({ page: 1, size: 200 }),
+    getBusinessUnitList({ page: 1, size: 500 }),
   ])
 
   subjects.value = subjectRes.data?.records || []
   reportItems.value = reportItemRes.data?.records || []
   templates.value = templateRes.data?.records || []
+  businessUnits.value = businessUnitRes.data?.records || []
 }
 
 async function fetchDetail() {
@@ -366,9 +263,7 @@ async function fetchDetail() {
 
 async function handleSave() {
   const validation = await formRef.value?.validate?.()
-  if (!validationPassed(validation)) {
-    return
-  }
+  if (!validationPassed(validation)) return
 
   const payload = normalizePayload(form)
   try {
@@ -472,17 +367,13 @@ function normalizePayload(source) {
 }
 
 function normalizeNumber(value) {
-  if (value === '' || value === undefined || value === null) {
-    return null
-  }
+  if (value === '' || value === undefined || value === null) return null
   const next = Number(value)
   return Number.isFinite(next) ? next : null
 }
 
 function normalizeFlag(value, fallback = 0) {
-  if (value === '' || value === undefined || value === null) {
-    return fallback
-  }
+  if (value === '' || value === undefined || value === null) return fallback
   if (value === true) return 1
   if (value === false) return 0
   return Number(value) === 1 ? 1 : 0

@@ -4,7 +4,7 @@
       <div class="header">
         <div>
           <h2 class="title">会计科目</h2>
-          <div class="subtitle">把科目类型、损益分类、报表项目和现金类标记一次配齐，后面的报表口径会更稳。</div>
+          <div class="subtitle">组织字段已联动业务单元主数据，报表项目和现金类标记也可以在这里集中审计。</div>
         </div>
         <div class="toolbar">
           <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">新建科目</v-btn>
@@ -21,8 +21,16 @@
         <v-col cols="12" md="2">
           <v-text-field v-model.trim="query.fname" label="科目名称" clearable density="comfortable" />
         </v-col>
-        <v-col cols="12" md="2">
-          <v-combobox v-model="query.forg" :items="orgOptions" label="组织 ID" clearable density="comfortable" />
+        <v-col cols="12" md="3">
+          <v-select
+            v-model="query.forg"
+            :items="orgOptions"
+            item-title="label"
+            item-value="value"
+            label="业务单元"
+            clearable
+            density="comfortable"
+          />
         </v-col>
         <v-col cols="12" md="2">
           <v-select v-model="query.ftype" :items="accountTypeOptions" label="科目类型" clearable density="comfortable" />
@@ -30,9 +38,8 @@
         <v-col cols="12" md="2">
           <v-select v-model="query.fpltype" :items="profitLossTypeOptions" label="损益类型" clearable density="comfortable" />
         </v-col>
-        <v-col cols="12" md="2" class="filter-actions">
+        <v-col cols="12" md="1" class="filter-actions">
           <v-btn color="primary" variant="flat" @click="handleSearch">查询</v-btn>
-          <v-btn variant="text" @click="resetQuery">重置</v-btn>
         </v-col>
       </v-row>
 
@@ -52,6 +59,9 @@
       >
         <template #item.fcode="{ item }">
           <v-btn size="small" variant="text" color="primary" @click.stop="openEditDialog(item)">{{ item.fcode }}</v-btn>
+        </template>
+        <template #item.forg="{ item }">
+          {{ orgName(item.forg) }}
         </template>
         <template #item.fparent="{ item }">
           {{ accountName(item.fparent) }}
@@ -104,10 +114,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  deleteAccountSubject,
-  getAccountSubjectList,
-} from '@/api/accountSubject'
+import { deleteAccountSubject, getAccountSubjectList } from '@/api/accountSubject'
+import { getBusinessUnitList } from '@/api/bizUnit'
 import reportItemApi from '@/api/reportItem'
 import reportTemplateApi from '@/api/reportTemplate'
 
@@ -120,6 +128,7 @@ const selectedItem = ref(null)
 const allAccounts = ref([])
 const reportItems = ref([])
 const templates = ref([])
+const businessUnits = ref([])
 const snackbar = reactive({ show: false, text: '', color: 'success' })
 const deleteDialog = reactive({ visible: false, item: null })
 
@@ -139,7 +148,7 @@ const query = reactive({
 const headers = [
   { title: '科目编码', value: 'fcode', align: 'start' },
   { title: '科目名称', value: 'fname' },
-  { title: '组织', value: 'forg' },
+  { title: '业务单元', value: 'forg' },
   { title: '科目类型', value: 'ftype' },
   { title: '余额方向', value: 'fdirection' },
   { title: '上级科目', value: 'fparent' },
@@ -150,13 +159,10 @@ const headers = [
 ]
 
 const orgOptions = computed(() =>
-  Array.from(
-    new Set(
-      allAccounts.value
-        .map((item) => normalizeNumber(item.forg))
-        .filter((value) => value !== null),
-    ),
-  ).sort((left, right) => left - right),
+  businessUnits.value.map((item) => ({
+    label: `${item.fcode || '-'} - ${item.fname}`,
+    value: item.fid,
+  })),
 )
 
 const templateNameMap = computed(() =>
@@ -167,15 +173,17 @@ const templateNameMap = computed(() =>
 )
 
 async function fetchLookups() {
-  const [accountRes, reportItemRes, templateRes] = await Promise.all([
+  const [accountRes, reportItemRes, templateRes, businessUnitRes] = await Promise.all([
     getAccountSubjectList({ page: 1, size: 1000 }),
     reportItemApi.listReportItems({ page: 1, size: 1000 }),
     reportTemplateApi.fetchList({ page: 1, size: 200 }),
+    getBusinessUnitList({ page: 1, size: 500 }),
   ])
 
   allAccounts.value = accountRes.data?.records || []
   reportItems.value = reportItemRes.data?.records || []
   templates.value = templateRes.data?.records || []
+  businessUnits.value = businessUnitRes.data?.records || []
 }
 
 async function fetchList() {
@@ -203,19 +211,6 @@ async function fetchList() {
 
 function handleSearch() {
   query.page = 1
-  fetchList()
-}
-
-function resetQuery() {
-  Object.assign(query, {
-    page: 1,
-    size: 10,
-    fcode: '',
-    fname: '',
-    forg: null,
-    ftype: '',
-    fpltype: '',
-  })
   fetchList()
 }
 
@@ -255,6 +250,11 @@ function getRowProps({ item }) {
   return item?.fid && selectedItem.value?.fid === item.fid ? { class: 'selected-row' } : {}
 }
 
+function orgName(fid) {
+  const match = businessUnits.value.find((item) => item.fid === fid)
+  return match ? `${match.fcode || '-'} - ${match.fname}` : '-'
+}
+
 function accountName(fid) {
   const match = allAccounts.value.find((item) => item.fid === fid)
   return match ? `${match.fcode} - ${match.fname}` : '-'
@@ -268,9 +268,7 @@ function reportItemName(fid) {
 }
 
 function normalizeNumber(value) {
-  if (value === '' || value === undefined || value === null) {
-    return null
-  }
+  if (value === '' || value === undefined || value === null) return null
   const next = Number(value)
   return Number.isFinite(next) ? next : null
 }
@@ -321,7 +319,6 @@ onMounted(async () => {
 .filter-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .selected-tip {

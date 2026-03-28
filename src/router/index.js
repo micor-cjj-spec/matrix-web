@@ -5,51 +5,51 @@ import Login from '../views/login/Login.vue'
 import Portal from '../views/login/Portal.vue'
 import Register from '../views/login/Register.vue'
 
-import EnterpriseModelingView from '../views/login/enterprise-modeling/EnterpriseModelingView.vue'
-import PersonalView from '../views/login/enterprise-modeling/person/PersonalView.vue'
-import BusinessUnitView from '../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue'
-import DeptDimensionView from '../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue'
-import OrgFunctionTypeView from '../views/login/enterprise-modeling/org-function-type/OrgFunctionTypeView.vue'
-import OrgPatternView from '../views/login/enterprise-modeling/org-pattern/OrgPatternView.vue'
+const EnterpriseModelingView = () => import('../views/login/enterprise-modeling/EnterpriseModelingView.vue')
+const PersonalView = () => import('../views/login/enterprise-modeling/person/PersonalView.vue')
+const BusinessUnitView = () => import('../views/login/enterprise-modeling/business-unit/BusinessUnitView.vue')
+const DeptDimensionView = () => import('../views/login/enterprise-modeling/dept-dimension/DeptDimensionView.vue')
+const OrgFunctionTypeView = () => import('../views/login/enterprise-modeling/org-function-type/OrgFunctionTypeView.vue')
+const OrgPatternView = () => import('../views/login/enterprise-modeling/org-pattern/OrgPatternView.vue')
 
-import BaseDataView from '../views/login/base-data/BaseDataView.vue'
-import MaterialView from '../views/login/base-data/material/MaterialView.vue'
-import CustomerView from '../views/login/base-data/customer/CustomerView.vue'
-import SupplierView from '../views/login/base-data/supplier/SupplierView.vue'
-import CurrencyView from '../views/login/base-data/currency/CurrencyView.vue'
-import ExchangeRateView from '../views/login/base-data/exchange-rate/ExchangeRateView.vue'
-import BankInfoView from '../views/login/base-data/bank-info/BankInfoView.vue'
-import CountryView from '../views/login/base-data/country/CountryView.vue'
-import RegionView from '../views/login/base-data/region/RegionView.vue'
-import UnitView from '../views/login/base-data/unit/UnitView.vue'
+const BaseDataView = () => import('../views/login/base-data/BaseDataView.vue')
+const MaterialView = () => import('../views/login/base-data/material/MaterialView.vue')
+const CustomerView = () => import('../views/login/base-data/customer/CustomerView.vue')
+const SupplierView = () => import('../views/login/base-data/supplier/SupplierView.vue')
+const CurrencyView = () => import('../views/login/base-data/currency/CurrencyView.vue')
+const ExchangeRateView = () => import('../views/login/base-data/exchange-rate/ExchangeRateView.vue')
+const BankInfoView = () => import('../views/login/base-data/bank-info/BankInfoView.vue')
+const CountryView = () => import('../views/login/base-data/country/CountryView.vue')
+const RegionView = () => import('../views/login/base-data/region/RegionView.vue')
+const UnitView = () => import('../views/login/base-data/unit/UnitView.vue')
 
-import PayableView from '../views/login/finance/PayableView.vue'
-import ReceivableView from '../views/login/finance/ReceivableView.vue'
-import ArapDocView from '../views/login/finance/ArapDocView.vue'
-import AgingCreditView from '../views/login/finance/AgingCreditView.vue'
-import FinanceBaseDataView from '../views/login/finance/base-data/FinanceBaseDataView.vue'
-import AccountSubjectView from '../views/login/finance/base-data/AccountSubjectView.vue'
-import AccountSubjectForm from '../views/login/finance/base-data/account-subject/AccountSubjectForm.vue'
+const PayableView = () => import('../views/login/finance/PayableView.vue')
+const ReceivableView = () => import('../views/login/finance/ReceivableView.vue')
+const ArapDocView = () => import('../views/login/finance/ArapDocView.vue')
+const AgingCreditView = () => import('../views/login/finance/AgingCreditView.vue')
+const FinanceBaseDataView = () => import('../views/login/finance/base-data/FinanceBaseDataView.vue')
+const AccountSubjectView = () => import('../views/login/finance/base-data/AccountSubjectView.vue')
+const AccountSubjectForm = () => import('../views/login/finance/base-data/account-subject/AccountSubjectForm.vue')
 
-import GeneralLedgerView from '../views/login/ledger/GeneralLedgerView.vue'
-import VoucherView from '../views/login/ledger/VoucherView.vue'
-import SubjectBalanceView from '../views/login/ledger/subject-balance/SubjectBalanceView.vue'
-import GeneralLedgerBookView from '../views/login/ledger/general-ledger/GeneralLedgerBookView.vue'
-import DetailLedgerView from '../views/login/ledger/detail-ledger/DetailLedgerView.vue'
-import DailyReportView from '../views/login/ledger/daily-report/DailyReportView.vue'
-import DimensionBalanceView from '../views/login/ledger/dimension-balance/DimensionBalanceView.vue'
-import AuxDimensionBalanceView from '../views/login/ledger/aux-dimension-balance/AuxDimensionBalanceView.vue'
-import AuxGeneralLedgerView from '../views/login/ledger/aux-general-ledger/AuxGeneralLedgerView.vue'
-import AuxDetailLedgerView from '../views/login/ledger/aux-detail-ledger/AuxDetailLedgerView.vue'
-import ReportItemView from '../views/login/ledger/report/ReportItemView.vue'
-import BalanceSheetView from '../views/login/ledger/report/BalanceSheetView.vue'
-import ProfitStatementView from '../views/login/ledger/report/ProfitStatementView.vue'
-import CashFlowView from '../views/login/ledger/report/CashFlowView.vue'
-import CashflowItemView from '../views/login/ledger/report/CashflowItemView.vue'
-import ReportAccountMapView from '../views/login/ledger/report/ReportAccountMapView.vue'
+const GeneralLedgerView = () => import('../views/login/ledger/GeneralLedgerView.vue')
+const VoucherView = () => import('../views/login/ledger/VoucherView.vue')
+const SubjectBalanceView = () => import('../views/login/ledger/subject-balance/SubjectBalanceView.vue')
+const GeneralLedgerBookView = () => import('../views/login/ledger/general-ledger/GeneralLedgerBookView.vue')
+const DetailLedgerView = () => import('../views/login/ledger/detail-ledger/DetailLedgerView.vue')
+const DailyReportView = () => import('../views/login/ledger/daily-report/DailyReportView.vue')
+const DimensionBalanceView = () => import('../views/login/ledger/dimension-balance/DimensionBalanceView.vue')
+const AuxDimensionBalanceView = () => import('../views/login/ledger/aux-dimension-balance/AuxDimensionBalanceView.vue')
+const AuxGeneralLedgerView = () => import('../views/login/ledger/aux-general-ledger/AuxGeneralLedgerView.vue')
+const AuxDetailLedgerView = () => import('../views/login/ledger/aux-detail-ledger/AuxDetailLedgerView.vue')
+const ReportItemView = () => import('../views/login/ledger/report/ReportItemView.vue')
+const BalanceSheetView = () => import('../views/login/ledger/report/BalanceSheetView.vue')
+const ProfitStatementView = () => import('../views/login/ledger/report/ProfitStatementView.vue')
+const CashFlowView = () => import('../views/login/ledger/report/CashFlowView.vue')
+const CashflowItemView = () => import('../views/login/ledger/report/CashflowItemView.vue')
+const ReportAccountMapView = () => import('../views/login/ledger/report/ReportAccountMapView.vue')
 
-import SharedOperationsView from '../views/login/shared/SharedOperationsView.vue'
-import AiAssistantView from '../views/ai/AiAssistantView.vue'
+const SharedOperationsView = () => import('../views/login/shared/SharedOperationsView.vue')
+const AiAssistantView = () => import('../views/ai/AiAssistantView.vue')
 
 const EmptyView = {
   template: '<div style="padding: 20px; font-size: 18px;">这里是占位页面：{{ $route.path }}</div>',
