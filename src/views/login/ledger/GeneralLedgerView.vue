@@ -19,8 +19,6 @@
       </v-row>
     </v-card>
 
-    <router-view />
-
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="1800">
       {{ snackbar.text }}
     </v-snackbar>
@@ -38,8 +36,8 @@ const groups = [
     name: '凭证处理',
     modules: [
       { name: '凭证', badge: 'V', path: '/ledger/voucher' },
-      { name: '凭证汇总表', badge: 'VS' },
-      { name: '结转清单', badge: 'CL' },
+      { name: '凭证汇总表', badge: 'VS', path: '/ledger/voucher-summary' },
+      { name: '结转清单', badge: 'CL', path: '/ledger/carry-list' },
     ],
   },
   {
@@ -50,7 +48,7 @@ const groups = [
       { name: '明细分类账', badge: 'DL', path: '/ledger/detail-ledger' },
       { name: '日报表', badge: 'DR', path: '/ledger/daily-report' },
       { name: '核算维度余额表', badge: 'DB', path: '/ledger/dimension-balance' },
-      { name: '辅助核算维度余额表', badge: 'AB', path: '/ledger/aux-dimension-balance' },
+      { name: '辅助维度余额表', badge: 'AB', path: '/ledger/aux-dimension-balance' },
       { name: '辅助总账', badge: 'AG', path: '/ledger/aux-general-ledger' },
       { name: '辅助明细账', badge: 'AD', path: '/ledger/aux-detail-ledger' },
     ],
@@ -85,7 +83,7 @@ const groups = [
     ],
   },
   {
-    name: '账簿协同管理',
+    name: '账税协同管理',
     modules: [
       { name: '凭证折算规则', badge: 'VR' },
       { name: '对冲凭证', badge: 'OV' },
@@ -128,7 +126,7 @@ const groups = [
     modules: [
       { name: '凭证类型', badge: 'VT' },
       { name: '现金流量项目', badge: 'CF', path: '/ledger/cashflow-item' },
-      { name: '报表科目映射关系', badge: 'CM', path: '/ledger/report-account-map' },
+      { name: '报表科目映射', badge: 'CM', path: '/ledger/report-account-map' },
       { name: '核算维度关系设置', badge: 'DR' },
       { name: '核算维度值范围设置', badge: 'DV' },
       { name: '所有者权益变动类型', badge: 'EQ' },
@@ -150,7 +148,7 @@ function handleModuleClick(module) {
 
   snackbar.value = {
     show: true,
-    text: `模块 ${module.name} 暂未接通`,
+    text: `模块 ${module.name} 暂未接入`,
     color: 'info',
   }
 }

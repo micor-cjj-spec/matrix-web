@@ -24,6 +24,7 @@
         </div>
         <div class="filters">
           <v-text-field v-model="filters.number" label="凭证号" density="compact" variant="outlined" hide-details class="mr-2" />
+          <v-text-field v-model="filters.summary" label="摘要" density="compact" variant="outlined" hide-details class="mr-2" />
           <v-select v-model="filters.status" :items="statusOptions" label="状态" density="compact" variant="outlined" hide-details class="mr-2" style="max-width: 160px;" />
           <v-text-field v-model="filters.startDate" type="date" label="开始日期" density="compact" variant="outlined" hide-details class="mr-2" style="max-width: 180px;" />
           <v-text-field v-model="filters.endDate" type="date" label="结束日期" density="compact" variant="outlined" hide-details class="mr-2" style="max-width: 180px;" />
@@ -198,6 +199,7 @@ const snackbar = reactive({ show: false, text: '', color: 'info' })
 const formRef = ref()
 const filters = reactive({
   number: '',
+  summary: '',
   status: '',
   startDate: '',
   endDate: ''
@@ -286,6 +288,7 @@ function handleSearch() {
 
 function handleReset() {
   filters.number = ''
+  filters.summary = ''
   filters.status = ''
   filters.startDate = ''
   filters.endDate = ''
@@ -319,6 +322,7 @@ async function fetchVouchers(extraQuery = {}) {
       page: 1,
       size: 500,
       number: filters.number || undefined,
+      summary: filters.summary || undefined,
       status: filters.status || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
@@ -647,9 +651,11 @@ function showMsg(text, color = 'info') {
 }
 
 onMounted(() => {
-  if (route.query?.number) {
-    filters.number = String(route.query.number)
-  }
+  if (route.query?.number) filters.number = String(route.query.number)
+  if (route.query?.summary) filters.summary = String(route.query.summary)
+  if (route.query?.status) filters.status = String(route.query.status)
+  if (route.query?.startDate) filters.startDate = String(route.query.startDate)
+  if (route.query?.endDate) filters.endDate = String(route.query.endDate)
   fetchVouchers()
 })
 </script>

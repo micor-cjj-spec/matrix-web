@@ -34,6 +34,8 @@ const AccountSubjectForm = () => import('../views/login/finance/base-data/accoun
 
 const GeneralLedgerView = () => import('../views/login/ledger/GeneralLedgerView.vue')
 const VoucherView = () => import('../views/login/ledger/VoucherView.vue')
+const VoucherSummaryView = () => import('../views/login/ledger/VoucherSummaryView.vue')
+const CarryForwardListView = () => import('../views/login/ledger/CarryForwardListView.vue')
 const SubjectBalanceView = () => import('../views/login/ledger/subject-balance/SubjectBalanceView.vue')
 const GeneralLedgerBookView = () => import('../views/login/ledger/general-ledger/GeneralLedgerBookView.vue')
 const DetailLedgerView = () => import('../views/login/ledger/detail-ledger/DetailLedgerView.vue')
@@ -73,12 +75,14 @@ const routes = [
 
   { path: '/ledger', name: 'Ledger', component: GeneralLedgerView, meta: { title: '总账' } },
   { path: '/ledger/voucher', name: 'Voucher', component: VoucherView, meta: { title: '凭证' } },
+  { path: '/ledger/voucher-summary', name: 'VoucherSummary', component: VoucherSummaryView, meta: { title: '凭证汇总表' } },
+  { path: '/ledger/carry-list', name: 'CarryList', component: CarryForwardListView, meta: { title: '结转清单' } },
   { path: '/ledger/subject-balance', name: 'SubjectBalance', component: SubjectBalanceView, meta: { title: '科目余额表' } },
   { path: '/ledger/general-ledger', name: 'GeneralLedgerBook', component: GeneralLedgerBookView, meta: { title: '总分类账' } },
   { path: '/ledger/detail-ledger', name: 'DetailLedger', component: DetailLedgerView, meta: { title: '明细分类账' } },
   { path: '/ledger/daily-report', name: 'DailyReport', component: DailyReportView, meta: { title: '日报表' } },
   { path: '/ledger/dimension-balance', name: 'DimensionBalance', component: DimensionBalanceView, meta: { title: '核算维度余额表' } },
-  { path: '/ledger/aux-dimension-balance', name: 'AuxDimensionBalance', component: AuxDimensionBalanceView, meta: { title: '辅助核算维度余额表' } },
+  { path: '/ledger/aux-dimension-balance', name: 'AuxDimensionBalance', component: AuxDimensionBalanceView, meta: { title: '辅助维度余额表' } },
   { path: '/ledger/aux-general-ledger', name: 'AuxGeneralLedger', component: AuxGeneralLedgerView, meta: { title: '辅助总账' } },
   { path: '/ledger/aux-detail-ledger', name: 'AuxDetailLedger', component: AuxDetailLedgerView, meta: { title: '辅助明细账' } },
   { path: '/ledger/report-item', name: 'ReportItem', component: ReportItemView, meta: { title: '报表项目' } },
@@ -160,7 +164,9 @@ router.beforeEach((to, from, next) => {
     return next('/login')
   }
 
-  if (token) updateActivity()
+  if (token) {
+    updateActivity()
+  }
 
   next()
 })

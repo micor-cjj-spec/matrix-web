@@ -4,6 +4,14 @@ export function getVoucherList(params = {}) {
   return request.get('/voucher/list', { params })
 }
 
+export function getVoucherSummary(params = {}) {
+  return request.get('/voucher/summary', { params })
+}
+
+export function getVoucherCarryList(params = {}) {
+  return request.get('/voucher/carry-list', { params })
+}
+
 export function createVoucher(data) {
   return request.post('/voucher', data)
 }
@@ -58,6 +66,8 @@ export function ocrConfirmVoucher(data) {
 
 export default {
   fetchList: getVoucherList,
+  fetchSummary: getVoucherSummary,
+  fetchCarryList: getVoucherCarryList,
   createItem: createVoucher,
   editItem: editVoucher,
   deleteItem: deleteVoucher,
