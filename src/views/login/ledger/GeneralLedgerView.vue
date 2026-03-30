@@ -48,7 +48,7 @@ const groups = [
       { name: '明细分类账', badge: 'DL', path: '/ledger/detail-ledger' },
       { name: '日报表', badge: 'DR', path: '/ledger/daily-report' },
       { name: '核算维度余额表', badge: 'DB', path: '/ledger/dimension-balance' },
-      { name: '辅助维度余额表', badge: 'AB', path: '/ledger/aux-dimension-balance' },
+      { name: '辅助核算维度余额表', badge: 'AB', path: '/ledger/aux-dimension-balance' },
       { name: '辅助总账', badge: 'AG', path: '/ledger/aux-general-ledger' },
       { name: '辅助明细账', badge: 'AD', path: '/ledger/aux-detail-ledger' },
     ],
@@ -57,38 +57,38 @@ const groups = [
     name: '现金流量',
     modules: [
       { name: '现金流量表', badge: 'CF', path: '/ledger/cash-flow' },
-      { name: '现金流量查询', badge: 'CQ' },
-      { name: '补充资料', badge: 'EX' },
+      { name: '现金流量查询', badge: 'CQ', path: '/ledger/cash-flow-query' },
+      { name: '补充资料', badge: 'EX', path: '/ledger/cash-flow-supplement' },
     ],
   },
   {
     name: '往来管理',
     modules: [
-      { name: '往来核销方案', badge: 'CP' },
-      { name: '往来自动核销', badge: 'CA' },
-      { name: '往来对账单', badge: 'CS' },
-      { name: '往来账查询', badge: 'CQ' },
-      { name: '往来核销日志', badge: 'CL' },
-      { name: '账龄分析表', badge: 'AG' },
-      { name: '往来多维分析表', badge: 'MA' },
+      { name: '往来核销方案', badge: 'CP', path: '/ledger/counterparty-plan' },
+      { name: '往来自动核销', badge: 'CA', path: '/ledger/counterparty-auto-writeoff' },
+      { name: '往来对账单', badge: 'CS', path: '/ledger/counterparty-statement' },
+      { name: '往来账查询', badge: 'CQ', path: '/ledger/counterparty-account-query' },
+      { name: '往来核销日志', badge: 'CL', path: '/ledger/counterparty-writeoff-log' },
+      { name: '账龄分析表', badge: 'AG', path: '/ledger/counterparty-aging-analysis' },
+      { name: '往来多维分析表', badge: 'MA', path: '/ledger/counterparty-multi-analysis' },
     ],
   },
   {
     name: '内部通知单',
     modules: [
-      { name: '往来通知单', badge: 'CN' },
-      { name: '往来通知单勾稽', badge: 'CC' },
-      { name: '现金流通知单', badge: 'FN' },
-      { name: '现金流通知单勾稽', badge: 'FC' },
+      { name: '往来通知单', badge: 'CN', path: '/ledger/counterparty-notice' },
+      { name: '往来通知单勾稽', badge: 'CC', path: '/ledger/counterparty-notice-check' },
+      { name: '现金流通知单', badge: 'FN', path: '/ledger/cashflow-notice' },
+      { name: '现金流通知单勾稽', badge: 'FC', path: '/ledger/cashflow-notice-check' },
     ],
   },
   {
-    name: '账税协同管理',
+    name: '账簿协同管理',
     modules: [
-      { name: '凭证折算规则', badge: 'VR' },
-      { name: '对冲凭证', badge: 'OV' },
-      { name: '凭证协同检查', badge: 'VC' },
-      { name: '科目余额对照', badge: 'SC' },
+      { name: '凭证折算规则', badge: 'VR', path: '/ledger/voucher-rule' },
+      { name: '对冲凭证', badge: 'OV', path: '/ledger/offset-voucher' },
+      { name: '凭证协同检查', badge: 'VC', path: '/ledger/voucher-collaboration-check' },
+      { name: '科目余额对照', badge: 'SC', path: '/ledger/subject-compare' },
     ],
   },
   {
@@ -141,8 +141,7 @@ const snackbar = ref({ show: false, text: '', color: 'info' })
 
 function handleModuleClick(module) {
   if (module.path) {
-    const url = router.resolve(module.path).href
-    window.open(url, '_blank')
+    router.push(module.path)
     return
   }
 

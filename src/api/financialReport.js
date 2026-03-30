@@ -16,9 +16,19 @@ export function fetchCashFlow(params = {}) {
   return request.get('/cash-flow', { params })
 }
 
+export function fetchCashFlowQuery(params = {}) {
+  return request.get('/cash-flow/query', { params })
+}
+
+export function fetchCashFlowSupplement(params = {}) {
+  return request.get('/cash-flow/supplement', { params })
+}
+
 export default {
   fetchBalanceSheet,
   fetchBalanceSheetDrill,
   fetchProfitStatement,
   fetchCashFlow,
+  fetchCashFlowQuery,
+  fetchCashFlowSupplement,
 }

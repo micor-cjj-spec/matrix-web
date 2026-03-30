@@ -47,8 +47,25 @@ const AuxDetailLedgerView = () => import('../views/login/ledger/aux-detail-ledge
 const ReportItemView = () => import('../views/login/ledger/report/ReportItemView.vue')
 const ProfitStatementView = () => import('../views/login/ledger/report/ProfitStatementView.vue')
 const CashFlowView = () => import('../views/login/ledger/report/CashFlowView.vue')
+const CashFlowQueryView = () => import('../views/login/ledger/report/CashFlowQueryView.vue')
+const CashFlowSupplementView = () => import('../views/login/ledger/report/CashFlowSupplementView.vue')
 const CashflowItemView = () => import('../views/login/ledger/report/CashflowItemView.vue')
 const ReportAccountMapView = () => import('../views/login/ledger/report/ReportAccountMapView.vue')
+const CounterpartyPlanView = () => import('../views/login/ledger/arap/CounterpartyPlanView.vue')
+const CounterpartyAutoWriteoffView = () => import('../views/login/ledger/arap/CounterpartyAutoWriteoffView.vue')
+const CounterpartyStatementView = () => import('../views/login/ledger/arap/CounterpartyStatementView.vue')
+const CounterpartyAccountQueryView = () => import('../views/login/ledger/arap/CounterpartyAccountQueryView.vue')
+const CounterpartyWriteoffLogView = () => import('../views/login/ledger/arap/CounterpartyWriteoffLogView.vue')
+const CounterpartyAgingAnalysisView = () => import('../views/login/ledger/arap/CounterpartyAgingAnalysisView.vue')
+const CounterpartyMultiAnalysisView = () => import('../views/login/ledger/arap/CounterpartyMultiAnalysisView.vue')
+const CounterpartyNoticeView = () => import('../views/login/ledger/notice/CounterpartyNoticeView.vue')
+const CounterpartyNoticeCheckView = () => import('../views/login/ledger/notice/CounterpartyNoticeCheckView.vue')
+const CashflowNoticeView = () => import('../views/login/ledger/notice/CashflowNoticeView.vue')
+const CashflowNoticeCheckView = () => import('../views/login/ledger/notice/CashflowNoticeCheckView.vue')
+const VoucherRuleView = () => import('../views/login/ledger/collaboration/VoucherRuleView.vue')
+const OffsetVoucherView = () => import('../views/login/ledger/collaboration/OffsetVoucherView.vue')
+const VoucherCollaborationCheckView = () => import('../views/login/ledger/collaboration/VoucherCollaborationCheckView.vue')
+const SubjectCompareView = () => import('../views/login/ledger/collaboration/SubjectCompareView.vue')
 
 const SharedOperationsView = () => import('../views/login/shared/SharedOperationsView.vue')
 const AiAssistantView = () => import('../views/ai/AiAssistantView.vue')
@@ -77,18 +94,35 @@ const routes = [
   { path: '/ledger/voucher', name: 'Voucher', component: VoucherView, meta: { title: '凭证' } },
   { path: '/ledger/voucher-summary', name: 'VoucherSummary', component: VoucherSummaryView, meta: { title: '凭证汇总表' } },
   { path: '/ledger/carry-list', name: 'CarryList', component: CarryForwardListView, meta: { title: '结转清单' } },
+  { path: '/ledger/counterparty-plan', name: 'CounterpartyPlan', component: CounterpartyPlanView, meta: { title: '往来核销方案' } },
+  { path: '/ledger/counterparty-auto-writeoff', name: 'CounterpartyAutoWriteoff', component: CounterpartyAutoWriteoffView, meta: { title: '往来自动核销' } },
+  { path: '/ledger/counterparty-statement', name: 'CounterpartyStatement', component: CounterpartyStatementView, meta: { title: '往来对账单' } },
+  { path: '/ledger/counterparty-account-query', name: 'CounterpartyAccountQuery', component: CounterpartyAccountQueryView, meta: { title: '往来账查询' } },
+  { path: '/ledger/counterparty-writeoff-log', name: 'CounterpartyWriteoffLog', component: CounterpartyWriteoffLogView, meta: { title: '往来核销日志' } },
+  { path: '/ledger/counterparty-aging-analysis', name: 'CounterpartyAgingAnalysis', component: CounterpartyAgingAnalysisView, meta: { title: '账龄分析表' } },
+  { path: '/ledger/counterparty-multi-analysis', name: 'CounterpartyMultiAnalysis', component: CounterpartyMultiAnalysisView, meta: { title: '往来多维分析表' } },
+  { path: '/ledger/counterparty-notice', name: 'CounterpartyNotice', component: CounterpartyNoticeView, meta: { title: '往来通知单' } },
+  { path: '/ledger/counterparty-notice-check', name: 'CounterpartyNoticeCheck', component: CounterpartyNoticeCheckView, meta: { title: '往来通知单勾稽' } },
+  { path: '/ledger/cashflow-notice', name: 'CashflowNotice', component: CashflowNoticeView, meta: { title: '现金流通知单' } },
+  { path: '/ledger/cashflow-notice-check', name: 'CashflowNoticeCheck', component: CashflowNoticeCheckView, meta: { title: '现金流通知单勾稽' } },
+  { path: '/ledger/voucher-rule', name: 'VoucherRule', component: VoucherRuleView, meta: { title: '凭证折算规则' } },
+  { path: '/ledger/offset-voucher', name: 'OffsetVoucher', component: OffsetVoucherView, meta: { title: '对冲凭证' } },
+  { path: '/ledger/voucher-collaboration-check', name: 'VoucherCollaborationCheck', component: VoucherCollaborationCheckView, meta: { title: '凭证协同检查' } },
+  { path: '/ledger/subject-compare', name: 'SubjectCompare', component: SubjectCompareView, meta: { title: '科目余额对照' } },
   { path: '/ledger/subject-balance', name: 'SubjectBalance', component: SubjectBalanceView, meta: { title: '科目余额表' } },
   { path: '/ledger/general-ledger', name: 'GeneralLedgerBook', component: GeneralLedgerBookView, meta: { title: '总分类账' } },
   { path: '/ledger/detail-ledger', name: 'DetailLedger', component: DetailLedgerView, meta: { title: '明细分类账' } },
   { path: '/ledger/daily-report', name: 'DailyReport', component: DailyReportView, meta: { title: '日报表' } },
   { path: '/ledger/dimension-balance', name: 'DimensionBalance', component: DimensionBalanceView, meta: { title: '核算维度余额表' } },
-  { path: '/ledger/aux-dimension-balance', name: 'AuxDimensionBalance', component: AuxDimensionBalanceView, meta: { title: '辅助维度余额表' } },
+  { path: '/ledger/aux-dimension-balance', name: 'AuxDimensionBalance', component: AuxDimensionBalanceView, meta: { title: '辅助核算维度余额表' } },
   { path: '/ledger/aux-general-ledger', name: 'AuxGeneralLedger', component: AuxGeneralLedgerView, meta: { title: '辅助总账' } },
   { path: '/ledger/aux-detail-ledger', name: 'AuxDetailLedger', component: AuxDetailLedgerView, meta: { title: '辅助明细账' } },
   { path: '/ledger/report-item', name: 'ReportItem', component: ReportItemView, meta: { title: '报表项目' } },
   { path: '/ledger/balance-sheet', name: 'BalanceSheet', component: BalanceSheetView, meta: { title: '资产负债表' } },
   { path: '/ledger/profit-statement', name: 'ProfitStatement', component: ProfitStatementView, meta: { title: '利润表' } },
   { path: '/ledger/cash-flow', name: 'CashFlow', component: CashFlowView, meta: { title: '现金流量表' } },
+  { path: '/ledger/cash-flow-query', name: 'CashFlowQuery', component: CashFlowQueryView, meta: { title: '现金流量查询' } },
+  { path: '/ledger/cash-flow-supplement', name: 'CashFlowSupplement', component: CashFlowSupplementView, meta: { title: '现金流量补充资料' } },
   { path: '/ledger/cashflow-item', name: 'CashflowItem', component: CashflowItemView, meta: { title: '现金流量项目' } },
   { path: '/ledger/report-account-map', name: 'ReportAccountMap', component: ReportAccountMapView, meta: { title: '报表科目映射' } },
 
