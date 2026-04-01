@@ -48,7 +48,7 @@
           </v-card-title>
           <v-divider />
 
-          <v-card-text class="flex-grow-1 overflow-y-auto message-panel">
+          <v-card-text ref="messagePanelRef" class="flex-grow-1 overflow-y-auto message-panel">
             <div v-if="activeMessages.length === 0" class="empty-state">
               还没有消息，发一句开始吧。
             </div>
@@ -88,7 +88,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { chatWithAi, createConversation, getAiConfigStatus, getConversationMessages } from '@/api/ai'
+import { chatWithAiStream, createConversation, getAiConfigStatus, getConversationMessages } from '@/api/ai'
 
 const conversations = ref([])
 const activeConversationId = ref('')
@@ -96,6 +96,7 @@ const input = ref('')
 const sending = ref(false)
 const messages = ref({})
 const configStatus = ref({ configured: false, model: '', mode: 'fallback' })
+const messagePanelRef = ref(null)
 
 const activeMessages = computed(() => messages.value[activeConversationId.value] || [])
 const configModeText = computed(() => {
@@ -103,6 +104,15 @@ const configModeText = computed(() => {
   if (configStatus.value.mode === 'fallback') return '降级占位模式'
   return configStatus.value.mode || '未知模式'
 })
+
+function scrollToBottom() {
+  requestAnimationFrame(() => {
+    const el = messagePanelRef.value?.$el || messagePanelRef.value
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  })
+}
 
 async function refreshConfigStatus() {
   try {
@@ -123,6 +133,7 @@ async function createConversationAction() {
   conversations.value.unshift({ id, title })
   messages.value[id] = [{ role: 'assistant', text: '你好，我已经准备好了。你可以继续追问，不用每次重复背景。' }]
   activeConversationId.value = id
+  scrollToBottom()
 }
 
 async function selectConversation(conversationId) {
@@ -130,6 +141,7 @@ async function selectConversation(conversationId) {
   if (!messages.value[conversationId] || messages.value[conversationId].length === 0) {
     await loadMessages(conversationId)
   }
+  scrollToBottom()
 }
 
 async function loadMessages(conversationId) {
@@ -142,6 +154,7 @@ async function loadMessages(conversationId) {
       messages.value[conversationId] = [{ role: 'assistant', text: '历史消息加载失败，请稍后重试。' }]
     }
   }
+  scrollToBottom()
 }
 
 function clearCurrentMessages() {
@@ -149,16 +162,10 @@ function clearCurrentMessages() {
   messages.value[activeConversationId.value] = []
 }
 
-function isConversationMissing(error) {
-  const code = error?.response?.data?.code
-  const message = error?.response?.data?.message || ''
-  return code === 404 || String(message).includes('会话不存在')
-}
-
 async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
-  let conversationId = activeConversationId.value
+  const conversationId = activeConversationId.value
   if (!conversationId) return
 
   if (!messages.value[conversationId]) {
@@ -168,51 +175,66 @@ async function send() {
   messages.value[conversationId].push({ role: 'user', text })
   input.value = ''
   sending.value = true
+  scrollToBottom()
+
+  const assistantMessage = { role: 'assistant', text: '' }
+  messages.value[conversationId].push(assistantMessage)
+  scrollToBottom()
 
   try {
-    let resp
-    try {
-      resp = await chatWithAi({
+    await chatWithAiStream(
+      {
         conversationId,
         userMessage: text,
         kbIds: ['default'],
-        stream: false,
-      })
-    } catch (e) {
-      if (!isConversationMissing(e)) {
-        throw e
+        stream: true,
+      },
+      {
+        onStart(payload) {
+          if (payload?.conversationId) {
+            activeConversationId.value = payload.conversationId
+          }
+          if (payload?.model) {
+            configStatus.value.model = payload.model
+          }
+          if (payload?.mode) {
+            configStatus.value.mode = payload.mode
+          }
+        },
+        onDelta(payload) {
+          assistantMessage.text += payload?.delta || ''
+          scrollToBottom()
+        },
+        onDone(payload) {
+          if (!assistantMessage.text?.trim()) {
+            assistantMessage.text = payload?.answer || '抱歉，暂时没有生成回复。'
+          }
+          if (payload?.mode) {
+            configStatus.value.mode = payload.mode
+            if (payload.mode === 'real-model') {
+              configStatus.value.configured = true
+            }
+          }
+          if (payload?.model) {
+            configStatus.value.model = payload.model
+          }
+          scrollToBottom()
+        },
+        onError(payload) {
+          assistantMessage.text = payload?.message || 'AI 服务暂不可用，请稍后重试。'
+          scrollToBottom()
+        },
       }
-      const oldConversationId = conversationId
-      const recreateResp = await createConversation({ title: `恢复会话 ${conversations.value.length + 1}`, scene: 'knowledge_qa' })
-      conversationId = recreateResp?.data?.conversationId
-      const title = recreateResp?.data?.title || `恢复会话 ${conversations.value.length + 1}`
-      if (!conversationId) {
-        throw e
-      }
-      conversations.value.unshift({ id: conversationId, title })
-      messages.value[conversationId] = [{ role: 'user', text }]
-      activeConversationId.value = conversationId
-      delete messages.value[oldConversationId]
-      resp = await chatWithAi({
-        conversationId,
-        userMessage: text,
-        kbIds: ['default'],
-        stream: false,
-      })
-    }
+    )
 
-    const answer = resp?.data?.answer || '抱歉，暂时没有生成回复。'
-    messages.value[conversationId].push({ role: 'assistant', text: answer })
-    if (resp?.data?.mode) {
-      configStatus.value.mode = resp.data.mode
-      if (resp.data.mode === 'real-model') {
-        configStatus.value.configured = true
-      }
+    if (!assistantMessage.text?.trim()) {
+      assistantMessage.text = '抱歉，暂时没有生成回复。'
     }
   } catch (e) {
-    messages.value[conversationId].push({ role: 'assistant', text: 'AI 服务暂不可用，请稍后重试。' })
+    assistantMessage.text = assistantMessage.text?.trim() || 'AI 服务暂不可用，请稍后重试。'
   } finally {
     sending.value = false
+    scrollToBottom()
   }
 }
 
