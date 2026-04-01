@@ -303,7 +303,9 @@ async function sendStream(content, currentConversationId, assistantMessage) {
         scrollToBottom()
       },
       onError(payload) {
-        assistantMessage.text = payload?.message || 'AI 服务暂不可用，请稍后重试。'
+        if (!assistantMessage.text?.trim()) {
+          assistantMessage.text = payload?.message || 'AI 服务暂不可用，请稍后重试。'
+        }
         scrollToBottom()
       },
     }
@@ -339,7 +341,9 @@ async function handleAsk() {
       assistantMessage.text = '抱歉，暂时没有生成回复。'
     }
   } catch (error) {
-    assistantMessage.text = assistantMessage.text?.trim() || 'AI 服务暂不可用，请稍后重试。'
+    if (!assistantMessage.text?.trim()) {
+      assistantMessage.text = 'AI 服务暂不可用，请稍后重试。'
+    }
   } finally {
     sending.value = false
     scrollToBottom()
