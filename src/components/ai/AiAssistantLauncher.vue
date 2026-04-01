@@ -1,15 +1,26 @@
 <template>
   <div v-if="showLauncher">
-    <v-btn
+    <button
+      type="button"
       class="ai-float-btn"
       :style="floatBtnStyle"
-      color="primary"
-      size="large"
-      elevation="8"
-      icon="mdi-robot-happy-outline"
+      :class="{ 'is-dragging': dragState.moved }"
+      aria-label="打开 AI 助手"
       @pointerdown="handlePointerDown"
       @click="handleLauncherClick"
-    />
+    >
+      <span class="robot-avatar">
+        <span class="robot-head">
+          <span class="robot-antenna"></span>
+          <span class="robot-face">
+            <span class="robot-eye left"></span>
+            <span class="robot-eye right"></span>
+            <span class="robot-mouth"></span>
+          </span>
+        </span>
+        <span class="robot-shadow"></span>
+      </span>
+    </button>
 
     <v-navigation-drawer
       v-model="drawer"
@@ -21,16 +32,16 @@
       <div class="ai-header">
         <div>
           <div class="text-h6 font-weight-bold">AI 助手</div>
-          <div class="text-body-2 text-medium-emphasis">快速问答入口</div>
+          <div class="text-body-2 text-medium-emphasis">快速提问入口</div>
         </div>
         <v-chip size="small" variant="tonal" :color="configStatus.configured ? 'success' : 'warning'">
-          {{ configStatus.configured ? '已接模型' : '未配置Key' }}
+          {{ configStatus.configured ? '已接模型' : '未配 Key' }}
         </v-chip>
       </div>
 
       <v-divider />
 
-      <div class="ai-messages">
+      <div ref="messagePanelRef" class="ai-messages">
         <div
           v-for="(msg, index) in messages"
           :key="index"
@@ -54,7 +65,7 @@
           @keydown.enter.exact.prevent="handleAsk"
         />
         <div class="ai-actions">
-          <v-btn variant="text" @click="goFullPage">进入完整版</v-btn>
+          <v-btn variant="text" @click="goFullPage">进入完整页</v-btn>
           <v-btn color="primary" :loading="sending" @click="handleAsk">发送</v-btn>
         </div>
       </div>
@@ -63,14 +74,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { chatWithAi, createConversation, getAiConfigStatus } from '@/api/ai'
+import { chatWithAiStream, createConversation, getAiConfigStatus } from '@/api/ai'
 
 const route = useRoute()
 const router = useRouter()
 
-const FLOAT_BTN_SIZE = 56
+const FLOAT_BTN_SIZE = 72
 const FLOAT_BTN_MARGIN = 24
 const FLOAT_BTN_STORAGE_KEY = 'aiLauncherPosition'
 const AI_LAUNCHER_CONVERSATION_KEY = 'aiLauncherConversationId'
@@ -81,6 +92,7 @@ const question = ref('')
 const sending = ref(false)
 const conversationId = ref('')
 const configStatus = ref({ configured: false, model: '', mode: 'fallback' })
+const messagePanelRef = ref(null)
 const messages = ref([
   { role: 'assistant', text: '你好，我是 AI 助手。你可以先问我业务流程、报表口径或系统功能。' },
 ])
@@ -143,15 +155,24 @@ const showLauncher = computed(() => {
   return !!token && token !== 'undefined' && token !== 'null'
 })
 
-const helperText = computed(() => {
-  return configStatus.value.configured
-    ? `当前模型：${configStatus.value.model || '已配置'}，支持连续追问。`
+const helperText = computed(() => (
+  configStatus.value.configured
+    ? `当前模型：${configStatus.value.model || '已配置'}，支持流式输出。`
     : '当前未配置 API Key，将使用降级回答。'
-})
+))
 
 function savePosition() {
   if (typeof window === 'undefined') return
   localStorage.setItem(FLOAT_BTN_STORAGE_KEY, JSON.stringify(buttonPosition.value))
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    const el = messagePanelRef.value
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  })
 }
 
 function handlePointerMove(event) {
@@ -201,6 +222,7 @@ function handlePointerDown(event) {
 function handleLauncherClick() {
   if (dragState.moved) return
   drawer.value = true
+  scrollToBottom()
 }
 
 async function ensureConversation() {
@@ -230,10 +252,6 @@ async function refreshConfigStatus() {
   }
 }
 
-async function sendWithConversation(content, currentConversationId) {
-  return chatWithAi({ conversationId: currentConversationId, userMessage: content, stream: false })
-}
-
 function resetConversationCache() {
   conversationId.value = ''
   if (typeof window !== 'undefined') {
@@ -242,9 +260,54 @@ function resetConversationCache() {
 }
 
 function isConversationMissing(error) {
-  const code = error?.response?.data?.code
-  const message = error?.response?.data?.message || ''
-  return code === 404 || String(message).includes('会话不存在')
+  const message = error?.message || error?.response?.data?.message || ''
+  return error?.code === 404 || String(message).includes('会话不存在')
+}
+
+async function sendStream(content, currentConversationId, assistantMessage) {
+  await chatWithAiStream(
+    {
+      conversationId: currentConversationId,
+      userMessage: content,
+      kbIds: ['default'],
+      stream: true,
+    },
+    {
+      onStart(payload) {
+        if (payload?.conversationId) {
+          conversationId.value = payload.conversationId
+        }
+        if (payload?.model) {
+          configStatus.value.model = payload.model
+        }
+        if (payload?.mode) {
+          configStatus.value.mode = payload.mode
+          configStatus.value.configured = payload.mode === 'real-model'
+        }
+      },
+      onDelta(payload) {
+        assistantMessage.text += payload?.delta || ''
+        scrollToBottom()
+      },
+      onDone(payload) {
+        if (!assistantMessage.text?.trim()) {
+          assistantMessage.text = payload?.answer || '抱歉，暂时没有生成回复。'
+        }
+        if (payload?.model) {
+          configStatus.value.model = payload.model
+        }
+        if (payload?.mode) {
+          configStatus.value.mode = payload.mode
+          configStatus.value.configured = payload.mode === 'real-model'
+        }
+        scrollToBottom()
+      },
+      onError(payload) {
+        assistantMessage.text = payload?.message || 'AI 服务暂不可用，请稍后重试。'
+        scrollToBottom()
+      },
+    }
+  )
 }
 
 async function handleAsk() {
@@ -255,30 +318,31 @@ async function handleAsk() {
   question.value = ''
   sending.value = true
 
+  const assistantMessage = { role: 'assistant', text: '' }
+  messages.value.push(assistantMessage)
+  scrollToBottom()
+
   try {
     let currentConversationId = await ensureConversation()
-    let resp
     try {
-      resp = await sendWithConversation(content, currentConversationId)
+      await sendStream(content, currentConversationId, assistantMessage)
     } catch (error) {
       if (!isConversationMissing(error)) {
         throw error
       }
       resetConversationCache()
       currentConversationId = await ensureConversation()
-      resp = await sendWithConversation(content, currentConversationId)
+      await sendStream(content, currentConversationId, assistantMessage)
     }
 
-    const answer = resp?.data?.answer || '抱歉，暂时没有生成回复。'
-    messages.value.push({ role: 'assistant', text: answer })
-    if (resp?.data?.mode === 'real-model') {
-      configStatus.value.configured = true
-      configStatus.value.mode = resp.data.mode
+    if (!assistantMessage.text?.trim()) {
+      assistantMessage.text = '抱歉，暂时没有生成回复。'
     }
   } catch (error) {
-    messages.value.push({ role: 'assistant', text: 'AI 服务暂不可用，请稍后重试。' })
+    assistantMessage.text = assistantMessage.text?.trim() || 'AI 服务暂不可用，请稍后重试。'
   } finally {
     sending.value = false
+    scrollToBottom()
   }
 }
 
@@ -302,13 +366,127 @@ onBeforeUnmount(() => {
 .ai-float-btn {
   position: fixed;
   z-index: 1006;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   cursor: grab;
   touch-action: none;
   user-select: none;
+  transition: transform 0.2s ease;
 }
 
-.ai-float-btn:active {
+.ai-float-btn:active,
+.ai-float-btn.is-dragging {
   cursor: grabbing;
+}
+
+.robot-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+}
+
+.robot-head {
+  position: relative;
+  width: 60px;
+  height: 52px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #f8fbff 0%, #d5e6ff 100%);
+  border: 2px solid rgba(84, 128, 255, 0.24);
+  box-shadow: 0 14px 28px rgba(53, 96, 214, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center bottom;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.robot-antenna {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 4px;
+  height: 14px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7aa8ff 0%, #3d6df6 100%);
+}
+
+.robot-antenna::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #9dc0ff 45%, #4070f6 100%);
+  box-shadow: 0 0 14px rgba(96, 138, 255, 0.55);
+}
+
+.robot-face {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #17306d 0%, #2549a5 100%);
+}
+
+.robot-eye {
+  position: absolute;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #9be8ff;
+  box-shadow: 0 0 10px rgba(116, 237, 255, 0.9);
+  animation: ai-eye-blink 4s infinite;
+}
+
+.robot-eye.left {
+  left: 9px;
+}
+
+.robot-eye.right {
+  right: 9px;
+}
+
+.robot-mouth {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 16px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 0 0 999px 999px;
+  border: 2px solid rgba(155, 232, 255, 0.9);
+  border-top: 0;
+}
+
+.robot-shadow {
+  position: absolute;
+  bottom: 2px;
+  width: 42px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(49, 83, 176, 0.18);
+  filter: blur(4px);
+}
+
+.ai-float-btn:hover .robot-head {
+  transform: translateY(-4px) rotate(-6deg);
+  box-shadow: 0 18px 32px rgba(53, 96, 214, 0.28);
+  animation: ai-robot-wave 0.9s ease-in-out infinite alternate;
+}
+
+.ai-float-btn:hover .robot-antenna::before {
+  animation: ai-robot-pulse 0.9s ease-in-out infinite alternate;
 }
 
 .ai-drawer {
@@ -367,5 +545,39 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   display: flex;
   justify-content: space-between;
+}
+
+@keyframes ai-eye-blink {
+  0%,
+  45%,
+  55%,
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.2);
+    opacity: 0.6;
+  }
+}
+
+@keyframes ai-robot-wave {
+  from {
+    transform: translateY(-4px) rotate(-6deg);
+  }
+  to {
+    transform: translateY(-7px) rotate(6deg);
+  }
+}
+
+@keyframes ai-robot-pulse {
+  from {
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 0 14px rgba(96, 138, 255, 0.55);
+  }
+  to {
+    transform: translateX(-50%) scale(1.14);
+    box-shadow: 0 0 20px rgba(96, 138, 255, 0.78);
+  }
 }
 </style>
