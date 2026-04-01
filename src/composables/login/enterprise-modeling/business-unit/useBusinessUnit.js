@@ -6,9 +6,11 @@ const UNIT_FIELDS = [
     'fid',
     'fcode',
     'fname',
-    'fshort_name',
-    'fmanage_org_code',
-    'fmanage_org_name',
+    'fshortName',
+    'fmanageOrgCode',
+    'fmanageOrgName',
+    'fparentOrgId',
+    'fparentOrgCode',
     'fusagestatus',
 ]
 
@@ -16,10 +18,10 @@ export function useBusinessUnit() {
     const loading = ref(false)
     const unitList = ref([])
 
-    const fetchBusinessUnitList = async () => {
+    const fetchBusinessUnitList = async (params = {}) => {
         loading.value = true
         try {
-            const res = await getBusinessUnitList()
+            const res = await getBusinessUnitList(params)
             unitList.value = (res.data?.records || []).map(u => ({
                 ...UNIT_FIELDS.reduce((acc, k) => ({ ...acc, [k]: '' }), {}),
                 ...u

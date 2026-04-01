@@ -149,10 +149,16 @@ function clearCurrentMessages() {
   messages.value[activeConversationId.value] = []
 }
 
+function isConversationMissing(error) {
+  const code = error?.response?.data?.code
+  const message = error?.response?.data?.message || ''
+  return code === 404 || String(message).includes('会话不存在')
+}
+
 async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
-  const conversationId = activeConversationId.value
+  let conversationId = activeConversationId.value
   if (!conversationId) return
 
   if (!messages.value[conversationId]) {
@@ -164,12 +170,37 @@ async function send() {
   sending.value = true
 
   try {
-    const resp = await chatWithAi({
-      conversationId,
-      userMessage: text,
-      kbIds: ['default'],
-      stream: false,
-    })
+    let resp
+    try {
+      resp = await chatWithAi({
+        conversationId,
+        userMessage: text,
+        kbIds: ['default'],
+        stream: false,
+      })
+    } catch (e) {
+      if (!isConversationMissing(e)) {
+        throw e
+      }
+      const oldConversationId = conversationId
+      const recreateResp = await createConversation({ title: `恢复会话 ${conversations.value.length + 1}`, scene: 'knowledge_qa' })
+      conversationId = recreateResp?.data?.conversationId
+      const title = recreateResp?.data?.title || `恢复会话 ${conversations.value.length + 1}`
+      if (!conversationId) {
+        throw e
+      }
+      conversations.value.unshift({ id: conversationId, title })
+      messages.value[conversationId] = [{ role: 'user', text }]
+      activeConversationId.value = conversationId
+      delete messages.value[oldConversationId]
+      resp = await chatWithAi({
+        conversationId,
+        userMessage: text,
+        kbIds: ['default'],
+        stream: false,
+      })
+    }
+
     const answer = resp?.data?.answer || '抱歉，暂时没有生成回复。'
     messages.value[conversationId].push({ role: 'assistant', text: answer })
     if (resp?.data?.mode) {

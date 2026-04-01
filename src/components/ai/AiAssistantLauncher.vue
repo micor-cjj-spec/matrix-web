@@ -139,7 +139,8 @@ const floatBtnStyle = computed(() => ({
 const showLauncher = computed(() => {
   const hiddenPaths = ['/', '/login', '/register']
   if (hiddenPaths.includes(route.path)) return false
-  return !!localStorage.getItem('token')
+  const token = localStorage.getItem('token')
+  return !!token && token !== 'undefined' && token !== 'null'
 })
 
 const helperText = computed(() => {
@@ -229,6 +230,23 @@ async function refreshConfigStatus() {
   }
 }
 
+async function sendWithConversation(content, currentConversationId) {
+  return chatWithAi({ conversationId: currentConversationId, userMessage: content, stream: false })
+}
+
+function resetConversationCache() {
+  conversationId.value = ''
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(AI_LAUNCHER_CONVERSATION_KEY)
+  }
+}
+
+function isConversationMissing(error) {
+  const code = error?.response?.data?.code
+  const message = error?.response?.data?.message || ''
+  return code === 404 || String(message).includes('会话不存在')
+}
+
 async function handleAsk() {
   const content = question.value.trim()
   if (!content || sending.value) return
@@ -238,8 +256,19 @@ async function handleAsk() {
   sending.value = true
 
   try {
-    const currentConversationId = await ensureConversation()
-    const resp = await chatWithAi({ conversationId: currentConversationId, userMessage: content, stream: false })
+    let currentConversationId = await ensureConversation()
+    let resp
+    try {
+      resp = await sendWithConversation(content, currentConversationId)
+    } catch (error) {
+      if (!isConversationMissing(error)) {
+        throw error
+      }
+      resetConversationCache()
+      currentConversationId = await ensureConversation()
+      resp = await sendWithConversation(content, currentConversationId)
+    }
+
     const answer = resp?.data?.answer || '抱歉，暂时没有生成回复。'
     messages.value.push({ role: 'assistant', text: answer })
     if (resp?.data?.mode === 'real-model') {
@@ -259,6 +288,7 @@ function goFullPage() {
 }
 
 onMounted(async () => {
+  if (!showLauncher.value) return
   await refreshConfigStatus()
   await ensureConversation()
 })
