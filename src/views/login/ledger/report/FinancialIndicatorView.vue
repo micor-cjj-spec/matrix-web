@@ -1,11 +1,11 @@
 <template>
-  <div class="report-page">
+  <div class="analysis-page">
     <v-card elevation="4" class="pa-6">
-      <div class="header">
+      <div class="page-header">
         <div>
-          <h2 class="title">利润表</h2>
-          <div class="subtitle">
-            基于已过账总账分录和损益类科目聚合，支持查看本期金额与本年累计金额。
+          <h2 class="page-title">财务指标</h2>
+          <div class="page-subtitle">
+            基于资产负债表和利润表结果自动计算偿债能力、资本结构和盈利能力指标。
           </div>
         </div>
         <div class="page-actions">
@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <v-row class="mb-4" dense>
+      <v-row dense class="mb-4">
         <v-col cols="12" md="3">
           <v-select
             v-model="query.orgId"
@@ -28,17 +28,8 @@
         </v-col>
         <v-col cols="12" md="2">
           <v-text-field
-            v-model.trim="query.startPeriod"
-            label="开始期间"
-            density="comfortable"
-            placeholder="2026-01"
-            clearable
-          />
-        </v-col>
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model.trim="query.endPeriod"
-            label="结束期间"
+            v-model.trim="query.period"
+            label="期间"
             density="comfortable"
             placeholder="2026-03"
             clearable
@@ -52,22 +43,23 @@
             clearable
           />
         </v-col>
-        <v-col cols="12" md="3" class="switch-col">
-          <v-switch
-            v-model="query.showZero"
-            color="primary"
-            inset
-            hide-details
-            label="显示零值行"
-          />
-        </v-col>
       </v-row>
 
       <div class="meta-strip">
         <v-chip size="small" variant="tonal">业务单元: {{ currentOrgLabel }}</v-chip>
-        <v-chip size="small" variant="tonal">期间范围: {{ `${query.startPeriod || '-'} ~ ${query.endPeriod || '-'}` }}</v-chip>
+        <v-chip size="small" variant="tonal">期间: {{ query.period || '-' }}</v-chip>
         <v-chip size="small" variant="tonal">币种: {{ query.currency || 'CNY' }}</v-chip>
       </div>
+
+      <v-row dense class="summary-row">
+        <v-col v-for="card in summaryCards" :key="card.label" cols="12" md="4">
+          <v-card class="summary-card" elevation="0">
+            <div class="summary-label">{{ card.label }}</div>
+            <div class="summary-value" :class="card.tone">{{ card.value }}</div>
+            <div class="summary-tip">{{ card.tip }}</div>
+          </v-card>
+        </v-col>
+      </v-row>
 
       <div v-if="warnings.length" class="alert-list">
         <v-alert
@@ -99,20 +91,12 @@
         :headers="headers"
         :items="rows"
         :loading="loading"
-        item-key="itemId"
+        item-key="code"
         hide-default-footer
         class="elevation-0"
       >
-        <template #item.itemName="{ item }">
-          <div :style="{ paddingLeft: `${Math.max((item.level || 1) - 1, 0) * 16}px` }">
-            {{ item.itemName }}
-          </div>
-        </template>
-        <template #item.currentAmount="{ item }">
-          {{ formatAmount(item.currentAmount) }}
-        </template>
-        <template #item.ytdAmount="{ item }">
-          {{ formatAmount(item.ytdAmount) }}
+        <template #item.value="{ item }">
+          <span>{{ formatValue(item.value, item.unit) }}</span>
         </template>
       </v-data-table>
     </v-card>
@@ -132,20 +116,24 @@ const orgOptions = ref([])
 
 const query = reactive({
   orgId: null,
-  startPeriod: startPeriodOfYear(),
-  endPeriod: currentPeriod(),
+  period: currentPeriod(),
   currency: 'CNY',
-  showZero: true,
 })
 
 const headers = [
-  { title: '行次', key: 'rowNo', value: 'rowNo', width: 90 },
-  { title: '项目编码', key: 'itemCode', value: 'itemCode', width: 160 },
-  { title: '项目名称', key: 'itemName', value: 'itemName' },
-  { title: '层级', key: 'level', value: 'level', width: 80, align: 'center' },
-  { title: '本期金额', key: 'currentAmount', value: 'currentAmount', align: 'end', width: 160 },
-  { title: '本年累计', key: 'ytdAmount', value: 'ytdAmount', align: 'end', width: 160 },
+  { title: '指标编码', key: 'code', value: 'code', width: 160 },
+  { title: '指标名称', key: 'name', value: 'name', width: 180 },
+  { title: '分类', key: 'category', value: 'category', width: 140 },
+  { title: '指标值', key: 'value', value: 'value', width: 160, align: 'end' },
+  { title: '公式', key: 'formula', value: 'formula' },
+  { title: '说明', key: 'interpretation', value: 'interpretation' },
 ]
+
+const summaryCards = computed(() => [
+  metricCard('偿债能力指标', findRow('CURRENT_RATIO')?.value, findRow('CURRENT_RATIO')?.unit, '流动比率越高，短期偿债弹性越强。'),
+  metricCard('资本结构指标', findRow('ASSET_LIABILITY_RATIO')?.value, findRow('ASSET_LIABILITY_RATIO')?.unit, '资产负债率反映负债对资产的占用程度。'),
+  metricCard('盈利能力指标', findRow('NET_MARGIN')?.value, findRow('NET_MARGIN')?.unit, '净利率衡量收入转化为净利润的能力。'),
+])
 
 const currentOrgLabel = computed(() => {
   const hit = orgOptions.value.find((item) => item.value === query.orgId)
@@ -157,16 +145,26 @@ function currentPeriod() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
-function startPeriodOfYear() {
-  const now = new Date()
-  return `${now.getFullYear()}-01`
+function metricCard(label, value, unit, tip) {
+  return {
+    label,
+    value: formatValue(value, unit),
+    tip,
+    tone: 'tone-primary',
+  }
 }
 
-function formatAmount(value) {
-  return Number(value || 0).toLocaleString('zh-CN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+function findRow(code) {
+  return rows.value.find((item) => item.code === code)
+}
+
+function formatValue(value, unit) {
+  const number = Number(value || 0)
+  const text = number.toLocaleString('zh-CN', {
+    minimumFractionDigits: unit === '%' ? 2 : 2,
+    maximumFractionDigits: unit === '%' ? 2 : 4,
   })
+  return unit ? `${text}${unit}` : text
 }
 
 async function loadOrgOptions() {
@@ -184,12 +182,10 @@ async function loadOrgOptions() {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await financialReportApi.fetchProfitStatement({
+    const res = await financialReportApi.fetchFinancialIndicators({
       orgId: query.orgId || undefined,
-      startPeriod: query.startPeriod || undefined,
-      endPeriod: query.endPeriod || undefined,
+      period: query.period || undefined,
       currency: query.currency || undefined,
-      showZero: query.showZero,
     })
     const data = res.data || {}
     rows.value = data.rows || []
@@ -197,7 +193,7 @@ async function fetchData() {
     checks.value = data.checks || []
   } catch {
     rows.value = []
-    warnings.value = ['利润表加载失败。']
+    warnings.value = ['财务指标加载失败。']
     checks.value = []
   } finally {
     loading.value = false
@@ -205,10 +201,8 @@ async function fetchData() {
 }
 
 function resetQuery() {
-  query.startPeriod = startPeriodOfYear()
-  query.endPeriod = currentPeriod()
+  query.period = currentPeriod()
   query.currency = 'CNY'
-  query.showZero = true
   fetchData()
 }
 
@@ -221,29 +215,29 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.report-page {
+.analysis-page {
   padding: 24px;
 }
 
-.header {
+.page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-.title {
-  margin: 0;
-  color: #24344d;
+.page-title {
+  margin: 0 0 6px;
+  color: #23447a;
   font-size: 24px;
   font-weight: 700;
 }
 
-.subtitle {
-  margin-top: 6px;
-  color: #667085;
+.page-subtitle {
+  color: #62779b;
   font-size: 14px;
+  line-height: 1.7;
 }
 
 .page-actions {
@@ -251,16 +245,41 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.switch-col {
-  display: flex;
-  align-items: center;
-}
-
 .meta-strip {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+}
+
+.summary-row {
+  margin-bottom: 12px;
+}
+
+.summary-card {
+  height: 100%;
+  border: 1px solid #e4ebf7;
+  border-radius: 14px;
+  padding: 18px;
+  background: linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
+}
+
+.summary-label {
+  color: #5e7297;
+  font-size: 13px;
+}
+
+.summary-value {
+  margin-top: 8px;
+  color: #2450b2;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.summary-tip {
+  margin-top: 8px;
+  color: #7488ad;
+  font-size: 12px;
 }
 
 .alert-list {

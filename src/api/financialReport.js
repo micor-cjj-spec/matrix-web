@@ -24,6 +24,14 @@ export function fetchCashFlowSupplement(params = {}) {
   return request.get('/cash-flow/supplement', { params })
 }
 
+export function fetchFinancialIndicators(params = {}) {
+  return request.get('/analysis-report/financial-indicators', { params })
+}
+
+export function fetchEnterpriseTax(params = {}) {
+  return request.get('/analysis-report/enterprise-tax', { params })
+}
+
 export default {
   fetchBalanceSheet,
   fetchBalanceSheetDrill,
@@ -31,4 +39,6 @@ export default {
   fetchCashFlow,
   fetchCashFlowQuery,
   fetchCashFlowSupplement,
+  fetchFinancialIndicators,
+  fetchEnterpriseTax,
 }

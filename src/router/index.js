@@ -45,7 +45,9 @@ const AuxDimensionBalanceView = () => import('../views/login/ledger/aux-dimensio
 const AuxGeneralLedgerView = () => import('../views/login/ledger/aux-general-ledger/AuxGeneralLedgerView.vue')
 const AuxDetailLedgerView = () => import('../views/login/ledger/aux-detail-ledger/AuxDetailLedgerView.vue')
 const ReportItemView = () => import('../views/login/ledger/report/ReportItemView.vue')
+const FinancialIndicatorView = () => import('../views/login/ledger/report/FinancialIndicatorView.vue')
 const ProfitStatementView = () => import('../views/login/ledger/report/ProfitStatementView.vue')
+const EnterpriseTaxView = () => import('../views/login/ledger/report/EnterpriseTaxView.vue')
 const CashFlowView = () => import('../views/login/ledger/report/CashFlowView.vue')
 const CashFlowQueryView = () => import('../views/login/ledger/report/CashFlowQueryView.vue')
 const CashFlowSupplementView = () => import('../views/login/ledger/report/CashFlowSupplementView.vue')
@@ -66,6 +68,11 @@ const VoucherRuleView = () => import('../views/login/ledger/collaboration/Vouche
 const OffsetVoucherView = () => import('../views/login/ledger/collaboration/OffsetVoucherView.vue')
 const VoucherCollaborationCheckView = () => import('../views/login/ledger/collaboration/VoucherCollaborationCheckView.vue')
 const SubjectCompareView = () => import('../views/login/ledger/collaboration/SubjectCompareView.vue')
+const PeriodProcessModuleView = () => import('../views/login/ledger/period-process/PeriodProcessModuleView.vue')
+const PeriodProcessMonitorView = () => import('../views/login/ledger/period-process/PeriodProcessMonitorView.vue')
+const InitializationModuleView = () => import('../views/login/ledger/init/InitializationModuleView.vue')
+const VoucherTypeView = () => import('../views/login/ledger/settings/VoucherTypeView.vue')
+const BaseConfigItemView = () => import('../views/login/ledger/settings/BaseConfigItemView.vue')
 
 const SharedOperationsView = () => import('../views/login/shared/SharedOperationsView.vue')
 const AiAssistantView = () => import('../views/ai/AiAssistantView.vue')
@@ -109,6 +116,22 @@ const routes = [
   { path: '/ledger/offset-voucher', name: 'OffsetVoucher', component: OffsetVoucherView, meta: { title: '对冲凭证' } },
   { path: '/ledger/voucher-collaboration-check', name: 'VoucherCollaborationCheck', component: VoucherCollaborationCheckView, meta: { title: '凭证协同检查' } },
   { path: '/ledger/subject-compare', name: 'SubjectCompare', component: SubjectCompareView, meta: { title: '科目余额对照' } },
+  { path: '/ledger/period-profit-loss', name: 'PeriodProfitLoss', component: PeriodProcessModuleView, meta: { title: '结转损益', periodModule: 'profitLoss' } },
+  { path: '/ledger/period-auto-transfer', name: 'PeriodAutoTransfer', component: PeriodProcessModuleView, meta: { title: '自动转账', periodModule: 'autoTransfer' } },
+  { path: '/ledger/period-fx-revalue', name: 'PeriodFxRevalue', component: PeriodProcessModuleView, meta: { title: '期末调汇', periodModule: 'fxRevalue' } },
+  { path: '/ledger/period-voucher-amortization', name: 'PeriodVoucherAmortization', component: PeriodProcessModuleView, meta: { title: '凭证摊销', periodModule: 'voucherAmortization' } },
+  { path: '/ledger/period-close-books', name: 'PeriodCloseBooks', component: PeriodProcessModuleView, meta: { title: '期末结账', periodModule: 'closeBooks' } },
+  { path: '/ledger/period-monitor-center', name: 'PeriodMonitorCenter', component: PeriodProcessMonitorView, meta: { title: '监控中心' } },
+  { path: '/ledger/opening-subject', name: 'OpeningSubject', component: InitializationModuleView, meta: { title: '科目余额初始化', initModule: 'subject' } },
+  { path: '/ledger/opening-cashflow', name: 'OpeningCashflow', component: InitializationModuleView, meta: { title: '现金流初始化', initModule: 'cashflow' } },
+  { path: '/ledger/opening-counterparty', name: 'OpeningCounterparty', component: InitializationModuleView, meta: { title: '往来余额初始化', initModule: 'counterparty' } },
+  { path: '/ledger/voucher-type', name: 'VoucherType', component: VoucherTypeView, meta: { title: '凭证类型' } },
+  { path: '/ledger/base-config-dimension-relation', name: 'BaseConfigDimensionRelation', component: BaseConfigItemView, meta: { title: '核算维度关系设置', baseConfigModule: 'dimensionRelation' } },
+  { path: '/ledger/base-config-dimension-value-range', name: 'BaseConfigDimensionValueRange', component: BaseConfigItemView, meta: { title: '核算维度值范围设置', baseConfigModule: 'dimensionValueRange' } },
+  { path: '/ledger/base-config-equity-change-type', name: 'BaseConfigEquityChangeType', component: BaseConfigItemView, meta: { title: '所有者权益变动类型', baseConfigModule: 'equityChangeType' } },
+  { path: '/ledger/base-config-impairment-nature', name: 'BaseConfigImpairmentNature', component: BaseConfigItemView, meta: { title: '减值准备性质', baseConfigModule: 'impairmentNature' } },
+  { path: '/ledger/base-config-license-plate-item', name: 'BaseConfigLicensePlateItem', component: BaseConfigItemView, meta: { title: '车辆牌照号项目', baseConfigModule: 'licensePlateItem' } },
+  { path: '/ledger/base-config-cost-nature', name: 'BaseConfigCostNature', component: BaseConfigItemView, meta: { title: '成本性质', baseConfigModule: 'costNature' } },
   { path: '/ledger/subject-balance', name: 'SubjectBalance', component: SubjectBalanceView, meta: { title: '科目余额表' } },
   { path: '/ledger/general-ledger', name: 'GeneralLedgerBook', component: GeneralLedgerBookView, meta: { title: '总分类账' } },
   { path: '/ledger/detail-ledger', name: 'DetailLedger', component: DetailLedgerView, meta: { title: '明细分类账' } },
@@ -118,8 +141,10 @@ const routes = [
   { path: '/ledger/aux-general-ledger', name: 'AuxGeneralLedger', component: AuxGeneralLedgerView, meta: { title: '辅助总账' } },
   { path: '/ledger/aux-detail-ledger', name: 'AuxDetailLedger', component: AuxDetailLedgerView, meta: { title: '辅助明细账' } },
   { path: '/ledger/report-item', name: 'ReportItem', component: ReportItemView, meta: { title: '报表项目' } },
+  { path: '/ledger/financial-indicators', name: 'FinancialIndicators', component: FinancialIndicatorView, meta: { title: '财务指标' } },
   { path: '/ledger/balance-sheet', name: 'BalanceSheet', component: BalanceSheetView, meta: { title: '资产负债表' } },
   { path: '/ledger/profit-statement', name: 'ProfitStatement', component: ProfitStatementView, meta: { title: '利润表' } },
+  { path: '/ledger/enterprise-tax', name: 'EnterpriseTax', component: EnterpriseTaxView, meta: { title: '企业纳税表' } },
   { path: '/ledger/cash-flow', name: 'CashFlow', component: CashFlowView, meta: { title: '现金流量表' } },
   { path: '/ledger/cash-flow-query', name: 'CashFlowQuery', component: CashFlowQueryView, meta: { title: '现金流量查询' } },
   { path: '/ledger/cash-flow-supplement', name: 'CashFlowSupplement', component: CashFlowSupplementView, meta: { title: '现金流量补充资料' } },

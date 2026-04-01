@@ -1,11 +1,11 @@
 <template>
-  <div class="report-page">
+  <div class="analysis-page">
     <v-card elevation="4" class="pa-6">
-      <div class="header">
+      <div class="page-header">
         <div>
-          <h2 class="title">利润表</h2>
-          <div class="subtitle">
-            基于已过账总账分录和损益类科目聚合，支持查看本期金额与本年累计金额。
+          <h2 class="page-title">企业纳税表</h2>
+          <div class="page-subtitle">
+            基于利润表结果给出企业纳税预估口径，帮助快速查看收入、利润与主要税费压力。
           </div>
         </div>
         <div class="page-actions">
@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <v-row class="mb-4" dense>
+      <v-row dense class="mb-4">
         <v-col cols="12" md="3">
           <v-select
             v-model="query.orgId"
@@ -28,17 +28,8 @@
         </v-col>
         <v-col cols="12" md="2">
           <v-text-field
-            v-model.trim="query.startPeriod"
-            label="开始期间"
-            density="comfortable"
-            placeholder="2026-01"
-            clearable
-          />
-        </v-col>
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model.trim="query.endPeriod"
-            label="结束期间"
+            v-model.trim="query.period"
+            label="期间"
             density="comfortable"
             placeholder="2026-03"
             clearable
@@ -52,22 +43,30 @@
             clearable
           />
         </v-col>
-        <v-col cols="12" md="3" class="switch-col">
-          <v-switch
-            v-model="query.showZero"
-            color="primary"
-            inset
-            hide-details
-            label="显示零值行"
-          />
-        </v-col>
       </v-row>
 
-      <div class="meta-strip">
-        <v-chip size="small" variant="tonal">业务单元: {{ currentOrgLabel }}</v-chip>
-        <v-chip size="small" variant="tonal">期间范围: {{ `${query.startPeriod || '-'} ~ ${query.endPeriod || '-'}` }}</v-chip>
-        <v-chip size="small" variant="tonal">币种: {{ query.currency || 'CNY' }}</v-chip>
-      </div>
+      <v-row dense class="summary-row">
+        <v-col cols="12" md="4">
+          <v-card class="summary-card" elevation="0">
+            <div class="summary-label">营业收入</div>
+            <div class="summary-value tone-primary">{{ formatAmount(summary.revenueAmount) }}</div>
+          </v-card>
+        </v-col>
+        <v-col cols="12" md="4">
+          <v-card class="summary-card" elevation="0">
+            <div class="summary-label">净利润</div>
+            <div class="summary-value" :class="summary.netProfitAmount >= 0 ? 'tone-success' : 'tone-warning'">
+              {{ formatAmount(summary.netProfitAmount) }}
+            </div>
+          </v-card>
+        </v-col>
+        <v-col cols="12" md="4">
+          <v-card class="summary-card" elevation="0">
+            <div class="summary-label">税费预估合计</div>
+            <div class="summary-value tone-warning">{{ formatAmount(summary.totalTaxAmount) }}</div>
+          </v-card>
+        </v-col>
+      </v-row>
 
       <div v-if="warnings.length" class="alert-list">
         <v-alert
@@ -99,20 +98,18 @@
         :headers="headers"
         :items="rows"
         :loading="loading"
-        item-key="itemId"
+        item-key="taxCode"
         hide-default-footer
         class="elevation-0"
       >
-        <template #item.itemName="{ item }">
-          <div :style="{ paddingLeft: `${Math.max((item.level || 1) - 1, 0) * 16}px` }">
-            {{ item.itemName }}
-          </div>
+        <template #item.taxBase="{ item }">
+          {{ formatAmount(item.taxBase) }}
         </template>
-        <template #item.currentAmount="{ item }">
-          {{ formatAmount(item.currentAmount) }}
+        <template #item.taxRate="{ item }">
+          {{ formatRate(item.taxRate) }}
         </template>
-        <template #item.ytdAmount="{ item }">
-          {{ formatAmount(item.ytdAmount) }}
+        <template #item.taxAmount="{ item }">
+          {{ formatAmount(item.taxAmount) }}
         </template>
       </v-data-table>
     </v-card>
@@ -120,7 +117,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { getBusinessUnitList } from '@/api/bizUnit'
 import financialReportApi from '@/api/financialReport'
 
@@ -132,34 +129,28 @@ const orgOptions = ref([])
 
 const query = reactive({
   orgId: null,
-  startPeriod: startPeriodOfYear(),
-  endPeriod: currentPeriod(),
+  period: currentPeriod(),
   currency: 'CNY',
-  showZero: true,
+})
+
+const summary = reactive({
+  revenueAmount: 0,
+  netProfitAmount: 0,
+  totalTaxAmount: 0,
 })
 
 const headers = [
-  { title: '行次', key: 'rowNo', value: 'rowNo', width: 90 },
-  { title: '项目编码', key: 'itemCode', value: 'itemCode', width: 160 },
-  { title: '项目名称', key: 'itemName', value: 'itemName' },
-  { title: '层级', key: 'level', value: 'level', width: 80, align: 'center' },
-  { title: '本期金额', key: 'currentAmount', value: 'currentAmount', align: 'end', width: 160 },
-  { title: '本年累计', key: 'ytdAmount', value: 'ytdAmount', align: 'end', width: 160 },
+  { title: '税种编码', key: 'taxCode', value: 'taxCode', width: 140 },
+  { title: '税种名称', key: 'taxName', value: 'taxName', width: 180 },
+  { title: '计税基础', key: 'taxBase', value: 'taxBase', align: 'end', width: 160 },
+  { title: '税率', key: 'taxRate', value: 'taxRate', align: 'end', width: 100 },
+  { title: '税额', key: 'taxAmount', value: 'taxAmount', align: 'end', width: 160 },
+  { title: '说明', key: 'note', value: 'note' },
 ]
-
-const currentOrgLabel = computed(() => {
-  const hit = orgOptions.value.find((item) => item.value === query.orgId)
-  return hit?.label || '全部业务单元'
-})
 
 function currentPeriod() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
-
-function startPeriodOfYear() {
-  const now = new Date()
-  return `${now.getFullYear()}-01`
 }
 
 function formatAmount(value) {
@@ -167,6 +158,10 @@ function formatAmount(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
+}
+
+function formatRate(value) {
+  return `${(Number(value || 0) * 100).toFixed(2)}%`
 }
 
 async function loadOrgOptions() {
@@ -184,31 +179,33 @@ async function loadOrgOptions() {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await financialReportApi.fetchProfitStatement({
+    const res = await financialReportApi.fetchEnterpriseTax({
       orgId: query.orgId || undefined,
-      startPeriod: query.startPeriod || undefined,
-      endPeriod: query.endPeriod || undefined,
+      period: query.period || undefined,
       currency: query.currency || undefined,
-      showZero: query.showZero,
     })
     const data = res.data || {}
     rows.value = data.rows || []
     warnings.value = data.warnings || []
     checks.value = data.checks || []
+    summary.revenueAmount = Number(data.revenueAmount || 0)
+    summary.netProfitAmount = Number(data.netProfitAmount || 0)
+    summary.totalTaxAmount = Number(data.totalTaxAmount || 0)
   } catch {
     rows.value = []
-    warnings.value = ['利润表加载失败。']
+    warnings.value = ['企业纳税表加载失败。']
     checks.value = []
+    summary.revenueAmount = 0
+    summary.netProfitAmount = 0
+    summary.totalTaxAmount = 0
   } finally {
     loading.value = false
   }
 }
 
 function resetQuery() {
-  query.startPeriod = startPeriodOfYear()
-  query.endPeriod = currentPeriod()
+  query.period = currentPeriod()
   query.currency = 'CNY'
-  query.showZero = true
   fetchData()
 }
 
@@ -221,29 +218,29 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.report-page {
+.analysis-page {
   padding: 24px;
 }
 
-.header {
+.page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-.title {
-  margin: 0;
-  color: #24344d;
+.page-title {
+  margin: 0 0 6px;
+  color: #23447a;
   font-size: 24px;
   font-weight: 700;
 }
 
-.subtitle {
-  margin-top: 6px;
-  color: #667085;
+.page-subtitle {
+  color: #62779b;
   font-size: 14px;
+  line-height: 1.7;
 }
 
 .page-actions {
@@ -251,16 +248,39 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.switch-col {
-  display: flex;
-  align-items: center;
+.summary-row {
+  margin-bottom: 12px;
 }
 
-.meta-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+.summary-card {
+  height: 100%;
+  border: 1px solid #e4ebf7;
+  border-radius: 14px;
+  padding: 18px;
+  background: linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
+}
+
+.summary-label {
+  color: #5e7297;
+  font-size: 13px;
+}
+
+.summary-value {
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.tone-primary {
+  color: #2450b2;
+}
+
+.tone-success {
+  color: #1f8b57;
+}
+
+.tone-warning {
+  color: #c68218;
 }
 
 .alert-list {
