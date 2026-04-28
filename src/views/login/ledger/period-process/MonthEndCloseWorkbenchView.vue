@@ -10,6 +10,8 @@
         </div>
         <div class="page-actions">
           <v-btn color="primary" variant="flat" @click="fetchData">查询</v-btn>
+          <v-btn color="success" variant="flat" :loading="batchSaving" @click="createBatch">生成检查批次</v-btn>
+          <v-btn variant="text" :loading="batchLoading" @click="loadBatchList">刷新批次</v-btn>
           <v-btn variant="text" @click="resetQuery">重置</v-btn>
         </div>
       </div>
@@ -120,7 +122,7 @@
         :loading="loading"
         item-key="stepCode"
         hide-default-footer
-        class="elevation-0"
+        class="elevation-0 mb-6"
       >
         <template #item.status="{ item }">
           <v-chip size="small" variant="tonal" :color="moduleStatusColor(item.status)">
@@ -139,7 +141,55 @@
           </v-btn>
         </template>
       </v-data-table>
+
+      <div class="section-title">检查批次留痕</div>
+      <v-data-table
+        :headers="batchHeaders"
+        :items="batchRows"
+        :loading="batchLoading"
+        item-key="fid"
+        hide-default-footer
+        class="elevation-0"
+      >
+        <template #item.fcloseStatus="{ item }">
+          <v-chip size="small" variant="tonal" :color="closeStatusColor(item.fcloseStatus)">
+            {{ closeStatusLabel(item.fcloseStatus) }}
+          </v-chip>
+        </template>
+        <template #item.fapplicationStatus="{ item }">
+          <v-chip size="small" variant="tonal" :color="applicationStatusColor(item.fapplicationStatus)">
+            {{ applicationStatusLabel(item.fapplicationStatus) }}
+          </v-chip>
+        </template>
+        <template #item.fcreatedTime="{ item }">
+          {{ formatDateTime(item.fcreatedTime) }}
+        </template>
+        <template #item.actions="{ item }">
+          <v-btn
+            v-if="canSubmitBatch(item)"
+            size="small"
+            variant="text"
+            color="primary"
+            @click="submitBatch(item)"
+          >
+            提交
+          </v-btn>
+          <v-btn
+            v-if="canApproveBatch(item)"
+            size="small"
+            variant="text"
+            color="success"
+            @click="approveBatch(item)"
+          >
+            批准
+          </v-btn>
+        </template>
+      </v-data-table>
     </v-card>
+
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2200">
+      {{ snackbar.text }}
+    </v-snackbar>
   </div>
 </template>
 
@@ -148,6 +198,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import periodProcessApi from '@/api/periodProcess'
 import {
+  applicationStatusColor,
+  applicationStatusLabel,
   checkCategoryLabel,
   checkStatusColor,
   checkStatusLabel,
@@ -170,6 +222,10 @@ const orgOptions = ref([])
 const checkItems = ref([])
 const steps = ref([])
 const warnings = ref([])
+const batchRows = ref([])
+const batchLoading = ref(false)
+const batchSaving = ref(false)
+const snackbar = ref({ show: false, text: '', color: 'info' })
 
 const query = reactive({
   forg: null,
@@ -215,6 +271,18 @@ const stepHeaders = [
   { title: '阻塞', key: 'blockingCount', value: 'blockingCount', width: 80, align: 'center' },
   { title: '预警', key: 'warningCount', value: 'warningCount', width: 80, align: 'center' },
   { title: '操作', key: 'actions', value: 'actions', width: 90, align: 'center' },
+]
+
+const batchHeaders = [
+  { title: '批次号', key: 'fbatchNo', value: 'fbatchNo', minWidth: 210 },
+  { title: '期间', key: 'fperiod', value: 'fperiod', width: 100 },
+  { title: '关账状态', key: 'fcloseStatus', value: 'fcloseStatus', width: 110, align: 'center' },
+  { title: '准备度', key: 'freadinessScore', value: 'freadinessScore', width: 90, align: 'center' },
+  { title: '阻塞', key: 'fblockingCount', value: 'fblockingCount', width: 80, align: 'center' },
+  { title: '预警', key: 'fwarningCount', value: 'fwarningCount', width: 80, align: 'center' },
+  { title: '申请状态', key: 'fapplicationStatus', value: 'fapplicationStatus', width: 110, align: 'center' },
+  { title: '生成时间', key: 'fcreatedTime', value: 'fcreatedTime', width: 170 },
+  { title: '操作', key: 'actions', value: 'actions', width: 130, align: 'center' },
 ]
 
 const summaryCards = computed(() => ([
@@ -266,9 +334,76 @@ async function fetchData() {
   }
 }
 
+async function loadBatchList() {
+  batchLoading.value = true
+  try {
+    const res = await periodProcessApi.listMonthEndBatches({
+      page: 1,
+      size: 10,
+      forg: query.forg || undefined,
+      period: query.period || undefined,
+    })
+    batchRows.value = res.data?.records || []
+  } catch {
+    batchRows.value = []
+    showMsg('检查批次加载失败', 'warning')
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+async function createBatch() {
+  batchSaving.value = true
+  try {
+    const res = await periodProcessApi.createMonthEndBatch({
+      forg: query.forg || undefined,
+      period: query.period || undefined,
+      createdBy: 'WEB',
+      remark: '月结工作台生成检查批次',
+    })
+    showMsg(`已生成检查批次 ${res.data?.fbatchNo || ''}`, 'success')
+    await refreshWorkbenchAndBatches()
+  } catch {
+    showMsg('生成检查批次失败', 'error')
+  } finally {
+    batchSaving.value = false
+  }
+}
+
+async function submitBatch(item) {
+  try {
+    await periodProcessApi.submitMonthEndBatch(item.fid, {
+      operator: 'WEB',
+      remark: '月结工作台提交关账申请',
+    })
+    showMsg('关账申请已提交', 'success')
+    await refreshWorkbenchAndBatches()
+  } catch {
+    showMsg('提交关账申请失败', 'error')
+  }
+}
+
+async function approveBatch(item) {
+  try {
+    await periodProcessApi.approveMonthEndBatch(item.fid, {
+      operator: 'WEB',
+      remark: '月结工作台批准关账申请',
+    })
+    showMsg('关账申请已批准', 'success')
+    await refreshWorkbenchAndBatches()
+  } catch {
+    showMsg('批准关账申请失败', 'error')
+  }
+}
+
 function resetQuery() {
   query.period = currentPeriod()
   fetchData()
+  loadBatchList()
+}
+
+async function refreshWorkbenchAndBatches() {
+  await Promise.all([fetchData(), loadBatchList()])
 }
 
 function assignMeta(data) {
@@ -304,6 +439,23 @@ function openRoute(path) {
   })
 }
 
+function canSubmitBatch(item) {
+  return item?.fapplicationStatus === 'DRAFT' && Number(item?.fblockingCount || 0) === 0
+}
+
+function canApproveBatch(item) {
+  return item?.fapplicationStatus === 'SUBMITTED'
+}
+
+function formatDateTime(value) {
+  if (!value) return '-'
+  return String(value).replace('T', ' ').slice(0, 19)
+}
+
+function showMsg(text, color = 'info') {
+  snackbar.value = { show: true, text, color }
+}
+
 onMounted(async () => {
   orgOptions.value = await loadOrgOptions().catch(() => [])
   if (!query.forg && orgOptions.value.length) {
@@ -316,6 +468,7 @@ onMounted(async () => {
     query.period = route.query.period
   }
   await fetchData()
+  await loadBatchList()
 })
 </script>
 
@@ -420,4 +573,3 @@ onMounted(async () => {
   color: #c94343;
 }
 </style>
-

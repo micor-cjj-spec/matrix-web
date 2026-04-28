@@ -28,6 +28,22 @@ export function getMonthEndWorkbench(params = {}) {
   return request.get('/period-process/month-end-workbench', { params })
 }
 
+export function createMonthEndBatch(data = {}) {
+  return request.post('/month-end-check-batch', data)
+}
+
+export function listMonthEndBatches(params = {}) {
+  return request.get('/month-end-check-batch/list', { params })
+}
+
+export function submitMonthEndBatch(fid, data = {}) {
+  return request.post(`/month-end-check-batch/${fid}/submit`, data)
+}
+
+export function approveMonthEndBatch(fid, data = {}) {
+  return request.post(`/month-end-check-batch/${fid}/approve`, data)
+}
+
 export default {
   fetchProfitLoss: getProfitLoss,
   fetchAutoTransfer: getAutoTransfer,
@@ -36,4 +52,8 @@ export default {
   fetchCloseBooks: getCloseBooks,
   fetchMonitorCenter: getMonitorCenter,
   fetchMonthEndWorkbench: getMonthEndWorkbench,
+  createMonthEndBatch,
+  listMonthEndBatches,
+  submitMonthEndBatch,
+  approveMonthEndBatch,
 }

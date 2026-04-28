@@ -49,6 +49,12 @@ export const severityMap = {
   LOW: { label: '低', color: 'success' },
 }
 
+export const applicationStatusMap = {
+  DRAFT: { label: '草稿', color: 'grey' },
+  SUBMITTED: { label: '已提交', color: 'warning' },
+  APPROVED: { label: '已批准', color: 'success' },
+}
+
 export function currentPeriod() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -108,6 +114,14 @@ export function severityLabel(value) {
 
 export function severityColor(value) {
   return severityMap[value]?.color || 'default'
+}
+
+export function applicationStatusLabel(value) {
+  return applicationStatusMap[value]?.label || value || '-'
+}
+
+export function applicationStatusColor(value) {
+  return applicationStatusMap[value]?.color || 'default'
 }
 
 export function voucherStatusLabel(value) {
