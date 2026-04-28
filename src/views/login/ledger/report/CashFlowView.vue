@@ -140,7 +140,6 @@ async function loadOrgOptions() {
       value: item.fid,
     }))
     if (!records.find((item) => item.fid === query.orgId)) {
-      query.orgId = records[0]?.fid ?? query.orgId
     }
   } catch (error) {
     showMsg('业务单元加载失败', 'warning')

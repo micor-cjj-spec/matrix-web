@@ -176,9 +176,6 @@ async function loadOrgOptions() {
     label: `${item.fcode || '-'} - ${item.fname || '-'}`,
     value: item.fid,
   }))
-  if (!query.orgId && orgOptions.value.length) {
-    query.orgId = orgOptions.value[0].value
-  }
 }
 
 async function fetchData() {

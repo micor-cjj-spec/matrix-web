@@ -239,9 +239,6 @@ function openModule(item) {
 
 onMounted(async () => {
   orgOptions.value = await loadOrgOptions().catch(() => [])
-  if (!query.forg && orgOptions.value.length) {
-    query.forg = orgOptions.value[0].value
-  }
   await fetchData()
 })
 </script>

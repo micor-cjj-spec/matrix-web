@@ -303,9 +303,6 @@ function openVoucher(item) {
 
 onMounted(async () => {
   orgOptions.value = await loadOrgOptions().catch(() => [])
-  if (!query.forg && orgOptions.value.length) {
-    query.forg = orgOptions.value[0].value
-  }
   if (typeof route.query?.forg === 'string' && route.query.forg) {
     query.forg = Number(route.query.forg) || query.forg
   }
