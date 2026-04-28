@@ -61,6 +61,11 @@ export const executionStatusMap = {
   FAILED: { label: '失败', color: 'error' },
 }
 
+export const rolloverStatusMap = {
+  SUCCESS: { label: '成功', color: 'success' },
+  FAILED: { label: '失败', color: 'error' },
+}
+
 export function currentPeriod() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -136,6 +141,14 @@ export function executionStatusLabel(value) {
 
 export function executionStatusColor(value) {
   return executionStatusMap[value]?.color || 'default'
+}
+
+export function rolloverStatusLabel(value) {
+  return rolloverStatusMap[value]?.label || value || '-'
+}
+
+export function rolloverStatusColor(value) {
+  return rolloverStatusMap[value]?.color || 'default'
 }
 
 export function voucherStatusLabel(value) {

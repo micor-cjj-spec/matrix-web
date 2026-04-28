@@ -52,6 +52,14 @@ export function listMonthEndCloseExecutions(params = {}) {
   return request.get('/month-end-close-execution/list', { params })
 }
 
+export function rolloverPeriodFromExecution(executionId, data = {}) {
+  return request.post(`/period-rollover/from-close-execution/${executionId}`, data)
+}
+
+export function listPeriodRollovers(params = {}) {
+  return request.get('/period-rollover/list', { params })
+}
+
 export default {
   fetchProfitLoss: getProfitLoss,
   fetchAutoTransfer: getAutoTransfer,
@@ -66,4 +74,6 @@ export default {
   approveMonthEndBatch,
   executeMonthEndClose,
   listMonthEndCloseExecutions,
+  rolloverPeriodFromExecution,
+  listPeriodRollovers,
 }

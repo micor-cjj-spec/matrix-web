@@ -11,7 +11,7 @@
         <div class="page-actions">
           <v-btn color="primary" variant="flat" @click="fetchData">查询</v-btn>
           <v-btn color="success" variant="flat" :loading="batchSaving" @click="createBatch">生成检查批次</v-btn>
-          <v-btn variant="text" :loading="batchLoading || executionLoading" @click="refreshAll">刷新</v-btn>
+          <v-btn variant="text" :loading="batchLoading || executionLoading || rolloverLoading" @click="refreshAll">刷新</v-btn>
           <v-btn variant="text" @click="resetQuery">重置</v-btn>
         </div>
       </div>
@@ -213,6 +213,40 @@
         <template #item.fexecutedTime="{ item }">
           {{ formatDateTime(item.fexecutedTime) }}
         </template>
+        <template #item.actions="{ item }">
+          <v-btn
+            v-if="canRolloverExecution(item)"
+            size="small"
+            variant="text"
+            color="primary"
+            :loading="rollingExecutionId === item.fid"
+            @click="rolloverPeriod(item)"
+          >
+            启用下一期间
+          </v-btn>
+        </template>
+      </v-data-table>
+
+      <div class="section-title">期间滚动记录</div>
+      <v-data-table
+        :headers="rolloverHeaders"
+        :items="rolloverRows"
+        :loading="rolloverLoading"
+        item-key="fid"
+        hide-default-footer
+        class="elevation-0"
+      >
+        <template #item.frolloverStatus="{ item }">
+          <v-chip size="small" variant="tonal" :color="rolloverStatusColor(item.frolloverStatus)">
+            {{ rolloverStatusLabel(item.frolloverStatus) }}
+          </v-chip>
+        </template>
+        <template #item.fcreatedNextPeriod="{ item }">
+          {{ item.fcreatedNextPeriod ? '自动创建' : '复用已有' }}
+        </template>
+        <template #item.frolledTime="{ item }">
+          {{ formatDateTime(item.frolledTime) }}
+        </template>
       </v-data-table>
     </v-card>
 
@@ -241,6 +275,8 @@ import {
   moduleStatusColor,
   moduleStatusLabel,
   periodSourceLabel,
+  rolloverStatusColor,
+  rolloverStatusLabel,
   severityColor,
   severityLabel,
 } from './periodProcessShared'
@@ -255,10 +291,13 @@ const steps = ref([])
 const warnings = ref([])
 const batchRows = ref([])
 const executionRows = ref([])
+const rolloverRows = ref([])
 const batchLoading = ref(false)
 const batchSaving = ref(false)
 const executionLoading = ref(false)
 const executingBatchId = ref(null)
+const rolloverLoading = ref(false)
+const rollingExecutionId = ref(null)
 const snackbar = ref({ show: false, text: '', color: 'info' })
 
 const query = reactive({
@@ -328,6 +367,18 @@ const executionHeaders = [
   { title: '执行后', key: 'fafterStatus', value: 'fafterStatus', width: 90, align: 'center' },
   { title: '执行人', key: 'foperator', value: 'foperator', width: 100 },
   { title: '执行时间', key: 'fexecutedTime', value: 'fexecutedTime', width: 170 },
+  { title: '操作', key: 'actions', value: 'actions', width: 150, align: 'center' },
+]
+
+const rolloverHeaders = [
+  { title: '滚动编号', key: 'frolloverNo', value: 'frolloverNo', minWidth: 220 },
+  { title: '关账执行号', key: 'fcloseExecutionNo', value: 'fcloseExecutionNo', minWidth: 220 },
+  { title: '原期间', key: 'ffromPeriod', value: 'ffromPeriod', width: 100 },
+  { title: '下一期间', key: 'ftoPeriod', value: 'ftoPeriod', width: 100 },
+  { title: '状态', key: 'frolloverStatus', value: 'frolloverStatus', width: 100, align: 'center' },
+  { title: '下一期间档案', key: 'fcreatedNextPeriod', value: 'fcreatedNextPeriod', width: 130, align: 'center' },
+  { title: '操作人', key: 'foperator', value: 'foperator', width: 100 },
+  { title: '滚动时间', key: 'frolledTime', value: 'frolledTime', width: 170 },
 ]
 
 const summaryCards = computed(() => ([
@@ -415,6 +466,24 @@ async function loadExecutionList() {
   }
 }
 
+async function loadRolloverList() {
+  rolloverLoading.value = true
+  try {
+    const res = await periodProcessApi.listPeriodRollovers({
+      page: 1,
+      size: 10,
+      forg: query.forg || undefined,
+      fromPeriod: query.period || undefined,
+    })
+    rolloverRows.value = res.data?.records || []
+  } catch {
+    rolloverRows.value = []
+    showMsg('期间滚动记录加载失败', 'warning')
+  } finally {
+    rolloverLoading.value = false
+  }
+}
+
 async function createBatch() {
   batchSaving.value = true
   try {
@@ -477,13 +546,31 @@ async function executeClose(item) {
   }
 }
 
+async function rolloverPeriod(item) {
+  const confirmed = window.confirm(`确认启用 ${nextPeriodLabel(item.fperiod)} 作为下一期间？`)
+  if (!confirmed) return
+  rollingExecutionId.value = item.fid
+  try {
+    const res = await periodProcessApi.rolloverPeriodFromExecution(item.fid, {
+      operator: 'WEB',
+      remark: '月结工作台启用下一期间',
+    })
+    showMsg(`已启用下一期间 ${res.data?.rollover?.ftoPeriod || ''}`, 'success')
+    await refreshAll()
+  } catch {
+    showMsg('启用下一期间失败', 'error')
+  } finally {
+    rollingExecutionId.value = null
+  }
+}
+
 function resetQuery() {
   query.period = currentPeriod()
   refreshAll()
 }
 
 async function refreshAll() {
-  await Promise.all([fetchData(), loadBatchList(), loadExecutionList()])
+  await Promise.all([fetchData(), loadBatchList(), loadExecutionList(), loadRolloverList()])
 }
 
 function assignMeta(data) {
@@ -533,6 +620,19 @@ function canExecuteClose(item) {
     && Number(item?.fblockingCount || 0) === 0
 }
 
+function canRolloverExecution(item) {
+  return item?.fexecutionStatus === 'SUCCESS'
+    && item?.fafterStatus === 'CLOSED'
+    && !rolloverRows.value.some((row) => Number(row.fcloseExecutionId) === Number(item.fid))
+}
+
+function nextPeriodLabel(period) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(period || ''))
+  if (!match) return '下一期间'
+  const date = new Date(Number(match[1]), Number(match[2]), 1)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 function formatDateTime(value) {
   if (!value) return '-'
   return String(value).replace('T', ' ').slice(0, 19)
@@ -556,6 +656,7 @@ onMounted(async () => {
   await fetchData()
   await loadBatchList()
   await loadExecutionList()
+  await loadRolloverList()
 })
 </script>
 
