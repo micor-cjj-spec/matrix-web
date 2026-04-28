@@ -29,39 +29,39 @@ export function getMonthEndWorkbench(params = {}) {
 }
 
 export function getMonthEndArchivePackage(params = {}) {
-  return request.get('/month-end-archive/package', { params })
+  return request.get('/period-process/month-end-archive/package', { params })
 }
 
 export function createMonthEndBatch(data = {}) {
-  return request.post('/month-end-check-batch', data)
+  return request.post('/period-process/month-end-check-batch', data)
 }
 
 export function listMonthEndBatches(params = {}) {
-  return request.get('/month-end-check-batch/list', { params })
+  return request.get('/period-process/month-end-check-batch/list', { params })
 }
 
 export function submitMonthEndBatch(fid, data = {}) {
-  return request.post(`/month-end-check-batch/${fid}/submit`, data)
+  return request.post(`/period-process/month-end-check-batch/${fid}/submit`, data)
 }
 
 export function approveMonthEndBatch(fid, data = {}) {
-  return request.post(`/month-end-check-batch/${fid}/approve`, data)
+  return request.post(`/period-process/month-end-check-batch/${fid}/approve`, data)
 }
 
 export function executeMonthEndClose(fid, data = {}) {
-  return request.post(`/month-end-check-batch/${fid}/execute-close`, data)
+  return request.post(`/period-process/month-end-check-batch/${fid}/execute-close`, data)
 }
 
 export function listMonthEndCloseExecutions(params = {}) {
-  return request.get('/month-end-close-execution/list', { params })
+  return request.get('/period-process/month-end-close-execution/list', { params })
 }
 
 export function rolloverPeriodFromExecution(executionId, data = {}) {
-  return request.post(`/period-rollover/from-close-execution/${executionId}`, data)
+  return request.post(`/period-process/period-rollover/from-close-execution/${executionId}`, data)
 }
 
 export function listPeriodRollovers(params = {}) {
-  return request.get('/period-rollover/list', { params })
+  return request.get('/period-process/period-rollover/list', { params })
 }
 
 export default {
