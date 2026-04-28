@@ -46,25 +46,31 @@
       </v-row>
 
       <v-row dense class="summary-row">
-        <v-col cols="12" md="4">
-          <v-card class="summary-card" elevation="0">
+        <v-col cols="12" sm="6" lg="3">
+          <div class="summary-card">
             <div class="summary-label">营业收入</div>
             <div class="summary-value tone-primary">{{ formatAmount(summary.revenueAmount) }}</div>
-          </v-card>
+          </div>
         </v-col>
-        <v-col cols="12" md="4">
-          <v-card class="summary-card" elevation="0">
+        <v-col cols="12" sm="6" lg="3">
+          <div class="summary-card">
             <div class="summary-label">净利润</div>
             <div class="summary-value" :class="summary.netProfitAmount >= 0 ? 'tone-success' : 'tone-warning'">
               {{ formatAmount(summary.netProfitAmount) }}
             </div>
-          </v-card>
+          </div>
         </v-col>
-        <v-col cols="12" md="4">
-          <v-card class="summary-card" elevation="0">
+        <v-col cols="12" sm="6" lg="3">
+          <div class="summary-card">
             <div class="summary-label">税费预估合计</div>
             <div class="summary-value tone-warning">{{ formatAmount(summary.totalTaxAmount) }}</div>
-          </v-card>
+          </div>
+        </v-col>
+        <v-col cols="12" sm="6" lg="3">
+          <div class="summary-card">
+            <div class="summary-label">综合税负率</div>
+            <div class="summary-value tone-tax">{{ formatRate(summary.taxBurdenRate) }}</div>
+          </div>
         </v-col>
       </v-row>
 
@@ -137,6 +143,7 @@ const summary = reactive({
   revenueAmount: 0,
   netProfitAmount: 0,
   totalTaxAmount: 0,
+  taxBurdenRate: 0,
 })
 
 const headers = [
@@ -188,6 +195,7 @@ async function fetchData() {
     summary.revenueAmount = Number(data.revenueAmount || 0)
     summary.netProfitAmount = Number(data.netProfitAmount || 0)
     summary.totalTaxAmount = Number(data.totalTaxAmount || 0)
+    summary.taxBurdenRate = Number(data.taxBurdenRate || 0)
   } catch {
     rows.value = []
     warnings.value = ['企业纳税表加载失败。']
@@ -195,12 +203,14 @@ async function fetchData() {
     summary.revenueAmount = 0
     summary.netProfitAmount = 0
     summary.totalTaxAmount = 0
+    summary.taxBurdenRate = 0
   } finally {
     loading.value = false
   }
 }
 
 function resetQuery() {
+  query.orgId = null
   query.period = currentPeriod()
   query.currency = 'CNY'
   fetchData()
@@ -252,7 +262,7 @@ onMounted(async () => {
 .summary-card {
   height: 100%;
   border: 1px solid #e4ebf7;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 18px;
   background: linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
 }
@@ -278,6 +288,10 @@ onMounted(async () => {
 
 .tone-warning {
   color: #c68218;
+}
+
+.tone-tax {
+  color: #7d4cdb;
 }
 
 .alert-list {
