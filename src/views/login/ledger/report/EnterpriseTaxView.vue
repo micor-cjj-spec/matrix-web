@@ -100,24 +100,26 @@
         </v-alert>
       </div>
 
-      <v-data-table
-        :headers="headers"
-        :items="rows"
-        :loading="loading"
-        item-key="taxCode"
-        hide-default-footer
-        class="elevation-0"
-      >
-        <template #item.taxBase="{ item }">
-          {{ formatAmount(item.taxBase) }}
-        </template>
-        <template #item.taxRate="{ item }">
-          {{ formatRate(item.taxRate) }}
-        </template>
-        <template #item.taxAmount="{ item }">
-          {{ formatAmount(item.taxAmount) }}
-        </template>
-      </v-data-table>
+      <div class="tax-table-wrap">
+        <v-data-table
+          :headers="headers"
+          :items="rows"
+          :loading="loading"
+          item-key="taxCode"
+          hide-default-footer
+          class="elevation-0"
+        >
+          <template #item.taxBase="{ item }">
+            {{ formatAmount(item.taxBase) }}
+          </template>
+          <template #item.taxRate="{ item }">
+            {{ formatRate(item.taxRate) }}
+          </template>
+          <template #item.taxAmount="{ item }">
+            {{ formatAmount(item.taxAmount) }}
+          </template>
+        </v-data-table>
+      </div>
     </v-card>
   </div>
 </template>
@@ -296,5 +298,15 @@ onMounted(async () => {
 
 .alert-list {
   margin-bottom: 12px;
+}
+
+.tax-table-wrap {
+  padding-right: 92px;
+}
+
+@media (max-width: 960px) {
+  .tax-table-wrap {
+    padding-right: 0;
+  }
 }
 </style>
