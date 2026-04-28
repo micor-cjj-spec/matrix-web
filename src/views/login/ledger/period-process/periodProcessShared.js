@@ -20,6 +20,35 @@ export const moduleStatusMap = {
   DONE: { label: '已完成', color: 'primary' },
 }
 
+export const closeStatusMap = {
+  READY: { label: '可关账', color: 'success' },
+  WARNING: { label: '有预警', color: 'warning' },
+  BLOCKED: { label: '阻塞', color: 'error' },
+  CLOSED: { label: '已关账', color: 'primary' },
+}
+
+export const checkStatusMap = {
+  PASSED: { label: '已通过', color: 'success' },
+  WARNING: { label: '预警', color: 'warning' },
+  BLOCKED: { label: '阻塞', color: 'error' },
+  PENDING: { label: '待确认', color: 'grey' },
+}
+
+export const checkCategoryMap = {
+  FOUNDATION: '基础资料',
+  VOUCHER: '凭证',
+  LEDGER: '总账',
+  PERIOD_END: '期末处理',
+  REPORT: '报表',
+  CLOSE: '关账',
+}
+
+export const severityMap = {
+  HIGH: { label: '高', color: 'error' },
+  MEDIUM: { label: '中', color: 'warning' },
+  LOW: { label: '低', color: 'success' },
+}
+
 export function currentPeriod() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -51,6 +80,34 @@ export function moduleStatusLabel(value) {
 
 export function moduleStatusColor(value) {
   return moduleStatusMap[value]?.color || 'default'
+}
+
+export function closeStatusLabel(value) {
+  return closeStatusMap[value]?.label || value || '-'
+}
+
+export function closeStatusColor(value) {
+  return closeStatusMap[value]?.color || 'default'
+}
+
+export function checkStatusLabel(value) {
+  return checkStatusMap[value]?.label || value || '-'
+}
+
+export function checkStatusColor(value) {
+  return checkStatusMap[value]?.color || 'default'
+}
+
+export function checkCategoryLabel(value) {
+  return checkCategoryMap[value] || value || '-'
+}
+
+export function severityLabel(value) {
+  return severityMap[value]?.label || value || '-'
+}
+
+export function severityColor(value) {
+  return severityMap[value]?.color || 'default'
 }
 
 export function voucherStatusLabel(value) {

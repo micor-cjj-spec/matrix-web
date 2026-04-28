@@ -24,6 +24,10 @@ export function getMonitorCenter(params = {}) {
   return request.get('/period-process/monitor-center', { params })
 }
 
+export function getMonthEndWorkbench(params = {}) {
+  return request.get('/period-process/month-end-workbench', { params })
+}
+
 export default {
   fetchProfitLoss: getProfitLoss,
   fetchAutoTransfer: getAutoTransfer,
@@ -31,4 +35,5 @@ export default {
   fetchVoucherAmortization: getVoucherAmortization,
   fetchCloseBooks: getCloseBooks,
   fetchMonitorCenter: getMonitorCenter,
+  fetchMonthEndWorkbench: getMonthEndWorkbench,
 }

@@ -70,6 +70,7 @@ const VoucherCollaborationCheckView = () => import('../views/login/ledger/collab
 const SubjectCompareView = () => import('../views/login/ledger/collaboration/SubjectCompareView.vue')
 const PeriodProcessModuleView = () => import('../views/login/ledger/period-process/PeriodProcessModuleView.vue')
 const PeriodProcessMonitorView = () => import('../views/login/ledger/period-process/PeriodProcessMonitorView.vue')
+const MonthEndCloseWorkbenchView = () => import('../views/login/ledger/period-process/MonthEndCloseWorkbenchView.vue')
 const InitializationModuleView = () => import('../views/login/ledger/init/InitializationModuleView.vue')
 const VoucherTypeView = () => import('../views/login/ledger/settings/VoucherTypeView.vue')
 const BaseConfigItemView = () => import('../views/login/ledger/settings/BaseConfigItemView.vue')
@@ -122,6 +123,7 @@ const routes = [
   { path: '/ledger/period-voucher-amortization', name: 'PeriodVoucherAmortization', component: PeriodProcessModuleView, meta: { title: '凭证摊销', periodModule: 'voucherAmortization' } },
   { path: '/ledger/period-close-books', name: 'PeriodCloseBooks', component: PeriodProcessModuleView, meta: { title: '期末结账', periodModule: 'closeBooks' } },
   { path: '/ledger/period-monitor-center', name: 'PeriodMonitorCenter', component: PeriodProcessMonitorView, meta: { title: '监控中心' } },
+  { path: '/ledger/month-end-close-workbench', name: 'MonthEndCloseWorkbench', component: MonthEndCloseWorkbenchView, meta: { title: '月结工作台' } },
   { path: '/ledger/opening-subject', name: 'OpeningSubject', component: InitializationModuleView, meta: { title: '科目余额初始化', initModule: 'subject' } },
   { path: '/ledger/opening-cashflow', name: 'OpeningCashflow', component: InitializationModuleView, meta: { title: '现金流初始化', initModule: 'cashflow' } },
   { path: '/ledger/opening-counterparty', name: 'OpeningCounterparty', component: InitializationModuleView, meta: { title: '往来余额初始化', initModule: 'counterparty' } },

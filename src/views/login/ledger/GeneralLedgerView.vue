@@ -100,6 +100,7 @@ const groups = [
       { name: '凭证摊销', badge: 'AM', path: '/ledger/period-voucher-amortization' },
       { name: '期末结账', badge: 'CL', path: '/ledger/period-close-books' },
       { name: '监控中心', badge: 'MC', path: '/ledger/period-monitor-center' },
+      { name: '月结工作台', badge: 'ME', path: '/ledger/month-end-close-workbench' },
     ],
   },
   {
