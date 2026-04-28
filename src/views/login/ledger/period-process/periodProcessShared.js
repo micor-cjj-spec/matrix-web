@@ -53,6 +53,12 @@ export const applicationStatusMap = {
   DRAFT: { label: '草稿', color: 'grey' },
   SUBMITTED: { label: '已提交', color: 'warning' },
   APPROVED: { label: '已批准', color: 'success' },
+  CLOSED: { label: '已关账', color: 'primary' },
+}
+
+export const executionStatusMap = {
+  SUCCESS: { label: '成功', color: 'success' },
+  FAILED: { label: '失败', color: 'error' },
 }
 
 export function currentPeriod() {
@@ -122,6 +128,14 @@ export function applicationStatusLabel(value) {
 
 export function applicationStatusColor(value) {
   return applicationStatusMap[value]?.color || 'default'
+}
+
+export function executionStatusLabel(value) {
+  return executionStatusMap[value]?.label || value || '-'
+}
+
+export function executionStatusColor(value) {
+  return executionStatusMap[value]?.color || 'default'
 }
 
 export function voucherStatusLabel(value) {

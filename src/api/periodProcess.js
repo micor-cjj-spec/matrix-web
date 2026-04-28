@@ -44,6 +44,14 @@ export function approveMonthEndBatch(fid, data = {}) {
   return request.post(`/month-end-check-batch/${fid}/approve`, data)
 }
 
+export function executeMonthEndClose(fid, data = {}) {
+  return request.post(`/month-end-check-batch/${fid}/execute-close`, data)
+}
+
+export function listMonthEndCloseExecutions(params = {}) {
+  return request.get('/month-end-close-execution/list', { params })
+}
+
 export default {
   fetchProfitLoss: getProfitLoss,
   fetchAutoTransfer: getAutoTransfer,
@@ -56,4 +64,6 @@ export default {
   listMonthEndBatches,
   submitMonthEndBatch,
   approveMonthEndBatch,
+  executeMonthEndClose,
+  listMonthEndCloseExecutions,
 }

@@ -11,7 +11,7 @@
         <div class="page-actions">
           <v-btn color="primary" variant="flat" @click="fetchData">查询</v-btn>
           <v-btn color="success" variant="flat" :loading="batchSaving" @click="createBatch">生成检查批次</v-btn>
-          <v-btn variant="text" :loading="batchLoading" @click="loadBatchList">刷新批次</v-btn>
+          <v-btn variant="text" :loading="batchLoading || executionLoading" @click="refreshAll">刷新</v-btn>
           <v-btn variant="text" @click="resetQuery">重置</v-btn>
         </div>
       </div>
@@ -183,6 +183,35 @@
           >
             批准
           </v-btn>
+          <v-btn
+            v-if="canExecuteClose(item)"
+            size="small"
+            variant="text"
+            color="error"
+            :loading="executingBatchId === item.fid"
+            @click="executeClose(item)"
+          >
+            执行关账
+          </v-btn>
+        </template>
+      </v-data-table>
+
+      <div class="section-title">关账执行记录</div>
+      <v-data-table
+        :headers="executionHeaders"
+        :items="executionRows"
+        :loading="executionLoading"
+        item-key="fid"
+        hide-default-footer
+        class="elevation-0"
+      >
+        <template #item.fexecutionStatus="{ item }">
+          <v-chip size="small" variant="tonal" :color="executionStatusColor(item.fexecutionStatus)">
+            {{ executionStatusLabel(item.fexecutionStatus) }}
+          </v-chip>
+        </template>
+        <template #item.fexecutedTime="{ item }">
+          {{ formatDateTime(item.fexecutedTime) }}
         </template>
       </v-data-table>
     </v-card>
@@ -206,6 +235,8 @@ import {
   closeStatusColor,
   closeStatusLabel,
   currentPeriod,
+  executionStatusColor,
+  executionStatusLabel,
   loadOrgOptions,
   moduleStatusColor,
   moduleStatusLabel,
@@ -223,8 +254,11 @@ const checkItems = ref([])
 const steps = ref([])
 const warnings = ref([])
 const batchRows = ref([])
+const executionRows = ref([])
 const batchLoading = ref(false)
 const batchSaving = ref(false)
+const executionLoading = ref(false)
+const executingBatchId = ref(null)
 const snackbar = ref({ show: false, text: '', color: 'info' })
 
 const query = reactive({
@@ -283,6 +317,17 @@ const batchHeaders = [
   { title: '申请状态', key: 'fapplicationStatus', value: 'fapplicationStatus', width: 110, align: 'center' },
   { title: '生成时间', key: 'fcreatedTime', value: 'fcreatedTime', width: 170 },
   { title: '操作', key: 'actions', value: 'actions', width: 130, align: 'center' },
+]
+
+const executionHeaders = [
+  { title: '执行号', key: 'fexecutionNo', value: 'fexecutionNo', minWidth: 220 },
+  { title: '批次号', key: 'fbatchNo', value: 'fbatchNo', minWidth: 210 },
+  { title: '期间', key: 'fperiod', value: 'fperiod', width: 100 },
+  { title: '执行状态', key: 'fexecutionStatus', value: 'fexecutionStatus', width: 110, align: 'center' },
+  { title: '执行前', key: 'fbeforeStatus', value: 'fbeforeStatus', width: 90, align: 'center' },
+  { title: '执行后', key: 'fafterStatus', value: 'fafterStatus', width: 90, align: 'center' },
+  { title: '执行人', key: 'foperator', value: 'foperator', width: 100 },
+  { title: '执行时间', key: 'fexecutedTime', value: 'fexecutedTime', width: 170 },
 ]
 
 const summaryCards = computed(() => ([
@@ -352,6 +397,24 @@ async function loadBatchList() {
   }
 }
 
+async function loadExecutionList() {
+  executionLoading.value = true
+  try {
+    const res = await periodProcessApi.listMonthEndCloseExecutions({
+      page: 1,
+      size: 10,
+      forg: query.forg || undefined,
+      period: query.period || undefined,
+    })
+    executionRows.value = res.data?.records || []
+  } catch {
+    executionRows.value = []
+    showMsg('关账执行记录加载失败', 'warning')
+  } finally {
+    executionLoading.value = false
+  }
+}
+
 async function createBatch() {
   batchSaving.value = true
   try {
@@ -362,7 +425,7 @@ async function createBatch() {
       remark: '月结工作台生成检查批次',
     })
     showMsg(`已生成检查批次 ${res.data?.fbatchNo || ''}`, 'success')
-    await refreshWorkbenchAndBatches()
+    await refreshAll()
   } catch {
     showMsg('生成检查批次失败', 'error')
   } finally {
@@ -377,7 +440,7 @@ async function submitBatch(item) {
       remark: '月结工作台提交关账申请',
     })
     showMsg('关账申请已提交', 'success')
-    await refreshWorkbenchAndBatches()
+    await refreshAll()
   } catch {
     showMsg('提交关账申请失败', 'error')
   }
@@ -390,20 +453,37 @@ async function approveBatch(item) {
       remark: '月结工作台批准关账申请',
     })
     showMsg('关账申请已批准', 'success')
-    await refreshWorkbenchAndBatches()
+    await refreshAll()
   } catch {
     showMsg('批准关账申请失败', 'error')
   }
 }
 
-function resetQuery() {
-  query.period = currentPeriod()
-  fetchData()
-  loadBatchList()
+async function executeClose(item) {
+  const confirmed = window.confirm(`确认执行 ${item.fperiod || ''} 期间关账？执行后会计期间将关闭。`)
+  if (!confirmed) return
+  executingBatchId.value = item.fid
+  try {
+    await periodProcessApi.executeMonthEndClose(item.fid, {
+      operator: 'WEB',
+      remark: '月结工作台执行关账',
+    })
+    showMsg('关账执行成功', 'success')
+    await refreshAll()
+  } catch {
+    showMsg('关账执行失败', 'error')
+  } finally {
+    executingBatchId.value = null
+  }
 }
 
-async function refreshWorkbenchAndBatches() {
-  await Promise.all([fetchData(), loadBatchList()])
+function resetQuery() {
+  query.period = currentPeriod()
+  refreshAll()
+}
+
+async function refreshAll() {
+  await Promise.all([fetchData(), loadBatchList(), loadExecutionList()])
 }
 
 function assignMeta(data) {
@@ -447,6 +527,12 @@ function canApproveBatch(item) {
   return item?.fapplicationStatus === 'SUBMITTED'
 }
 
+function canExecuteClose(item) {
+  return item?.fapplicationStatus === 'APPROVED'
+    && item?.fcloseStatus !== 'CLOSED'
+    && Number(item?.fblockingCount || 0) === 0
+}
+
 function formatDateTime(value) {
   if (!value) return '-'
   return String(value).replace('T', ' ').slice(0, 19)
@@ -469,6 +555,7 @@ onMounted(async () => {
   }
   await fetchData()
   await loadBatchList()
+  await loadExecutionList()
 })
 </script>
 
