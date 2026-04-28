@@ -66,6 +66,15 @@ export const rolloverStatusMap = {
   FAILED: { label: '失败', color: 'error' },
 }
 
+export const archiveStatusMap = {
+  NOT_STARTED: { label: '未开始', color: 'grey' },
+  CHECKED: { label: '已检查', color: 'info' },
+  BLOCKED: { label: '存在阻塞', color: 'error' },
+  APPROVED_PENDING_CLOSE: { label: '待关账', color: 'warning' },
+  CLOSED: { label: '已关账', color: 'primary' },
+  ROLLED: { label: '已启用下一期间', color: 'success' },
+}
+
 export function currentPeriod() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -149,6 +158,14 @@ export function rolloverStatusLabel(value) {
 
 export function rolloverStatusColor(value) {
   return rolloverStatusMap[value]?.color || 'default'
+}
+
+export function archiveStatusLabel(value) {
+  return archiveStatusMap[value]?.label || value || '-'
+}
+
+export function archiveStatusColor(value) {
+  return archiveStatusMap[value]?.color || 'default'
 }
 
 export function voucherStatusLabel(value) {

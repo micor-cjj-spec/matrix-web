@@ -28,6 +28,10 @@ export function getMonthEndWorkbench(params = {}) {
   return request.get('/period-process/month-end-workbench', { params })
 }
 
+export function getMonthEndArchivePackage(params = {}) {
+  return request.get('/month-end-archive/package', { params })
+}
+
 export function createMonthEndBatch(data = {}) {
   return request.post('/month-end-check-batch', data)
 }
@@ -68,6 +72,7 @@ export default {
   fetchCloseBooks: getCloseBooks,
   fetchMonitorCenter: getMonitorCenter,
   fetchMonthEndWorkbench: getMonthEndWorkbench,
+  fetchMonthEndArchivePackage: getMonthEndArchivePackage,
   createMonthEndBatch,
   listMonthEndBatches,
   submitMonthEndBatch,

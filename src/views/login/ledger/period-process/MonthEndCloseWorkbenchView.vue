@@ -11,7 +11,7 @@
         <div class="page-actions">
           <v-btn color="primary" variant="flat" @click="fetchData">查询</v-btn>
           <v-btn color="success" variant="flat" :loading="batchSaving" @click="createBatch">生成检查批次</v-btn>
-          <v-btn variant="text" :loading="batchLoading || executionLoading || rolloverLoading" @click="refreshAll">刷新</v-btn>
+          <v-btn variant="text" :loading="batchLoading || executionLoading || rolloverLoading || archiveLoading" @click="refreshAll">刷新</v-btn>
           <v-btn variant="text" @click="resetQuery">重置</v-btn>
         </div>
       </div>
@@ -248,6 +248,47 @@
           {{ formatDateTime(item.frolledTime) }}
         </template>
       </v-data-table>
+
+      <div class="section-title">月结归档包</div>
+      <v-alert
+        variant="tonal"
+        density="comfortable"
+        :type="archivePackage?.hasWarnings ? 'warning' : 'success'"
+        class="mb-4"
+      >
+        <div class="archive-alert">
+          <v-chip size="small" variant="tonal" :color="archiveStatusColor(archivePackage?.archiveStatus)">
+            {{ archiveStatusLabel(archivePackage?.archiveStatus) }}
+          </v-chip>
+          <span>{{ archivePackage?.conclusion || '暂无归档结论' }}</span>
+        </div>
+      </v-alert>
+      <v-row dense class="summary-row">
+        <v-col v-for="card in archiveSummaryCards" :key="card.label" cols="12" md="3">
+          <v-card class="summary-card" elevation="0">
+            <div class="summary-label">{{ card.label }}</div>
+            <div class="summary-value" :class="card.tone">{{ card.value }}</div>
+            <div v-if="card.tip" class="summary-tip">{{ card.tip }}</div>
+          </v-card>
+        </v-col>
+      </v-row>
+      <v-data-table
+        :headers="archiveMilestoneHeaders"
+        :items="archivePackage?.milestones || []"
+        :loading="archiveLoading"
+        item-key="code"
+        hide-default-footer
+        class="elevation-0"
+      >
+        <template #item.status="{ item }">
+          <v-chip size="small" variant="tonal" :color="moduleStatusColor(item.status)">
+            {{ moduleStatusLabel(item.status) }}
+          </v-chip>
+        </template>
+        <template #item.time="{ item }">
+          {{ formatDateTime(item.time) }}
+        </template>
+      </v-data-table>
     </v-card>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2200">
@@ -263,6 +304,8 @@ import periodProcessApi from '@/api/periodProcess'
 import {
   applicationStatusColor,
   applicationStatusLabel,
+  archiveStatusColor,
+  archiveStatusLabel,
   checkCategoryLabel,
   checkStatusColor,
   checkStatusLabel,
@@ -292,12 +335,14 @@ const warnings = ref([])
 const batchRows = ref([])
 const executionRows = ref([])
 const rolloverRows = ref([])
+const archivePackage = ref(null)
 const batchLoading = ref(false)
 const batchSaving = ref(false)
 const executionLoading = ref(false)
 const executingBatchId = ref(null)
 const rolloverLoading = ref(false)
 const rollingExecutionId = ref(null)
+const archiveLoading = ref(false)
 const snackbar = ref({ show: false, text: '', color: 'info' })
 
 const query = reactive({
@@ -381,6 +426,14 @@ const rolloverHeaders = [
   { title: '滚动时间', key: 'frolledTime', value: 'frolledTime', width: 170 },
 ]
 
+const archiveMilestoneHeaders = [
+  { title: '里程碑', key: 'name', value: 'name', width: 150 },
+  { title: '状态', key: 'status', value: 'status', width: 110, align: 'center' },
+  { title: '时间', key: 'time', value: 'time', width: 170 },
+  { title: '操作人', key: 'operator', value: 'operator', width: 100 },
+  { title: '摘要', key: 'summary', value: 'summary' },
+]
+
 const summaryCards = computed(() => ([
   {
     label: '准备度',
@@ -407,6 +460,36 @@ const summaryCards = computed(() => ([
     tone: 'tone-primary',
   },
 ]))
+
+const archiveSummaryCards = computed(() => {
+  const pkg = archivePackage.value || {}
+  return [
+    {
+      label: '准备度',
+      value: `${pkg.readinessScore || 0}%`,
+      tip: '取最新检查批次或实时工作台结果',
+      tone: pkg.archiveStatus === 'BLOCKED' ? 'tone-danger' : 'tone-success',
+    },
+    {
+      label: '阻塞 / 预警',
+      value: `${pkg.blockingCount || 0}/${pkg.warningCount || 0}`,
+      tip: '阻塞项 / 预警项',
+      tone: Number(pkg.blockingCount || 0) > 0 ? 'tone-danger' : 'tone-warning',
+    },
+    {
+      label: '凭证过账',
+      value: `${pkg.postedVoucherCount || 0}/${pkg.periodVoucherCount || 0}`,
+      tip: '已过账 / 本期凭证',
+      tone: 'tone-primary',
+    },
+    {
+      label: '流程闭环',
+      value: pkg.periodRolled ? '已完成' : pkg.closeExecuted ? '已关账' : '推进中',
+      tip: pkg.periodRolled ? '已启用下一期间' : pkg.closeExecuted ? '待启用下一期间' : '待完成关账',
+      tone: pkg.periodRolled ? 'tone-success' : 'tone-warning',
+    },
+  ]
+})
 
 async function fetchData() {
   loading.value = true
@@ -481,6 +564,22 @@ async function loadRolloverList() {
     showMsg('期间滚动记录加载失败', 'warning')
   } finally {
     rolloverLoading.value = false
+  }
+}
+
+async function loadArchivePackage() {
+  archiveLoading.value = true
+  try {
+    const res = await periodProcessApi.fetchMonthEndArchivePackage({
+      forg: query.forg || undefined,
+      period: query.period || undefined,
+    })
+    archivePackage.value = res.data || null
+  } catch {
+    archivePackage.value = null
+    showMsg('月结归档包加载失败', 'warning')
+  } finally {
+    archiveLoading.value = false
   }
 }
 
@@ -570,7 +669,7 @@ function resetQuery() {
 }
 
 async function refreshAll() {
-  await Promise.all([fetchData(), loadBatchList(), loadExecutionList(), loadRolloverList()])
+  await Promise.all([fetchData(), loadBatchList(), loadExecutionList(), loadRolloverList(), loadArchivePackage()])
 }
 
 function assignMeta(data) {
@@ -657,6 +756,7 @@ onMounted(async () => {
   await loadBatchList()
   await loadExecutionList()
   await loadRolloverList()
+  await loadArchivePackage()
 })
 </script>
 
@@ -743,6 +843,13 @@ onMounted(async () => {
   color: #274982;
   font-size: 16px;
   font-weight: 700;
+}
+
+.archive-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .tone-primary {
