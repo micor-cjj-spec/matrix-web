@@ -100,6 +100,29 @@
         </v-alert>
       </div>
 
+      <div v-if="mappingGaps.length" class="mapping-gap-panel">
+        <div class="mapping-gap-header">
+          <div>
+            <div class="mapping-gap-title">报表科目映射待处理</div>
+            <div class="mapping-gap-subtitle">以下科目已有发生额，但还没有落到报表项目。</div>
+          </div>
+          <div class="mapping-gap-count">{{ mappingGaps.length }} 项</div>
+        </div>
+        <div class="mapping-gap-list">
+          <div v-for="gap in mappingGaps" :key="mappingGapKey(gap)" class="mapping-gap-row">
+            <div class="mapping-gap-main">
+              <div class="mapping-gap-account">{{ gap.accountCode || '-' }} - {{ gap.accountName || '-' }}</div>
+              <div class="mapping-gap-meta">
+                {{ reportTypeLabel(gap.reportType) }} / {{ gap.templateName || '默认模板' }} / 建议类型 {{ gap.mappingType || '-' }}
+              </div>
+            </div>
+            <v-btn size="small" variant="tonal" color="primary" @click="openMappingGap(gap)">
+              {{ gap.actionLabel || '维护映射' }}
+            </v-btn>
+          </div>
+        </div>
+      </div>
+
       <div class="tax-table-wrap">
         <v-data-table
           :headers="headers"
@@ -126,13 +149,16 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getBusinessUnitList } from '@/api/bizUnit'
 import financialReportApi from '@/api/financialReport'
 
+const router = useRouter()
 const loading = ref(false)
 const rows = ref([])
 const warnings = ref([])
 const checks = ref([])
+const mappingGaps = ref([])
 const orgOptions = ref([])
 
 const query = reactive({
@@ -194,6 +220,7 @@ async function fetchData() {
     rows.value = data.rows || []
     warnings.value = data.warnings || []
     checks.value = data.checks || []
+    mappingGaps.value = data.mappingGaps || []
     summary.revenueAmount = Number(data.revenueAmount || 0)
     summary.netProfitAmount = Number(data.netProfitAmount || 0)
     summary.totalTaxAmount = Number(data.totalTaxAmount || 0)
@@ -202,6 +229,7 @@ async function fetchData() {
     rows.value = []
     warnings.value = ['企业纳税表加载失败。']
     checks.value = []
+    mappingGaps.value = []
     summary.revenueAmount = 0
     summary.netProfitAmount = 0
     summary.totalTaxAmount = 0
@@ -216,6 +244,34 @@ function resetQuery() {
   query.period = currentPeriod()
   query.currency = 'CNY'
   fetchData()
+}
+
+function mappingGapKey(gap) {
+  return `${gap.reportType || '-'}-${gap.templateId || '-'}-${gap.accountCode || '-'}`
+}
+
+function reportTypeLabel(value) {
+  const labels = {
+    PROFIT_STATEMENT: '利润表',
+    BALANCE_SHEET: '资产负债表',
+    CASH_FLOW: '现金流量表',
+  }
+  return labels[value] || value || '报表'
+}
+
+function openMappingGap(gap) {
+  if (gap?.targetRoute) {
+    router.push(gap.targetRoute)
+    return
+  }
+  router.push({
+    path: '/ledger/report-account-map',
+    query: {
+      accountCode: gap?.accountCode || undefined,
+      reportType: gap?.reportType || undefined,
+      templateId: gap?.templateId || undefined,
+    },
+  })
 }
 
 onMounted(async () => {
@@ -300,6 +356,76 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
+.mapping-gap-panel {
+  margin: 0 0 16px;
+  border: 1px solid #ffdba8;
+  border-radius: 8px;
+  background: #fff8ed;
+  overflow: hidden;
+}
+
+.mapping-gap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #ffe7c6;
+}
+
+.mapping-gap-title {
+  color: #8a520d;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mapping-gap-subtitle {
+  margin-top: 4px;
+  color: #9b6b2a;
+  font-size: 13px;
+}
+
+.mapping-gap-count {
+  min-width: 48px;
+  color: #a45f00;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.mapping-gap-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mapping-gap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.mapping-gap-row + .mapping-gap-row {
+  border-top: 1px solid #ffe7c6;
+}
+
+.mapping-gap-main {
+  min-width: 0;
+}
+
+.mapping-gap-account {
+  color: #25324a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mapping-gap-meta {
+  margin-top: 4px;
+  color: #6f7a8d;
+  font-size: 12px;
+}
+
 .tax-table-wrap {
   padding-right: 92px;
 }
@@ -307,6 +433,11 @@ onMounted(async () => {
 @media (max-width: 960px) {
   .tax-table-wrap {
     padding-right: 0;
+  }
+
+  .mapping-gap-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

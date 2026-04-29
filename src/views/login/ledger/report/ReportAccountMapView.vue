@@ -182,11 +182,13 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import reportAccountMapApi from '@/api/reportAccountMap'
 import reportTemplateApi from '@/api/reportTemplate'
 import reportItemApi from '@/api/reportItem'
 import accountSubjectApi from '@/api/accountSubject'
 
+const route = useRoute()
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
@@ -291,6 +293,27 @@ async function fetchLookups() {
   accounts.value = accountRes.data?.records || []
 }
 
+function applyRouteQueryFilters() {
+  const templateId = normalizeNumber(normalizeQueryValue(route.query.templateId))
+  if (templateId) {
+    filters.ftemplateId = templateId
+  }
+
+  const accountCode = normalizeQueryValue(route.query.accountCode)
+  if (!accountCode) {
+    return
+  }
+
+  const matchedAccount = accounts.value.find((item) => String(item.fcode || '').trim() === accountCode)
+  if (!matchedAccount) {
+    showMsg(`未找到会计科目 ${accountCode}`, 'warning')
+    return
+  }
+
+  filters.faccountId = matchedAccount.fid
+  showMsg(`已定位会计科目 ${matchedAccount.fcode} - ${matchedAccount.fname}`, 'info')
+}
+
 async function fetchData() {
   loading.value = true
   try {
@@ -337,7 +360,9 @@ function openCreateDialog() {
   dialog.visible = true
   dialog.mode = 'create'
   Object.assign(dialog.form, defaultDialogForm(), {
-    ftemplateId: templates.value[0]?.fid ?? null,
+    ftemplateId: filters.ftemplateId || templates.value[0]?.fid || null,
+    faccountId: filters.faccountId || null,
+    fmappingType: defaultMappingTypeFromRoute(),
   })
 }
 
@@ -449,6 +474,24 @@ function normalizeNumber(value) {
   return Number.isFinite(next) ? next : null
 }
 
+function normalizeQueryValue(value) {
+  if (Array.isArray(value)) {
+    return String(value[0] || '').trim()
+  }
+  return String(value || '').trim()
+}
+
+function defaultMappingTypeFromRoute() {
+  const reportType = normalizeQueryValue(route.query.reportType)
+  if (reportType === 'PROFIT_STATEMENT') {
+    return 'PL'
+  }
+  if (reportType === 'CASH_FLOW') {
+    return 'CASHFLOW'
+  }
+  return 'DIRECT'
+}
+
 function validationPassed(result) {
   if (result === undefined) return true
   if (typeof result === 'boolean') return result
@@ -463,8 +506,19 @@ function showMsg(text, color = 'success') {
 
 onMounted(async () => {
   await fetchLookups()
+  applyRouteQueryFilters()
   await fetchData()
 })
+
+watch(
+  () => [route.query.accountCode, route.query.templateId],
+  async () => {
+    if (!accounts.value.length) return
+    applyRouteQueryFilters()
+    filters.page = 1
+    await fetchData()
+  },
+)
 </script>
 
 <style scoped>
