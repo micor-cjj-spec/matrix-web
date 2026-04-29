@@ -117,7 +117,12 @@
             <div class="mapping-gap-title">报表科目映射待处理</div>
             <div class="mapping-gap-subtitle">以下科目已有发生额，但还没有落到报表项目。</div>
           </div>
-          <div class="mapping-gap-count">{{ mappingGaps.length }} 项</div>
+          <div class="mapping-gap-header-actions">
+            <div class="mapping-gap-count">{{ mappingGaps.length }} 项</div>
+            <v-btn size="small" color="primary" variant="flat" @click="openFirstMappingGap">
+              开始治理
+            </v-btn>
+          </div>
         </div>
         <div class="mapping-gap-list">
           <div v-for="gap in mappingGaps" :key="mappingGapKey(gap)" class="mapping-gap-row">
@@ -126,9 +131,12 @@
               <div class="mapping-gap-meta">
                 {{ reportTypeLabel(gap.reportType) }} / {{ gap.templateName || '默认模板' }} / 建议类型 {{ gap.mappingType || '-' }}
               </div>
+              <div class="mapping-gap-recommendation">
+                {{ mappingGapSuggestion(gap).message }}
+              </div>
             </div>
             <v-btn size="small" variant="tonal" color="primary" @click="openMappingGap(gap)">
-              {{ gap.actionLabel || '维护映射' }}
+              {{ mappingGapSuggestion(gap).itemCode ? '按建议维护' : (gap.actionLabel || '维护映射') }}
             </v-btn>
           </div>
         </div>
@@ -321,8 +329,15 @@ function openMappingGap(gap) {
   router.push(buildMappingGapTarget(gap))
 }
 
+function openFirstMappingGap() {
+  if (mappingGaps.value.length) {
+    openMappingGap(mappingGaps.value[0])
+  }
+}
+
 function buildMappingGapTarget(gap) {
   const sourceQuery = sourceContextQuery()
+  const suggestionQuery = suggestionContextQuery(gap)
   if (gap?.targetRoute) {
     const parsed = new URL(gap.targetRoute, window.location.origin)
     return {
@@ -330,6 +345,7 @@ function buildMappingGapTarget(gap) {
       query: {
         ...Object.fromEntries(parsed.searchParams.entries()),
         ...sourceQuery,
+        ...suggestionQuery,
       },
     }
   }
@@ -340,6 +356,7 @@ function buildMappingGapTarget(gap) {
       reportType: gap?.reportType || undefined,
       templateId: gap?.templateId || undefined,
       ...sourceQuery,
+      ...suggestionQuery,
     },
   }
 }
@@ -352,6 +369,79 @@ function sourceContextQuery() {
     sourceCurrency: query.currency,
     sourceOrgId: query.orgId,
   })
+}
+
+function suggestionContextQuery(gap) {
+  const suggestion = mappingGapSuggestion(gap)
+  return compactQuery({
+    recommendedItemCode: suggestion.itemCode,
+    recommendationReason: suggestion.message,
+  })
+}
+
+function mappingGapSuggestion(gap) {
+  const reportType = normalizeQueryValue(gap?.reportType)
+  const accountCode = normalizeQueryValue(gap?.accountCode)
+  const accountName = normalizeQueryValue(gap?.accountName)
+  const accountText = `${accountCode} ${accountName}`.toLowerCase()
+
+  if (reportType === 'PROFIT_STATEMENT') {
+    if (accountCode.startsWith('5') || accountText.includes('收入') || accountText.includes('revenue')) {
+      return {
+        itemCode: 'PL_REVENUE',
+        message: '治理建议：收入类科目，建议优先映射到 PL_REVENUE，并复核收入正负方向。',
+      }
+    }
+    if (
+      startsWithAny(accountCode, ['6', '7'])
+      || containsAny(accountText, ['成本', '费用', 'cost', 'expense'])
+    ) {
+      return {
+        itemCode: 'PL_COST',
+        message: '治理建议：成本费用类科目，建议优先映射到 PL_COST，并复核是否需要细分报表项目。',
+      }
+    }
+    if (startsWithAny(accountCode, ['1', '2', '3', '4'])) {
+      return {
+        itemCode: '',
+        message: '治理建议：该科目更像资产负债表科目，建议先核实凭证科目或利润表取数口径，再决定是否手工映射。',
+      }
+    }
+  }
+
+  if (reportType === 'BALANCE_SHEET') {
+    if (accountCode.startsWith('100') || containsAny(accountText, ['现金', '银行', 'cash', 'bank'])) {
+      return {
+        itemCode: 'BS_CASH',
+        message: '治理建议：现金或银行类科目，建议优先映射到 BS_CASH。',
+      }
+    }
+    if (accountCode.startsWith('1')) {
+      return {
+        itemCode: 'BS_ASSET',
+        message: '治理建议：资产类科目，建议优先映射到 BS_ASSET，必要时再细分资产项目。',
+      }
+    }
+    if (startsWithAny(accountCode, ['2', '3', '4'])) {
+      return {
+        itemCode: 'BS_LIAB_EQ',
+        message: '治理建议：负债或权益类科目，建议优先映射到 BS_LIAB_EQ。',
+      }
+    }
+  }
+
+  return {
+    itemCode: '',
+    message: '治理建议：暂无可靠自动推荐，请结合报表模板口径人工选择报表项目。',
+  }
+}
+
+function startsWithAny(value, prefixes) {
+  return prefixes.some((prefix) => value.startsWith(prefix))
+}
+
+function containsAny(value, keywords) {
+  return keywords.some((keyword) => value.includes(keyword.toLowerCase()))
 }
 
 function compactQuery(value) {
@@ -510,6 +600,12 @@ watch(
   text-align: right;
 }
 
+.mapping-gap-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .mapping-gap-list {
   display: flex;
   flex-direction: column;
@@ -543,6 +639,13 @@ watch(
   font-size: 12px;
 }
 
+.mapping-gap-recommendation {
+  margin-top: 6px;
+  color: #8a520d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .tax-table-wrap {
   padding-right: 92px;
 }
@@ -554,6 +657,11 @@ watch(
 
   .mapping-gap-row {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mapping-gap-header-actions {
+    align-items: flex-end;
     flex-direction: column;
   }
 }

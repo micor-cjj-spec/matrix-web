@@ -60,6 +60,9 @@
           <div class="resolve-subtitle">
             {{ reportTypeLabel(normalizeQueryValue(route.query.reportType)) }} / {{ templateName(filters.ftemplateId) }} / 来源：{{ sourceReportLabel }}
           </div>
+          <div v-if="sourceRecommendationText" class="resolve-hint">
+            来源建议：{{ sourceRecommendationText }}
+          </div>
           <div v-if="recommendedReportItem" class="resolve-hint">
             已推荐报表项目：{{ reportItemName(recommendedReportItem.fid) }}
           </div>
@@ -120,6 +123,9 @@
             <div class="dialog-resolve-title">正在处理：{{ resolveContextTitle }}</div>
             <div class="dialog-resolve-text">
               模板、科目和映射类型已根据缺口带入；请确认报表项目后创建映射。
+            </div>
+            <div v-if="sourceRecommendationText" class="dialog-resolve-text">
+              来源建议：{{ sourceRecommendationText }}
             </div>
           </div>
           <v-form ref="formRef" v-model="dialog.valid">
@@ -291,6 +297,9 @@ const recommendedReportItem = computed(() => {
   const itemId = inferRecommendedReportItemId()
   return itemId ? reportItems.value.find((item) => item.fid === itemId) || null : null
 })
+
+const routeRecommendedItemCode = computed(() => normalizeQueryValue(route.query.recommendedItemCode).toUpperCase())
+const sourceRecommendationText = computed(() => normalizeQueryValue(route.query.recommendationReason))
 
 const resolveContextTitle = computed(() => {
   const account = contextAccount.value
@@ -612,7 +621,18 @@ function openResolveDialogOnce() {
 function inferRecommendedReportItemId() {
   const templateId = filters.ftemplateId || normalizeNumber(normalizeQueryValue(route.query.templateId))
   const account = contextAccount.value
-  if (!templateId || !account) {
+  if (!templateId) {
+    return null
+  }
+
+  if (routeRecommendedItemCode.value) {
+    const recommendedItemId = findItemIdByCode(routeRecommendedItemCode.value, templateId)
+    if (recommendedItemId) {
+      return recommendedItemId
+    }
+  }
+
+  if (!account) {
     return null
   }
 
@@ -695,7 +715,13 @@ onMounted(async () => {
 })
 
 watch(
-  () => [route.query.accountCode, route.query.templateId, route.query.mode],
+  () => [
+    route.query.accountCode,
+    route.query.templateId,
+    route.query.mode,
+    route.query.recommendedItemCode,
+    route.query.recommendationReason,
+  ],
   async () => {
     if (!accounts.value.length) return
     resolveAutoOpened.value = false
