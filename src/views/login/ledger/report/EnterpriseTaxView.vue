@@ -148,11 +148,12 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { getBusinessUnitList } from '@/api/bizUnit'
 import financialReportApi from '@/api/financialReport'
 
+const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const rows = ref([])
@@ -246,6 +247,21 @@ function resetQuery() {
   fetchData()
 }
 
+function applyRouteQuery() {
+  const period = normalizeQueryValue(route.query.period)
+  if (period) {
+    query.period = period
+  }
+  const currency = normalizeQueryValue(route.query.currency)
+  if (currency) {
+    query.currency = currency
+  }
+  const orgId = normalizeNumber(normalizeQueryValue(route.query.orgId))
+  if (orgId) {
+    query.orgId = orgId
+  }
+}
+
 function mappingGapKey(gap) {
   return `${gap.reportType || '-'}-${gap.templateId || '-'}-${gap.accountCode || '-'}`
 }
@@ -260,26 +276,78 @@ function reportTypeLabel(value) {
 }
 
 function openMappingGap(gap) {
+  router.push(buildMappingGapTarget(gap))
+}
+
+function buildMappingGapTarget(gap) {
+  const sourceQuery = sourceContextQuery()
   if (gap?.targetRoute) {
-    router.push(gap.targetRoute)
-    return
+    const parsed = new URL(gap.targetRoute, window.location.origin)
+    return {
+      path: parsed.pathname,
+      query: {
+        ...Object.fromEntries(parsed.searchParams.entries()),
+        ...sourceQuery,
+      },
+    }
   }
-  router.push({
+  return {
     path: '/ledger/report-account-map',
     query: {
       accountCode: gap?.accountCode || undefined,
       reportType: gap?.reportType || undefined,
       templateId: gap?.templateId || undefined,
+      ...sourceQuery,
     },
+  }
+}
+
+function sourceContextQuery() {
+  return compactQuery({
+    mode: 'resolve',
+    sourcePath: '/ledger/enterprise-tax',
+    sourcePeriod: query.period,
+    sourceCurrency: query.currency,
+    sourceOrgId: query.orgId,
   })
+}
+
+function compactQuery(value) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null && entry !== ''),
+  )
+}
+
+function normalizeQueryValue(value) {
+  if (Array.isArray(value)) {
+    return String(value[0] || '').trim()
+  }
+  return String(value || '').trim()
+}
+
+function normalizeNumber(value) {
+  if (value === '' || value === undefined || value === null) {
+    return null
+  }
+  const next = Number(value)
+  return Number.isFinite(next) ? next : null
 }
 
 onMounted(async () => {
   await loadOrgOptions().catch(() => {
     warnings.value = ['业务单元加载失败。']
   })
+  applyRouteQuery()
   await fetchData()
 })
+
+watch(
+  () => [route.query.period, route.query.currency, route.query.orgId],
+  async () => {
+    applyRouteQuery()
+    await fetchData()
+  },
+)
 </script>
 
 <style scoped>
