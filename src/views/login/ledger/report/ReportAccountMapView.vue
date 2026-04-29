@@ -459,6 +459,7 @@ async function handleConfirm() {
   if (!validationPassed(validation)) {
     return
   }
+  const shouldAutoReview = hasResolveContext.value && dialog.mode === 'create'
 
   const payload = {
     ...dialog.form,
@@ -480,6 +481,10 @@ async function handleConfirm() {
     await fetchData()
     if (hasResolveContext.value) {
       resolveSaved.value = true
+    }
+    if (shouldAutoReview) {
+      await nextTick()
+      returnToSourceReport({ review: true })
     }
   } catch (error) {
     showMsg('报表科目映射保存失败', 'error')
@@ -576,14 +581,22 @@ function reportTypeLabel(value) {
   return labels[value] || value || '报表'
 }
 
-function returnToSourceReport() {
+function returnToSourceReport(options = {}) {
   const sourcePath = normalizeQueryValue(route.query.sourcePath) || '/ledger/enterprise-tax'
+  const account = contextAccount.value
+  const reviewQuery = options.review ? {
+    review: 'reportMappingResolution',
+    resolvedAccountCode: account?.fcode || normalizeQueryValue(route.query.accountCode),
+    resolvedAccountName: account?.fname || '',
+    resolvedTemplateId: filters.ftemplateId || normalizeNumber(normalizeQueryValue(route.query.templateId)),
+  } : {}
   router.push({
     path: sourcePath,
     query: compactQuery({
       period: normalizeQueryValue(route.query.sourcePeriod),
       currency: normalizeQueryValue(route.query.sourceCurrency),
       orgId: normalizeQueryValue(route.query.sourceOrgId),
+      ...reviewQuery,
     }),
   })
 }

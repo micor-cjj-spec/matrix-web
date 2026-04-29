@@ -74,6 +74,17 @@
         </v-col>
       </v-row>
 
+      <div v-if="resolutionReview.show" class="alert-list">
+        <v-alert
+          :type="resolutionReview.type"
+          variant="tonal"
+          density="comfortable"
+          class="mb-2"
+        >
+          {{ resolutionReview.message }}
+        </v-alert>
+      </div>
+
       <div v-if="warnings.length" class="alert-list">
         <v-alert
           v-for="warning in warnings"
@@ -161,6 +172,7 @@ const warnings = ref([])
 const checks = ref([])
 const mappingGaps = ref([])
 const orgOptions = ref([])
+const resolutionReview = reactive({ show: false, type: 'info', message: '' })
 
 const query = reactive({
   orgId: null,
@@ -222,6 +234,7 @@ async function fetchData() {
     warnings.value = data.warnings || []
     checks.value = data.checks || []
     mappingGaps.value = data.mappingGaps || []
+    applyResolutionReview(mappingGaps.value)
     summary.revenueAmount = Number(data.revenueAmount || 0)
     summary.netProfitAmount = Number(data.netProfitAmount || 0)
     summary.totalTaxAmount = Number(data.totalTaxAmount || 0)
@@ -231,6 +244,7 @@ async function fetchData() {
     warnings.value = ['企业纳税表加载失败。']
     checks.value = []
     mappingGaps.value = []
+    clearResolutionReview()
     summary.revenueAmount = 0
     summary.netProfitAmount = 0
     summary.totalTaxAmount = 0
@@ -245,6 +259,34 @@ function resetQuery() {
   query.period = currentPeriod()
   query.currency = 'CNY'
   fetchData()
+}
+
+function applyResolutionReview(gaps) {
+  if (normalizeQueryValue(route.query.review) !== 'reportMappingResolution') {
+    clearResolutionReview()
+    return
+  }
+
+  const accountCode = normalizeQueryValue(route.query.resolvedAccountCode)
+  const accountName = normalizeQueryValue(route.query.resolvedAccountName)
+  const templateId = normalizeNumber(normalizeQueryValue(route.query.resolvedTemplateId))
+  const label = accountCode ? `${accountCode}${accountName ? ` - ${accountName}` : ''}` : '本次映射缺口'
+  const stillOpen = (gaps || []).some((gap) => {
+    const sameAccount = !accountCode || String(gap.accountCode || '').trim() === accountCode
+    const sameTemplate = !templateId || Number(gap.templateId || 0) === templateId
+    return sameAccount && sameTemplate
+  })
+
+  resolutionReview.show = true
+  resolutionReview.type = stillOpen ? 'warning' : 'success'
+  resolutionReview.message = stillOpen
+    ? `已返回企业纳税表自动复核：${label} 仍在映射缺口中，请确认报表项目是否选择正确后重新保存。`
+    : `已返回企业纳税表自动复核：${label} 的映射缺口已消失。`
+}
+
+function clearResolutionReview() {
+  resolutionReview.show = false
+  resolutionReview.message = ''
 }
 
 function applyRouteQuery() {
@@ -342,7 +384,14 @@ onMounted(async () => {
 })
 
 watch(
-  () => [route.query.period, route.query.currency, route.query.orgId],
+  () => [
+    route.query.period,
+    route.query.currency,
+    route.query.orgId,
+    route.query.review,
+    route.query.resolvedAccountCode,
+    route.query.resolvedTemplateId,
+  ],
   async () => {
     applyRouteQuery()
     await fetchData()
