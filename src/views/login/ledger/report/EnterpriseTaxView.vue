@@ -116,6 +116,7 @@
           <div>
             <div class="mapping-gap-title">报表科目映射待处理</div>
             <div class="mapping-gap-subtitle">以下科目已有发生额，但还没有落到报表项目。</div>
+            <div class="mapping-gap-queue">待治理队列：共 {{ mappingGaps.length }} 项</div>
           </div>
           <div class="mapping-gap-header-actions">
             <div class="mapping-gap-count">{{ mappingGaps.length }} 项</div>
@@ -125,17 +126,17 @@
           </div>
         </div>
         <div class="mapping-gap-list">
-          <div v-for="gap in mappingGaps" :key="mappingGapKey(gap)" class="mapping-gap-row">
+          <div v-for="(gap, index) in mappingGaps" :key="mappingGapKey(gap)" class="mapping-gap-row">
             <div class="mapping-gap-main">
               <div class="mapping-gap-account">{{ gap.accountCode || '-' }} - {{ gap.accountName || '-' }}</div>
               <div class="mapping-gap-meta">
-                {{ reportTypeLabel(gap.reportType) }} / {{ gap.templateName || '默认模板' }} / 建议类型 {{ gap.mappingType || '-' }}
+                第 {{ index + 1 }} / {{ mappingGaps.length }} 项 / {{ reportTypeLabel(gap.reportType) }} / {{ gap.templateName || '默认模板' }} / 建议类型 {{ gap.mappingType || '-' }}
               </div>
               <div class="mapping-gap-recommendation">
                 {{ mappingGapSuggestion(gap).message }}
               </div>
             </div>
-            <v-btn size="small" variant="tonal" color="primary" @click="openMappingGap(gap)">
+            <v-btn size="small" variant="tonal" color="primary" @click="openMappingGap(gap, index)">
               {{ mappingGapSuggestion(gap).itemCode ? '按建议维护' : (gap.actionLabel || '维护映射') }}
             </v-btn>
           </div>
@@ -325,27 +326,30 @@ function reportTypeLabel(value) {
   return labels[value] || value || '报表'
 }
 
-function openMappingGap(gap) {
-  router.push(buildMappingGapTarget(gap))
+function openMappingGap(gap, index = resolveMappingGapIndex(gap)) {
+  router.push(buildMappingGapTarget(gap, index))
 }
 
 function openFirstMappingGap() {
   if (mappingGaps.value.length) {
-    openMappingGap(mappingGaps.value[0])
+    openMappingGap(mappingGaps.value[0], 0)
   }
 }
 
-function buildMappingGapTarget(gap) {
+function buildMappingGapTarget(gap, index = 0) {
   const sourceQuery = sourceContextQuery()
   const suggestionQuery = suggestionContextQuery(gap)
+  const queueQuery = mappingGapQueueQuery(index)
   if (gap?.targetRoute) {
     const parsed = new URL(gap.targetRoute, window.location.origin)
     return {
       path: parsed.pathname,
       query: {
         ...Object.fromEntries(parsed.searchParams.entries()),
+        accountName: gap?.accountName || undefined,
         ...sourceQuery,
         ...suggestionQuery,
+        ...queueQuery,
       },
     }
   }
@@ -353,10 +357,12 @@ function buildMappingGapTarget(gap) {
     path: '/ledger/report-account-map',
     query: {
       accountCode: gap?.accountCode || undefined,
+      accountName: gap?.accountName || undefined,
       reportType: gap?.reportType || undefined,
       templateId: gap?.templateId || undefined,
       ...sourceQuery,
       ...suggestionQuery,
+      ...queueQuery,
     },
   }
 }
@@ -377,6 +383,34 @@ function suggestionContextQuery(gap) {
     recommendedItemCode: suggestion.itemCode,
     recommendationReason: suggestion.message,
   })
+}
+
+function mappingGapQueueQuery(index) {
+  const queue = mappingGaps.value.map((gap) => {
+    const suggestion = mappingGapSuggestion(gap)
+    return compactQuery({
+      accountCode: gap?.accountCode,
+      accountName: gap?.accountName,
+      reportType: gap?.reportType,
+      templateId: gap?.templateId,
+      templateName: gap?.templateName,
+      mappingType: gap?.mappingType,
+      recommendedItemCode: suggestion.itemCode,
+      recommendationReason: suggestion.message,
+    })
+  })
+  if (!queue.length) {
+    return {}
+  }
+  return {
+    gapQueue: JSON.stringify(queue),
+    gapIndex: Math.max(0, Math.min(index, queue.length - 1)),
+  }
+}
+
+function resolveMappingGapIndex(gap) {
+  const index = mappingGaps.value.findIndex((item) => mappingGapKey(item) === mappingGapKey(gap))
+  return index >= 0 ? index : 0
 }
 
 function mappingGapSuggestion(gap) {
@@ -590,6 +624,13 @@ watch(
   margin-top: 4px;
   color: #9b6b2a;
   font-size: 13px;
+}
+
+.mapping-gap-queue {
+  margin-top: 6px;
+  color: #7d4b0d;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .mapping-gap-count {

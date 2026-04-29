@@ -60,6 +60,9 @@
           <div class="resolve-subtitle">
             {{ reportTypeLabel(normalizeQueryValue(route.query.reportType)) }} / {{ templateName(filters.ftemplateId) }} / 来源：{{ sourceReportLabel }}
           </div>
+          <div v-if="resolveQueuePositionText" class="resolve-hint">
+            {{ resolveQueuePositionText }}
+          </div>
           <div v-if="sourceRecommendationText" class="resolve-hint">
             来源建议：{{ sourceRecommendationText }}
           </div>
@@ -72,6 +75,12 @@
         </div>
         <div class="resolve-actions">
           <v-btn color="primary" variant="flat" @click="openCreateDialog">打开新增映射</v-btn>
+          <v-btn v-if="resolveQueueTotal > 1" variant="tonal" :disabled="!hasPreviousQueueGap" @click="openQueueGap(resolveGapIndex - 1)">
+            上一条缺口
+          </v-btn>
+          <v-btn v-if="resolveQueueTotal > 1" variant="tonal" :disabled="!hasNextQueueGap" @click="openQueueGap(resolveGapIndex + 1)">
+            下一条缺口
+          </v-btn>
           <v-btn variant="tonal" @click="returnToSourceReport">返回来源报表复核</v-btn>
         </div>
       </div>
@@ -121,6 +130,9 @@
         <v-card-text>
           <div v-if="hasResolveContext && dialog.mode === 'create'" class="dialog-resolve-note">
             <div class="dialog-resolve-title">正在处理：{{ resolveContextTitle }}</div>
+            <div v-if="resolveQueuePositionText" class="dialog-resolve-text">
+              {{ resolveQueuePositionText }}
+            </div>
             <div class="dialog-resolve-text">
               模板、科目和映射类型已根据缺口带入；请确认报表项目后创建映射。
             </div>
@@ -293,13 +305,30 @@ const contextAccount = computed(() =>
   accounts.value.find((item) => item.fid === filters.faccountId) || null,
 )
 
+const resolveGapQueue = computed(() => parseGapQueue(route.query.gapQueue))
+const resolveGapIndex = computed(() => resolveCurrentGapIndex())
+const resolveQueueTotal = computed(() => resolveGapQueue.value.length)
+const currentQueueGap = computed(() => resolveGapQueue.value[resolveGapIndex.value] || null)
+const hasPreviousQueueGap = computed(() => resolveGapIndex.value > 0)
+const hasNextQueueGap = computed(() => resolveGapIndex.value >= 0 && resolveGapIndex.value < resolveQueueTotal.value - 1)
+const resolveQueuePositionText = computed(() => {
+  if (!resolveQueueTotal.value || resolveGapIndex.value < 0) {
+    return ''
+  }
+  return `队列进度：第 ${resolveGapIndex.value + 1} / ${resolveQueueTotal.value} 项`
+})
+
+const routeRecommendedItemCode = computed(() =>
+  (normalizeQueryValue(route.query.recommendedItemCode) || normalizeQueryValue(currentQueueGap.value?.recommendedItemCode)).toUpperCase(),
+)
+const sourceRecommendationText = computed(() =>
+  normalizeQueryValue(route.query.recommendationReason) || normalizeQueryValue(currentQueueGap.value?.recommendationReason),
+)
+
 const recommendedReportItem = computed(() => {
   const itemId = inferRecommendedReportItemId()
   return itemId ? reportItems.value.find((item) => item.fid === itemId) || null : null
 })
-
-const routeRecommendedItemCode = computed(() => normalizeQueryValue(route.query.recommendedItemCode).toUpperCase())
-const sourceRecommendationText = computed(() => normalizeQueryValue(route.query.recommendationReason))
 
 const resolveContextTitle = computed(() => {
   const account = contextAccount.value
@@ -307,7 +336,8 @@ const resolveContextTitle = computed(() => {
     return `${account.fcode || '-'} - ${account.fname || '-'}`
   }
   const accountCode = normalizeQueryValue(route.query.accountCode)
-  return accountCode ? `${accountCode} - 待定位科目` : '待治理映射缺口'
+  const accountName = normalizeQueryValue(route.query.accountName) || normalizeQueryValue(currentQueueGap.value?.accountName)
+  return accountCode ? `${accountCode} - ${accountName || '待定位科目'}` : '待治理映射缺口'
 })
 
 const sourceReportLabel = computed(() => {
@@ -570,6 +600,62 @@ function normalizeQueryValue(value) {
   return String(value || '').trim()
 }
 
+function parseGapQueue(value) {
+  const raw = normalizeQueryValue(value)
+  if (!raw) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+    return parsed.map(normalizeQueueGap).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+function normalizeQueueGap(value) {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+  const accountCode = normalizeQueryValue(value.accountCode)
+  const templateId = normalizeNumber(value.templateId)
+  if (!accountCode && !templateId) {
+    return null
+  }
+  return compactQuery({
+    accountCode,
+    accountName: normalizeQueryValue(value.accountName),
+    reportType: normalizeQueryValue(value.reportType),
+    templateId,
+    templateName: normalizeQueryValue(value.templateName),
+    mappingType: normalizeQueryValue(value.mappingType),
+    recommendedItemCode: normalizeQueryValue(value.recommendedItemCode),
+    recommendationReason: normalizeQueryValue(value.recommendationReason),
+  })
+}
+
+function resolveCurrentGapIndex() {
+  const queue = resolveGapQueue.value
+  if (!queue.length) {
+    return -1
+  }
+  const requestedIndex = Number(normalizeQueryValue(route.query.gapIndex))
+  if (Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < queue.length) {
+    return requestedIndex
+  }
+
+  const accountCode = normalizeQueryValue(route.query.accountCode)
+  const templateId = normalizeNumber(normalizeQueryValue(route.query.templateId))
+  const matchedIndex = queue.findIndex((item) =>
+    normalizeQueryValue(item.accountCode) === accountCode
+    && (!templateId || normalizeNumber(item.templateId) === templateId),
+  )
+  return matchedIndex >= 0 ? matchedIndex : 0
+}
+
 function defaultMappingTypeFromRoute() {
   const reportType = normalizeQueryValue(route.query.reportType)
   if (reportType === 'PROFIT_STATEMENT') {
@@ -607,6 +693,37 @@ function returnToSourceReport(options = {}) {
       orgId: normalizeQueryValue(route.query.sourceOrgId),
       ...reviewQuery,
     }),
+  })
+}
+
+function openQueueGap(index) {
+  const queue = resolveGapQueue.value
+  const gap = queue[index]
+  if (!gap) {
+    return
+  }
+  router.push({
+    path: route.path,
+    query: buildQueueGapQuery(gap, index),
+  })
+}
+
+function buildQueueGapQuery(gap, index) {
+  const queuePayload = normalizeQueryValue(route.query.gapQueue) || JSON.stringify(resolveGapQueue.value)
+  return compactQuery({
+    mode: 'resolve',
+    accountCode: gap.accountCode,
+    accountName: gap.accountName,
+    reportType: gap.reportType,
+    templateId: gap.templateId,
+    recommendedItemCode: gap.recommendedItemCode,
+    recommendationReason: gap.recommendationReason,
+    sourcePath: normalizeQueryValue(route.query.sourcePath) || '/ledger/enterprise-tax',
+    sourcePeriod: normalizeQueryValue(route.query.sourcePeriod),
+    sourceCurrency: normalizeQueryValue(route.query.sourceCurrency),
+    sourceOrgId: normalizeQueryValue(route.query.sourceOrgId),
+    gapQueue: queuePayload,
+    gapIndex: index,
   })
 }
 
@@ -717,10 +834,13 @@ onMounted(async () => {
 watch(
   () => [
     route.query.accountCode,
+    route.query.accountName,
     route.query.templateId,
     route.query.mode,
     route.query.recommendedItemCode,
     route.query.recommendationReason,
+    route.query.gapQueue,
+    route.query.gapIndex,
   ],
   async () => {
     if (!accounts.value.length) return
