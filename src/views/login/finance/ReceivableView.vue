@@ -1,5 +1,7 @@
 <template>
   <MatrixModuleHub
+    app-code="finance"
+    module-code="receivable"
     title="应收"
     eyebrow="ACCOUNTS RECEIVABLE"
     cloud-label="财务云"

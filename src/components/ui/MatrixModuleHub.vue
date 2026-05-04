@@ -17,7 +17,7 @@
 
       <div class="hub-actions">
         <button
-          v-for="action in topActions"
+          v-for="action in resolvedTopActions"
           :key="action.name"
           type="button"
           @click="go(action.path)"
@@ -33,9 +33,9 @@
         <span>{{ eyebrow }}</span>
         <h1>{{ title }}</h1>
         <p>{{ description }}</p>
-        <div v-if="actions.length" class="hero-actions">
+        <div v-if="resolvedActions.length" class="hero-actions">
           <button
-            v-for="action in actions"
+            v-for="action in resolvedActions"
             :key="action.name"
             type="button"
             :class="action.primary ? 'primary-action' : 'plain-action'"
@@ -48,7 +48,7 @@
       </div>
 
       <div class="metric-grid">
-        <div v-for="metric in stats" :key="metric.label" class="metric-card">
+        <div v-for="metric in resolvedStats" :key="metric.label" class="metric-card">
           <span>{{ metric.label }}</span>
           <strong>{{ metric.value }}</strong>
           <small>{{ metric.hint }}</small>
@@ -59,7 +59,7 @@
     <section class="hub-layout">
       <aside class="section-nav" aria-label="业务分组">
         <button
-          v-for="group in groups"
+          v-for="group in resolvedGroups"
           :key="group.name"
           type="button"
           :class="{ active: activeGroupName === group.name && !keyword.trim() }"
@@ -127,26 +127,26 @@
       </section>
 
       <aside class="context-dock">
-        <section v-if="focusItems.length" class="dock-section">
+        <section v-if="resolvedFocusItems.length" class="dock-section">
           <div class="dock-heading">
             <span>FOCUS</span>
             <strong>今日关注</strong>
           </div>
           <div class="focus-list">
-            <button v-for="item in focusItems" :key="item.name" type="button" @click="go(item.path)">
+            <button v-for="item in resolvedFocusItems" :key="item.name" type="button" @click="go(item.path)">
               <span>{{ item.name }}</span>
               <em>{{ item.status }}</em>
             </button>
           </div>
         </section>
 
-        <section v-if="shortcuts.length" class="dock-section">
+        <section v-if="resolvedShortcuts.length" class="dock-section">
           <div class="dock-heading">
             <span>ACTIONS</span>
             <strong>高频操作</strong>
           </div>
           <div class="shortcut-grid">
-            <button v-for="item in shortcuts" :key="item.name" type="button" @click="go(item.path)">
+            <button v-for="item in resolvedShortcuts" :key="item.name" type="button" @click="go(item.path)">
               <component :is="item.icon || Grid" class="svg-icon" />
               <span>{{ item.name }}</span>
             </button>
@@ -162,8 +162,10 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { getModuleHub } from '@/api/platform'
+import { resolveMatrixIcon } from '@/utils/matrixIcons'
 import {
   ArrowRight,
   Grid,
@@ -174,6 +176,8 @@ import {
 const props = defineProps({
   title: { type: String, required: true },
   description: { type: String, required: true },
+  appCode: { type: String, default: '' },
+  moduleCode: { type: String, default: '' },
   eyebrow: { type: String, default: 'MATRIX MODULE' },
   cloudLabel: { type: String, default: '财务云' },
   homePath: { type: String, default: '/finance' },
@@ -192,9 +196,19 @@ const router = useRouter()
 const keyword = ref('')
 const activeGroupName = ref('')
 const snackbar = ref({ show: false, text: '', color: 'info' })
+const remoteHub = ref(null)
+
+const resolvedStats = computed(() => withFallback(remoteHub.value?.stats, props.stats))
+const resolvedActions = computed(() => withFallback(remoteHub.value?.actions, props.actions))
+const resolvedTopActions = computed(() => withFallback(remoteHub.value?.topActions, props.topActions))
+const resolvedFocusItems = computed(() => withFallback(remoteHub.value?.focusItems, props.focusItems))
+const resolvedShortcuts = computed(() => withFallback(remoteHub.value?.shortcuts, props.shortcuts))
+const resolvedGroups = computed(() => withFallback(remoteHub.value?.groups, props.groups))
+
+onMounted(loadRemoteHub)
 
 watch(
-  () => props.groups,
+  () => resolvedGroups.value,
   (groups) => {
     if (!groups.some((group) => group.name === activeGroupName.value)) {
       activeGroupName.value = groups[0]?.name || ''
@@ -204,7 +218,7 @@ watch(
 )
 
 const activeGroup = computed(() => (
-  props.groups.find((group) => group.name === activeGroupName.value) || props.groups[0] || null
+  resolvedGroups.value.find((group) => group.name === activeGroupName.value) || resolvedGroups.value[0] || null
 ))
 
 const visibleGroups = computed(() => {
@@ -213,7 +227,7 @@ const visibleGroups = computed(() => {
     return activeGroup.value ? [activeGroup.value] : []
   }
 
-  return props.groups
+  return resolvedGroups.value
     .map((group) => ({
       ...group,
       modules: group.modules.filter((module) => {
@@ -234,6 +248,91 @@ const totalVisibleModules = computed(() => (
 function selectGroup(group) {
   activeGroupName.value = group.name
   keyword.value = ''
+}
+
+async function loadRemoteHub() {
+  if (!props.appCode || !props.moduleCode) {
+    return
+  }
+  try {
+    const res = await getModuleHub(props.appCode, props.moduleCode)
+    const data = unwrapResponse(res)
+    if (hasRemoteHubData(data)) {
+      remoteHub.value = hydrateHub(data)
+    }
+  } catch (error) {
+    console.warn('Matrix module hub config fallback to local data', error)
+  }
+}
+
+function unwrapResponse(res) {
+  if (res?.code && res.code !== 200) {
+    throw new Error(res.message || 'module hub api error')
+  }
+  return res?.data || res || {}
+}
+
+function hasRemoteHubData(data) {
+  return ['stats', 'actions', 'topActions', 'focusItems', 'shortcuts', 'groups']
+    .some((key) => Array.isArray(data?.[key]) && data[key].length > 0)
+}
+
+function withFallback(source, fallback) {
+  return Array.isArray(source) && source.length > 0 ? source : fallback
+}
+
+function hydrateHub(data) {
+  return {
+    stats: hydrateMetrics(data.stats),
+    actions: hydrateActionList(data.actions),
+    topActions: hydrateActionList(data.topActions),
+    focusItems: hydratePlainList(data.focusItems),
+    shortcuts: hydrateActionList(data.shortcuts),
+    groups: hydrateGroups(data.groups),
+  }
+}
+
+function hydrateMetrics(items = []) {
+  return items.map((item) => ({
+    label: item.label || item.name || item.title,
+    value: item.value,
+    hint: item.hint,
+  }))
+}
+
+function hydrateActionList(items = []) {
+  return items.map((item) => ({
+    ...item,
+    name: item.name || item.title || item.label,
+    description: item.description || item.desc || item.detail,
+    path: item.path || item.routePath,
+    icon: resolveMatrixIcon(item.iconKey || item.icon, Grid),
+    primary: item.primary === true,
+    ready: item.ready !== false,
+  }))
+}
+
+function hydratePlainList(items = []) {
+  return items.map((item) => ({
+    ...item,
+    name: item.name || item.title || item.label,
+    path: item.path || item.routePath,
+  }))
+}
+
+function hydrateGroups(groups = []) {
+  return groups.map((group) => ({
+    ...group,
+    icon: resolveMatrixIcon(group.iconKey || group.icon, Grid),
+    modules: (group.modules || []).map((module) => ({
+      ...module,
+      name: module.name || module.title || module.label,
+      description: module.description || module.desc || module.detail,
+      path: module.path || module.routePath,
+      icon: resolveMatrixIcon(module.iconKey || module.icon || group.iconKey, Grid),
+      ready: module.ready !== false && module.available !== false,
+    })),
+  }))
 }
 
 function openModule(module) {

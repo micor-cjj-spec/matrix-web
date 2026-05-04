@@ -238,9 +238,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getWorkbench } from '@/api/platform'
 import { clearToken } from '@/utils/auth'
+import { resolveMatrixIcon } from '@/utils/matrixIcons'
 import {
   ArrowRight,
   Bell,
@@ -290,13 +292,13 @@ const navItems = [
   { key: 'settings', label: '平台设置', icon: Setting },
 ]
 
-const heroMetrics = [
+const defaultHeroMetrics = [
   { label: '月结进度', value: '82%', hint: '较昨日 +11%' },
   { label: '待我处理', value: '6', hint: '含 2 项高优先级' },
   { label: '本月凭证', value: '1,280', hint: '自动生成 64%' },
 ]
 
-const apps = [
+const defaultApps = [
   {
     name: '财务系统',
     desc: '总账、应收应付、报表、月结协同统一入口。',
@@ -359,25 +361,25 @@ const apps = [
   },
 ]
 
-const todos = [
+const defaultTodos = [
   { title: '确认 4 月月结检查项', desc: '总账模块还有 3 项需确认', path: '/ledger/month-end-close-workbench', priority: 'high' },
   { title: '复核应付账龄预警', desc: '2 家供应商超过信用期', path: '/payable/aging-credit', priority: 'medium' },
   { title: '补充现金流通知单', desc: '经营活动现金流待勾稽', path: '/ledger/cashflow-notice-check', priority: 'low' },
 ]
 
-const recentItems = [
+const defaultRecentItems = [
   { title: '资产负债表', detail: '2026 年 4 月报表', time: '10:24', path: '/ledger/balance-sheet', icon: DataAnalysis },
   { title: '凭证协同检查', detail: '自动生成凭证复核', time: '昨天', path: '/ledger/voucher-collaboration-check', icon: Tickets },
   { title: '往来对账单', detail: '客户与供应商余额核对', time: '周五', path: '/ledger/counterparty-statement', icon: Files },
 ]
 
-const notices = [
+const defaultNotices = [
   { tag: '财务', type: 'finance', title: '月结监控中心已更新', desc: '新增异常凭证定位与结转进度提醒。' },
   { tag: '平台', type: 'platform', title: 'Matrix 工作台升级', desc: '多系统入口、待办与最近访问已整合。' },
   { tag: '知识', type: 'knowledge', title: '知识系统进入产品设计', desc: '后续会接入制度、问答与文档资产。' },
 ]
 
-const quickActions = [
+const defaultQuickActions = [
   { label: '新增凭证', icon: Plus, path: '/ledger/voucher' },
   { label: '上传附件', icon: Upload, path: '/payable/manage' },
   { label: '查看报表', icon: TrendCharts, path: '/ledger/balance-sheet' },
@@ -385,6 +387,103 @@ const quickActions = [
   { label: '我的档案', icon: User, path: '/personal' },
   { label: '日程日历', icon: Calendar, path: '/ledger/period-monitor-center' },
 ]
+
+const heroMetrics = ref(defaultHeroMetrics)
+const apps = ref(defaultApps)
+const todos = ref(defaultTodos)
+const recentItems = ref(defaultRecentItems)
+const notices = ref(defaultNotices)
+const quickActions = ref(defaultQuickActions)
+
+onMounted(loadWorkbench)
+
+async function loadWorkbench() {
+  try {
+    const res = await getWorkbench()
+    const data = unwrapResponse(res)
+    heroMetrics.value = hydrateList(data.heroMetrics, hydrateMetric, defaultHeroMetrics)
+    apps.value = hydrateList(data.apps, hydrateApp, defaultApps)
+    todos.value = hydrateList(data.todos, hydrateTodo, defaultTodos)
+    recentItems.value = hydrateList(data.recentItems, hydrateRecent, defaultRecentItems)
+    notices.value = hydrateList(data.notices, hydrateNotice, defaultNotices)
+    quickActions.value = hydrateList(data.quickActions, hydrateQuickAction, defaultQuickActions)
+  } catch (error) {
+    console.warn('Matrix workbench config fallback to local data', error)
+  }
+}
+
+function unwrapResponse(res) {
+  if (res?.code && res.code !== 200) {
+    throw new Error(res.message || 'workbench api error')
+  }
+  return res?.data || res || {}
+}
+
+function hydrateList(source, mapper, fallback) {
+  if (!Array.isArray(source) || source.length === 0) {
+    return fallback
+  }
+  return source.map(mapper)
+}
+
+function hydrateMetric(item) {
+  return {
+    label: item.label || item.name || item.title,
+    value: item.value,
+    hint: item.hint,
+  }
+}
+
+function hydrateApp(item) {
+  return {
+    name: item.name || item.title || item.label,
+    desc: item.desc || item.description || item.detail,
+    meta: item.meta || item.hint,
+    status: item.status,
+    icon: resolveMatrixIcon(item.iconKey, Grid),
+    accent: item.accent,
+    path: item.path || item.routePath,
+    newPage: item.newPage === true,
+    featured: item.featured === true,
+    available: item.available !== false,
+  }
+}
+
+function hydrateTodo(item) {
+  return {
+    title: item.title || item.name || item.label,
+    desc: item.desc || item.description || item.detail,
+    path: item.path || item.routePath,
+    priority: item.priority,
+  }
+}
+
+function hydrateRecent(item) {
+  return {
+    title: item.title || item.name || item.label,
+    detail: item.detail || item.desc || item.description,
+    time: item.time || item.value,
+    path: item.path || item.routePath,
+    icon: resolveMatrixIcon(item.iconKey, Files),
+  }
+}
+
+function hydrateNotice(item) {
+  return {
+    tag: item.tag,
+    type: item.type,
+    title: item.title || item.name || item.label,
+    desc: item.desc || item.description || item.detail,
+  }
+}
+
+function hydrateQuickAction(item) {
+  return {
+    label: item.label || item.name || item.title,
+    icon: resolveMatrixIcon(item.iconKey, Grid),
+    path: item.path || item.routePath,
+  }
+}
 
 function handleNav(item) {
   if (item.disabled) {

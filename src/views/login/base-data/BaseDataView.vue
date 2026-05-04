@@ -1,5 +1,7 @@
 <template>
   <MatrixModuleHub
+    app-code="base"
+    module-code="base-data"
     title="基础资料"
     eyebrow="FOUNDATION MASTER DATA"
     cloud-label="基础服务云"

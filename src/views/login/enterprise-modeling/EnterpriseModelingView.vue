@@ -1,5 +1,7 @@
 <template>
   <MatrixModuleHub
+    app-code="base"
+    module-code="enterprise-modeling"
     title="企业建模"
     eyebrow="ENTERPRISE MODELING"
     cloud-label="基础服务云"

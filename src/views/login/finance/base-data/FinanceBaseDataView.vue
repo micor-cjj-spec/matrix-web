@@ -1,5 +1,7 @@
 <template>
   <MatrixModuleHub
+    app-code="finance"
+    module-code="finance-base-data"
     title="财务基础资料"
     eyebrow="FINANCE MASTER DATA"
     cloud-label="财务云"

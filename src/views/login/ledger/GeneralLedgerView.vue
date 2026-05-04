@@ -1,5 +1,7 @@
 <template>
   <MatrixModuleHub
+    app-code="finance"
+    module-code="ledger"
     title="总账"
     eyebrow="GENERAL LEDGER"
     cloud-label="财务云"
