@@ -80,6 +80,86 @@
         </v-alert>
       </div>
 
+      <div class="section-heading">
+        <div class="section-title">基础资料体检明细</div>
+        <v-btn size="small" variant="text" color="primary" :loading="healthLoading" @click="loadHealthCheck">
+          重新体检
+        </v-btn>
+      </div>
+      <div class="health-panel">
+        <div class="health-summary">
+          <div v-for="card in healthSummaryCards" :key="card.label" class="health-metric">
+            <div class="summary-label">{{ card.label }}</div>
+            <div class="summary-value" :class="card.tone">{{ card.value }}</div>
+            <div v-if="card.tip" class="summary-tip">{{ card.tip }}</div>
+          </div>
+        </div>
+        <v-alert
+          v-if="healthError"
+          type="warning"
+          variant="tonal"
+          density="comfortable"
+          class="mb-3"
+        >
+          {{ healthError }}
+        </v-alert>
+        <v-alert
+          v-else-if="!query.forg"
+          type="info"
+          variant="tonal"
+          density="comfortable"
+          class="mb-3"
+        >
+          未选择业务单元时，将按全局范围执行基础资料体检。
+        </v-alert>
+        <v-data-table
+          :headers="healthHeaders"
+          :items="healthIssues"
+          :loading="healthLoading"
+          item-key="code"
+          hide-default-footer
+          class="elevation-0 health-table"
+        >
+          <template #item.severity="{ item }">
+            <v-chip size="small" variant="tonal" :color="severityColor(item.severity)">
+              {{ severityLabel(item.severity) }}
+            </v-chip>
+          </template>
+          <template #item.samples="{ item }">
+            <div class="sample-list">
+              <v-chip
+                v-for="sample in item.samples || []"
+                :key="sample"
+                size="x-small"
+                variant="tonal"
+                color="primary"
+              >
+                {{ sample }}
+              </v-chip>
+            </div>
+          </template>
+          <template #item.actions="{ item }">
+            <v-btn size="small" variant="text" color="primary" @click="openHealthFix(item)">
+              处理
+            </v-btn>
+          </template>
+          <template #no-data>
+            暂无体检问题
+          </template>
+        </v-data-table>
+        <div v-if="healthNotes.length" class="health-notes">
+          <v-chip
+            v-for="note in healthNotes"
+            :key="note"
+            size="small"
+            variant="tonal"
+            color="info"
+          >
+            {{ note }}
+          </v-chip>
+        </div>
+      </div>
+
       <div class="section-title">关账前检查项</div>
       <v-data-table
         :headers="checkHeaders"
@@ -300,6 +380,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import dataHealthCheckApi from '@/api/dataHealthCheck'
 import periodProcessApi from '@/api/periodProcess'
 import {
   applicationStatusColor,
@@ -332,6 +413,9 @@ const orgOptions = ref([])
 const checkItems = ref([])
 const steps = ref([])
 const warnings = ref([])
+const healthLoading = ref(false)
+const healthResult = ref(null)
+const healthError = ref('')
 const batchRows = ref([])
 const executionRows = ref([])
 const rolloverRows = ref([])
@@ -377,6 +461,15 @@ const checkHeaders = [
   { title: '说明', key: 'message', value: 'message' },
   { title: '建议动作', key: 'actionHint', value: 'actionHint' },
   { title: '关联数', key: 'relatedCount', value: 'relatedCount', width: 90, align: 'center' },
+  { title: '操作', key: 'actions', value: 'actions', width: 90, align: 'center' },
+]
+
+const healthHeaders = [
+  { title: '问题类型', key: 'name', value: 'name', minWidth: 180 },
+  { title: '级别', key: 'severity', value: 'severity', width: 90, align: 'center' },
+  { title: '数量', key: 'count', value: 'count', width: 80, align: 'center' },
+  { title: '样本', key: 'samples', value: 'samples', minWidth: 220 },
+  { title: '修复建议', key: 'suggestion', value: 'suggestion', minWidth: 260 },
   { title: '操作', key: 'actions', value: 'actions', width: 90, align: 'center' },
 ]
 
@@ -491,6 +584,46 @@ const archiveSummaryCards = computed(() => {
   ]
 })
 
+const healthIssues = computed(() => healthResult.value?.issues || [])
+
+const healthNotes = computed(() => healthResult.value?.notes || [])
+
+const highHealthIssueCount = computed(() => healthIssues.value
+  .filter((item) => String(item.severity || '').toUpperCase() === 'HIGH')
+  .reduce((sum, item) => sum + Number(item.count || 0), 0))
+
+const healthSummaryCards = computed(() => {
+  const result = healthResult.value || {}
+  const healthy = Boolean(result.healthy)
+  const hasResult = Boolean(result.checkedAt)
+  return [
+    {
+      label: '体检状态',
+      value: healthLoading.value ? '检查中' : healthy ? '健康' : hasResult ? '待处理' : '待检查',
+      tip: result.checkedAt ? `检查时间 ${formatDateTime(result.checkedAt)}` : '尚未获取体检结果',
+      tone: healthy ? 'tone-success' : 'tone-warning',
+    },
+    {
+      label: '问题类型',
+      value: String(result.issueTypeCount || 0),
+      tip: '按问题编码聚合',
+      tone: Number(result.issueTypeCount || 0) > 0 ? 'tone-warning' : 'tone-success',
+    },
+    {
+      label: '问题数量',
+      value: String(result.totalIssueCount || 0),
+      tip: '包含样本外的全部命中数量',
+      tone: Number(result.totalIssueCount || 0) > 0 ? 'tone-danger' : 'tone-success',
+    },
+    {
+      label: '高风险项',
+      value: String(highHealthIssueCount.value),
+      tip: '高风险会阻断月结',
+      tone: highHealthIssueCount.value > 0 ? 'tone-danger' : 'tone-success',
+    },
+  ]
+})
+
 async function fetchData() {
   loading.value = true
   try {
@@ -510,6 +643,23 @@ async function fetchData() {
     resetMeta()
   } finally {
     loading.value = false
+  }
+}
+
+async function loadHealthCheck() {
+  healthLoading.value = true
+  try {
+    const res = await dataHealthCheckApi.fetchFinanceFoundationHealth({
+      forg: query.forg || undefined,
+      sampleSize: 8,
+    })
+    healthResult.value = res.data || null
+    healthError.value = ''
+  } catch {
+    healthResult.value = null
+    healthError.value = '基础资料体检加载失败，请稍后重试。'
+  } finally {
+    healthLoading.value = false
   }
 }
 
@@ -669,7 +819,14 @@ function resetQuery() {
 }
 
 async function refreshAll() {
-  await Promise.all([fetchData(), loadBatchList(), loadExecutionList(), loadRolloverList(), loadArchivePackage()])
+  await Promise.all([
+    fetchData(),
+    loadHealthCheck(),
+    loadBatchList(),
+    loadExecutionList(),
+    loadRolloverList(),
+    loadArchivePackage(),
+  ])
 }
 
 function assignMeta(data) {
@@ -703,6 +860,19 @@ function openRoute(path) {
       period: query.period || undefined,
     },
   })
+}
+
+function openHealthFix(item) {
+  const code = String(item?.code || '')
+  const reportMappingCodes = [
+    'ACCOUNT_WITHOUT_REPORT_MAPPING',
+    'BROKEN_REPORT_MAPPING_ACCOUNT',
+    'BROKEN_REPORT_MAPPING_ITEM',
+  ]
+  const path = reportMappingCodes.includes(code)
+    ? '/ledger/report-account-map'
+    : '/finance/base-data/account-subject'
+  openRoute(path)
 }
 
 function canSubmitBatch(item) {
@@ -749,11 +919,7 @@ onMounted(async () => {
   if (typeof route.query?.period === 'string' && route.query.period) {
     query.period = route.query.period
   }
-  await fetchData()
-  await loadBatchList()
-  await loadExecutionList()
-  await loadRolloverList()
-  await loadArchivePackage()
+  await refreshAll()
 })
 </script>
 
@@ -835,11 +1001,63 @@ onMounted(async () => {
   margin: 6px 0 18px;
 }
 
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+}
+
 .section-title {
   margin: 22px 0 12px;
   color: #274982;
   font-size: 16px;
   font-weight: 700;
+}
+
+.section-heading .section-title {
+  margin: 0 0 12px;
+}
+
+.health-panel {
+  border: 1px solid #e6edf8;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 6px;
+  background: #fbfdff;
+}
+
+.health-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.health-metric {
+  border: 1px solid #eaf0f9;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+.health-table {
+  background: transparent;
+}
+
+.sample-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.health-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .archive-alert {
@@ -863,5 +1081,17 @@ onMounted(async () => {
 
 .tone-danger {
   color: #c94343;
+}
+
+@media (max-width: 900px) {
+  .health-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .health-summary {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
