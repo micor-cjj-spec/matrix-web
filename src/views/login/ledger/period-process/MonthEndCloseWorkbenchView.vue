@@ -188,7 +188,7 @@
             size="small"
             variant="text"
             color="primary"
-            @click="openRoute(item.routePath)"
+            @click="openRoute(item.routePath, item)"
           >
             下钻
           </v-btn>
@@ -215,7 +215,7 @@
             size="small"
             variant="text"
             color="primary"
-            @click="openRoute(item.routePath)"
+            @click="openRoute(item.routePath, item)"
           >
             进入
           </v-btn>
@@ -852,13 +852,22 @@ function resetMeta() {
   assignMeta({})
 }
 
-function openRoute(path) {
+function openRoute(path, item = null) {
+  const routeQuery = {
+    forg: query.forg || undefined,
+    period: query.period || undefined,
+  }
+  if (path === '/ledger/voucher') {
+    const range = getPeriodRange(query.period)
+    routeQuery.statusGroup = 'UNPOSTED'
+    routeQuery.startDate = range.startDate
+    routeQuery.endDate = range.endDate
+    routeQuery.source = 'monthEnd'
+    routeQuery.checkCode = item?.code || item?.stepCode || undefined
+  }
   router.push({
     path,
-    query: {
-      forg: query.forg || undefined,
-      period: query.period || undefined,
-    },
+    query: routeQuery,
   })
 }
 
@@ -873,6 +882,20 @@ function openHealthFix(item) {
     ? '/ledger/report-account-map'
     : '/finance/base-data/account-subject'
   openRoute(path)
+}
+
+function getPeriodRange(period) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(period || ''))
+  if (!match) {
+    return { startDate: undefined, endDate: undefined }
+  }
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const endDay = new Date(year, month, 0).getDate()
+  return {
+    startDate: `${match[1]}-${match[2]}-01`,
+    endDate: `${match[1]}-${match[2]}-${String(endDay).padStart(2, '0')}`,
+  }
 }
 
 function canSubmitBatch(item) {

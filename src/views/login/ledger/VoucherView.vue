@@ -31,6 +31,15 @@
           <v-btn color="primary" variant="tonal" class="mr-2" @click="handleSearch">查询</v-btn>
           <v-btn variant="tonal" @click="handleReset">重置</v-btn>
         </div>
+        <v-alert
+          v-if="blockingListTip"
+          type="warning"
+          variant="tonal"
+          density="comfortable"
+          class="month-end-alert"
+        >
+          {{ blockingListTip }}
+        </v-alert>
       </div>
 
       <v-data-table
@@ -206,6 +215,7 @@ const filters = reactive({
 })
 const statusOptions = [
   { title: '全部', value: '' },
+  { title: '未过账（草稿/已提交/已审核）', value: 'UNPOSTED' },
   { title: '草稿', value: 'DRAFT' },
   { title: '已提交', value: 'SUBMITTED' },
   { title: '已审核', value: 'AUDITED' },
@@ -256,6 +266,10 @@ const canPost = computed(() => selectedItem.value && selectedItem.value.fstatus 
 const canReject = computed(() => selectedItem.value && selectedItem.value.fstatus === 'SUBMITTED')
 const canReverse = computed(() => selectedItem.value && selectedItem.value.fstatus === 'POSTED')
 const canDelete = computed(() => selectedItem.value && selectedItem.value.fstatus === 'DRAFT')
+const blockingListTip = computed(() => {
+  if (filters.status !== 'UNPOSTED' || !filters.startDate || !filters.endDate) return ''
+  return `月结阻断凭证清单：${filters.startDate} 至 ${filters.endDate}，仅显示草稿、已提交、已审核等未过账凭证。`
+})
 
 function statusLabel(status) {
   const map = {
@@ -323,7 +337,8 @@ async function fetchVouchers(extraQuery = {}) {
       size: 500,
       number: filters.number || undefined,
       summary: filters.summary || undefined,
-      status: filters.status || undefined,
+      status: filters.status && filters.status !== 'UNPOSTED' ? filters.status : undefined,
+      statusGroup: filters.status === 'UNPOSTED' ? 'UNPOSTED' : undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
       ...extraQuery
@@ -654,10 +669,28 @@ onMounted(() => {
   if (route.query?.number) filters.number = String(route.query.number)
   if (route.query?.summary) filters.summary = String(route.query.summary)
   if (route.query?.status) filters.status = String(route.query.status)
+  if (route.query?.statusGroup === 'UNPOSTED') filters.status = 'UNPOSTED'
+  if (route.query?.period && (!route.query?.startDate || !route.query?.endDate)) {
+    const range = periodToRange(String(route.query.period))
+    filters.startDate = range.startDate
+    filters.endDate = range.endDate
+  }
   if (route.query?.startDate) filters.startDate = String(route.query.startDate)
   if (route.query?.endDate) filters.endDate = String(route.query.endDate)
   fetchVouchers()
 })
+
+function periodToRange(period) {
+  const match = /^(\d{4})-(\d{2})$/.exec(period || '')
+  if (!match) return { startDate: '', endDate: '' }
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const endDay = new Date(year, month, 0).getDate()
+  return {
+    startDate: `${match[1]}-${match[2]}-01`,
+    endDate: `${match[1]}-${match[2]}-${String(endDay).padStart(2, '0')}`
+  }
+}
 </script>
 
 <style scoped>
@@ -667,6 +700,7 @@ onMounted(() => {
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin-bottom: 8px; }
 .selected-tip { font-size: 13px; color: #5f6b84; margin-bottom: 8px; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.month-end-alert { margin-bottom: 12px; }
 .line-total { font-size: 13px; color: #334155; font-weight: 600; }
 .link-text { font-size: 12px; color: #4f46e5; }
 :deep(.selected-row) { background: #e8f1ff !important; }
