@@ -1,90 +1,104 @@
 <template>
-  <div class="finance-page">
-    <v-row dense>
-      <v-col
-        v-for="module in modules"
-        :key="module.name"
-        cols="12" sm="6" md="3" lg="2"
-      >
-        <v-card
-          class="module-card"
-          @click="handleModuleClick(module)"
-          hover
-          elevation="0"
-          outlined
-        >
-          <div class="module-icon">{{ module.icon }}</div>
-          <div class="module-name">{{ module.name }}</div>
-        </v-card>
-      </v-col>
-    </v-row>
-    <router-view></router-view>
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="1800">
-      {{ snackbar.text }}
-    </v-snackbar>
-  </div>
+  <MatrixModuleHub
+    title="应付"
+    eyebrow="ACCOUNTS PAYABLE"
+    cloud-label="财务云"
+    description="围绕供应商、采购暂估、应付确认、付款申请和付款执行建立应付业务工作台。"
+    search-placeholder="搜索应付单据、付款、暂估、账龄"
+    :stats="stats"
+    :groups="groups"
+    :actions="actions"
+    :top-actions="topActions"
+    :focus-items="focusItems"
+    :shortcuts="shortcuts"
+  />
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import MatrixModuleHub from '@/components/ui/MatrixModuleHub.vue'
+import {
+  Calendar,
+  Connection,
+  DataAnalysis,
+  DocumentChecked,
+  Files,
+  Grid,
+  List,
+  Money,
+  Operation,
+  Search,
+  SetUp,
+  Switch,
+  TrendCharts,
+  Wallet,
+} from '@element-plus/icons-vue'
 
-const router = useRouter()
-
-const modules = [
-  { name: '应付', icon: '💳', path: '/payable/manage' },
-  { name: '暂估应付', icon: '⌛', path: '/payable/estimate' },
-  { name: '付款申请', icon: '📝', path: '/payable/application' },
-  { name: '付款处理', icon: '💵', path: '/payable/processing' },
-  { name: '账龄与信用预警', icon: '🚨', path: '/payable/aging-credit' }
+const stats = [
+  { label: '本月应付', value: '¥6.18m', hint: '待付 5 笔' },
+  { label: '暂估待冲回', value: '14', hint: '采购暂估' },
+  { label: '付款申请', value: '9', hint: '审批中' },
+  { label: '供应商预警', value: '3', hint: '账龄与信用' },
 ]
 
-const snackbar = ref({ show: false, text: '', color: 'info' })
+const actions = [
+  { name: '应付单据', path: '/payable/manage', icon: Files, primary: true },
+  { name: '付款申请', path: '/payable/application', icon: Money },
+]
 
-function handleModuleClick(module) {
-  if (module.path) {
-    const url = router.resolve(module.path).href
-    window.open(url, '_blank')
-  } else {
-    snackbar.value = {
-      show: true,
-      text: `点击了模块：${module.name}`,
-      color: 'info'
-    }
-  }
-}
+const topActions = [
+  { name: '财务云', path: '/finance', icon: Grid },
+  { name: '月结', path: '/ledger/month-end-close-workbench', icon: Calendar },
+]
+
+const focusItems = [
+  { name: '付款申请审批', status: '9 笔', path: '/payable/application' },
+  { name: '暂估冲回', status: '14 笔', path: '/payable/estimate' },
+  { name: '供应商账龄', status: '预警', path: '/payable/aging-credit' },
+]
+
+const shortcuts = [
+  { name: '应付单据', path: '/payable/manage', icon: Files },
+  { name: '付款处理', path: '/payable/processing', icon: Operation },
+  { name: '往来对账', path: '/ledger/counterparty-statement', icon: DocumentChecked },
+  { name: '自动核销', path: '/ledger/counterparty-auto-writeoff', icon: Switch },
+]
+
+const groups = [
+  {
+    name: '单据处理',
+    summary: '应付确认与暂估',
+    eyebrow: 'DOCUMENTS',
+    icon: Files,
+    modules: [
+      { name: '应付单据', description: '发票、采购与应付确认', path: '/payable/manage', icon: Files },
+      { name: '暂估应付', description: '采购暂估与冲回', path: '/payable/estimate', icon: DocumentChecked },
+      { name: '账龄与信用预警', description: '供应商账龄与信用风险', path: '/payable/aging-credit', icon: TrendCharts },
+    ],
+  },
+  {
+    name: '付款管理',
+    summary: '申请、处理、追踪',
+    eyebrow: 'PAYMENT',
+    icon: Wallet,
+    modules: [
+      { name: '付款申请', description: '付款流程发起与审批', path: '/payable/application', icon: Money },
+      { name: '付款处理', description: '付款执行与状态跟踪', path: '/payable/processing', icon: Operation },
+      { name: '付款排程', description: '按付款优先级组织排程', ready: false, status: '规划中', icon: Calendar },
+    ],
+  },
+  {
+    name: '往来协同',
+    summary: '核销、对账、查询',
+    eyebrow: 'COUNTERPARTY',
+    icon: Connection,
+    modules: [
+      { name: '往来核销方案', description: '核销规则与方案配置', path: '/ledger/counterparty-plan', icon: SetUp },
+      { name: '往来自动核销', description: '自动匹配与核销执行', path: '/ledger/counterparty-auto-writeoff', icon: Switch },
+      { name: '往来对账单', description: '供应商对账单', path: '/ledger/counterparty-statement', icon: DocumentChecked },
+      { name: '往来账查询', description: '供应商往来账查询', path: '/ledger/counterparty-account-query', icon: Search },
+      { name: '往来核销日志', description: '核销执行记录', path: '/ledger/counterparty-writeoff-log', icon: List },
+      { name: '账龄分析表', description: '供应商账龄结构分析', path: '/ledger/counterparty-aging-analysis', icon: DataAnalysis },
+    ],
+  },
+]
 </script>
-
-<style scoped>
-.finance-page { padding: 24px; }
-.module-card {
-  background-color: #fff;
-  border: 1.3px solid #e5eaf3 !important;
-  border-radius: 11px;
-  padding: 24px 0 16px 0;
-  text-align: center;
-  cursor: pointer;
-  transition: box-shadow 0.26s, transform 0.18s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 122px;
-}
-.module-card:hover {
-  box-shadow: 0 6px 20px rgba(71, 109, 200, 0.11);
-  transform: translateY(-3px) scale(1.04);
-  border-color: #90bafd !important;
-  background: #fafdff;
-}
-.module-icon {
-  font-size: 38px;
-  margin-bottom: 13px;
-}
-.module-name {
-  font-size: 15px;
-  color: #24457a;
-  font-weight: 500;
-  letter-spacing: 1px;
-}
-</style>
