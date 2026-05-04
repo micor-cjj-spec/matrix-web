@@ -1,144 +1,177 @@
 <template>
-  <div class="login-background">
-    <div class="bubble-wrapper"></div>
-    <v-card class="login-card" elevation="16">
-      <div class="login-header">
-        <img src="/vite.svg" class="logo" alt="logo" />
-        <h2 class="title">BizFi 企业管理平台</h2>
+  <main class="auth-page">
+    <section class="auth-visual" aria-label="Matrix 企业工作台">
+      <img src="/assets/matrix-workbench-hero.png" alt="Matrix 企业工作台视觉" />
+      <div class="visual-overlay"></div>
+      <div class="visual-content">
+        <div class="brand-chip">
+          <span class="brand-mark">M</span>
+          <span>Matrix</span>
+        </div>
+        <h1>统一进入企业财务、知识与协作系统</h1>
+        <p>从个人工作台开始，连接每一个业务角色的日常处理、数据洞察和系统入口。</p>
+        <div class="visual-metrics">
+          <div>
+            <strong>6</strong>
+            <span>今日待办</span>
+          </div>
+          <div>
+            <strong>82%</strong>
+            <span>月结进度</span>
+          </div>
+          <div>
+            <strong>1,280</strong>
+            <span>本月凭证</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="panel-top">
+        <div>
+          <span class="overline">Welcome back</span>
+          <h2>登录 Matrix</h2>
+        </div>
+        <RouterLink to="/register" class="ghost-link">创建账号</RouterLink>
       </div>
 
-      <v-tabs
+      <v-card class="auth-card" elevation="0">
+        <v-tabs
           v-model="activeTab"
+          class="auth-tabs"
+          color="#0f8a6a"
+          slider-color="#0f8a6a"
+          density="comfortable"
           grow
-          class="login-tabs"
-          bg-color="white"
-          color="primary"
-          slider-color="primary"
-      >
-        <v-tab value="account">账号登录</v-tab>
-        <v-tab value="phone">手机号登录</v-tab>
-        <v-tab value="qrcode">扫码登录</v-tab>
-      </v-tabs>
+        >
+          <v-tab value="account">账号登录</v-tab>
+          <v-tab value="phone">手机号登录</v-tab>
+          <v-tab value="qrcode">扫码登录</v-tab>
+        </v-tabs>
 
-      <v-window v-model="activeTab" class="login-tab-content">
-        <!-- 账号登录 -->
-        <v-window-item value="account">
-          <v-form ref="formRef" v-model="validAccount" class="login-form">
-            <v-text-field
+        <v-window v-model="activeTab" class="auth-window">
+          <v-window-item value="account">
+            <v-form ref="formRef" v-model="validAccount" class="auth-form" @submit.prevent="handleLogin">
+              <v-text-field
                 v-model="form.account.username"
                 label="用户名"
+                placeholder="请输入用户名"
                 :rules="[v => !!v || '请输入用户名']"
                 clearable
-                prepend-inner-icon="mdi-account"
-                class="login-input"
+                variant="outlined"
                 density="comfortable"
-            />
-            <v-text-field
+                color="#0f8a6a"
+              />
+              <v-text-field
                 v-model="form.account.password"
                 :type="showPassword ? 'text' : 'password'"
                 label="密码"
+                placeholder="请输入密码"
                 clearable
-                prepend-inner-icon="mdi-lock"
-                :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
-                @click:append-inner="showPassword = !showPassword"
-                :rules="[v => !!v || '请输入密码']"
-                class="login-input"
+                variant="outlined"
                 density="comfortable"
-            />
-            <div v-if="needCaptcha" class="captcha-box">
-              <v-text-field
+                color="#0f8a6a"
+                :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                :rules="[v => !!v || '请输入密码']"
+                @click:append-inner="showPassword = !showPassword"
+              />
+              <div v-if="needCaptcha" class="captcha-row">
+                <v-text-field
                   v-model="form.account.captcha"
                   label="验证码"
+                  placeholder="输入验证码"
                   clearable
-                  class="captcha-input"
-                  prepend-inner-icon="mdi-shield-key"
-                  :rules="captchaRules"
+                  variant="outlined"
                   density="comfortable"
-              />
-              <img :src="captchaUrl" class="captcha-img" @click="refreshCaptcha" alt="验证码" />
-            </div>
-          </v-form>
-        </v-window-item>
+                  color="#0f8a6a"
+                  :rules="captchaRules"
+                />
+                <button type="button" class="captcha-image" title="刷新验证码" @click="refreshCaptcha">
+                  <img :src="captchaUrl" alt="验证码" />
+                </button>
+              </div>
+            </v-form>
+          </v-window-item>
 
-        <!-- 手机号登录（含验证码按钮） -->
-        <v-window-item value="phone">
-          <v-form ref="phoneFormRef" v-model="validPhone" class="login-form">
-            <v-text-field
+          <v-window-item value="phone">
+            <v-form ref="phoneFormRef" v-model="validPhone" class="auth-form" @submit.prevent="handleLogin">
+              <v-text-field
                 v-model="form.phone.mobile"
                 label="手机号"
+                placeholder="请输入手机号"
                 clearable
-                prepend-inner-icon="mdi-cellphone"
-                :rules="[
-                v => !!v || '请输入手机号',
-                v => /^1\\d{10}$/.test(v) || '手机号格式错误'
-              ]"
-                class="login-input"
+                variant="outlined"
                 density="comfortable"
-            />
-            <div class="sms-box">
-              <v-text-field
+                color="#0f8a6a"
+                :rules="[
+                  v => !!v || '请输入手机号',
+                  v => /^1\d{10}$/.test(v) || '手机号格式错误',
+                ]"
+              />
+              <div class="code-row">
+                <v-text-field
                   v-model="form.phone.code"
                   label="短信验证码"
+                  placeholder="请输入验证码"
                   clearable
-                  prepend-inner-icon="mdi-message-bulleted"
-                  :rules="[v => !!v || '请输入验证码']"
-                  class="sms-input"
+                  variant="outlined"
                   density="comfortable"
-              />
-              <v-btn
+                  color="#0f8a6a"
+                  :rules="[v => !!v || '请输入验证码']"
+                />
+                <v-btn
+                  class="code-button"
                   variant="tonal"
-                  color="primary"
+                  color="#0f8a6a"
                   :disabled="smsCountdown > 0 || loading"
                   @click="sendSms"
-                  class="sms-btn"
-              >
-                {{ smsCountdown > 0 ? smsCountdown + 's后重发' : '获取验证码' }}
-              </v-btn>
-            </div>
-          </v-form>
-        </v-window-item>
+                >
+                  {{ smsCountdown > 0 ? `${smsCountdown}s` : '获取验证码' }}
+                </v-btn>
+              </div>
+            </v-form>
+          </v-window-item>
 
-        <!-- 扫码登录 -->
-        <v-window-item value="qrcode">
-          <div class="qrcode-login">
-            <div class="qrcode-box">
-              <img :src="form.qrcode.imageUrl || '/qrcode-placeholder.png'" alt="二维码" class="qrcode-img"/>
-              <p class="qrcode-tip">请使用企业微信 / 钉钉扫码登录</p>
-              <v-btn class="mt-2" variant="tonal" color="primary" @click="refreshQrCode">
-                刷新二维码
-              </v-btn>
+          <v-window-item value="qrcode">
+            <div class="qrcode-login">
+              <div class="qrcode-frame">
+                <img :src="form.qrcode.imageUrl || '/qrcode-placeholder.png'" alt="登录二维码" />
+              </div>
+              <p>使用企业微信或钉钉扫码登录</p>
+              <v-btn variant="tonal" color="#0f8a6a" @click="refreshQrCode">刷新二维码</v-btn>
             </div>
-          </div>
-        </v-window-item>
-      </v-window>
+          </v-window-item>
+        </v-window>
 
-      <v-btn
-          color="primary"
-          class="login-btn"
-          :loading="loading"
-          size="x-large"
+        <v-btn
+          class="submit-button"
+          color="#0f8a6a"
+          size="large"
           block
+          :loading="loading"
           @click="handleLogin"
-      >
-        登录
-      </v-btn>
+        >
+          登录
+        </v-btn>
 
-      <div class="register-line">
-        没有账号？
-        <RouterLink to="/register" class="register-link">立即注册</RouterLink>
-      </div>
-    </v-card>
+        <div class="form-footer">
+          <span>没有账号？</span>
+          <RouterLink to="/register">立即注册</RouterLink>
+        </div>
+      </v-card>
+    </section>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.text }}
     </v-snackbar>
-  </div>
+  </main>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { useLogin } from '../../composables/login/useLogin.js'
-import { useRouter, RouterLink } from 'vue-router'
 
 const router = useRouter()
 
@@ -169,198 +202,328 @@ const {
 </script>
 
 <style scoped>
-.login-background {
-  position: relative;
-  height: 100vh;
-  background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(420px, 0.88fr);
+  background: #f4f7f8;
+  color: #17202c;
 }
 
-.bubble-wrapper {
+.auth-visual {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+}
+
+.auth-visual img,
+.visual-overlay {
   position: absolute;
+  inset: 0;
+}
+
+.auth-visual img {
   width: 100%;
   height: 100%;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.login-card {
-  position: relative;
-  z-index: 2;
-  width: 420px;
-  max-width: 95vw;
-  padding: 44px 38px 36px 38px;
-  border-radius: 36px;
-  background: linear-gradient(120deg, #fff, #e9eefe 100%);
-  box-shadow: 0 14px 60px 0 rgba(80, 120, 200, 0.12), 0 1.5px 5px 0 rgba(80, 120, 200, 0.06);
-  border: 1.5px solid rgba(255,255,255,0.7);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.login-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.logo {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 7px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 16px #c1cffc3d;
-}
-
-.title {
-  text-align: center;
-  font-size: 24px;
-  font-weight: bold;
-  color: #22253c;
-  letter-spacing: 2px;
-  margin-bottom: 0;
-}
-
-.login-tabs {
-  margin-top: 2px;
-  margin-bottom: 16px;
-  position: static !important;
-  z-index: auto !important;
-}
-
-.v-tab {
-  font-size: 17px !important;
-  min-width: 108px !important;
-  font-weight: 500;
-  letter-spacing: 1px;
-  padding: 0 12px;
-}
-
-.login-tab-content {
-  width: 100%;
-  min-height: 220px;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-top: 10px;
-  margin-bottom: 12px;
-}
-
-.login-input {
-  font-size: 18px;
-}
-
-.captcha-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: -8px;
-}
-
-.captcha-input {
-  max-width: 140px;
-}
-
-.captcha-img {
-  height: 38px;
-  width: 92px;
-  border: 1px solid #dcdfe6;
-  border-radius: 5px;
-  cursor: pointer;
-  box-shadow: 0 1px 8px #e0eaff50;
   object-fit: cover;
-  transition: filter .15s;
-}
-.captcha-img:hover {
-  filter: brightness(1.08);
 }
 
-/* 手机号+验证码一行展示 */
-.sms-box {
+.visual-overlay {
+  background:
+    linear-gradient(90deg, rgba(8, 27, 33, 0.88) 0%, rgba(8, 27, 33, 0.58) 46%, rgba(8, 27, 33, 0.24) 100%),
+    linear-gradient(180deg, rgba(8, 27, 33, 0.18) 0%, rgba(8, 27, 33, 0.68) 100%);
+}
+
+.visual-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
   display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 56px;
+  color: #ffffff;
+}
+
+.brand-chip {
+  display: inline-flex;
   align-items: center;
   gap: 10px;
+  width: fit-content;
+  padding: 8px 12px 8px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px);
+  font-weight: 800;
 }
 
-.sms-input {
-  flex: 1 1 120px;
-  min-width: 0;
-}
-
-.sms-btn {
-  min-width: 110px;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 500;
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
   border-radius: 8px;
-  letter-spacing: 1px;
+  background: #0f8a6a;
+}
+
+.visual-content h1 {
+  max-width: 720px;
+  margin: 28px 0 14px;
+  font-size: 52px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.visual-content p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.visual-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 150px));
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.visual-metrics div {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 27, 33, 0.46);
+  backdrop-filter: blur(14px);
+}
+
+.visual-metrics strong,
+.visual-metrics span {
+  display: block;
+}
+
+.visual-metrics strong {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.visual-metrics span {
+  margin-top: 6px;
+  color: #b7ead8;
+  font-size: 12px;
+}
+
+.auth-panel {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px clamp(34px, 5vw, 72px);
+  background:
+    radial-gradient(circle at 20% 12%, rgba(15, 138, 106, 0.1), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f4f7f8 100%);
+}
+
+.panel-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.overline {
+  display: block;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.panel-top h2 {
+  margin: 4px 0 0;
+  font-size: 34px;
+  line-height: 1.2;
+}
+
+.ghost-link,
+.form-footer a {
+  color: #0d6c5a;
+  font-weight: 800;
+}
+
+.ghost-link {
+  white-space: nowrap;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(26, 42, 58, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 26px 70px rgba(34, 53, 73, 0.12);
+}
+
+.auth-tabs {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  background: #f3f7f6;
+}
+
+.auth-window {
+  min-height: 214px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.captcha-row,
+.code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.captcha-image,
+.code-button {
+  width: 128px;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.captcha-image {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(26, 42, 58, 0.12);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.captcha-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .qrcode-login {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 180px;
-  flex-direction: column;
-  width: 100%;
-}
-.qrcode-box {
+  min-height: 214px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
   text-align: center;
-  width: 100%;
 }
-.qrcode-img {
-  width: 120px;
-  height: 120px;
+
+.qrcode-frame {
+  width: 148px;
+  height: 148px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(26, 42, 58, 0.1);
+  background: #ffffff;
+}
+
+.qrcode-frame img {
+  width: 124px;
+  height: 124px;
   object-fit: contain;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px #ccd9fa50;
-  background: #f4f7fd;
-  border: 1px solid #e3eafc;
-}
-.qrcode-tip {
-  color: #6078a8;
-  font-size: 15px;
-  margin-bottom: 7px;
-  margin-top: 2px;
 }
 
-.login-btn {
-  margin-top: 14px;
-  margin-bottom: 8px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 12px;
-  letter-spacing: 2px;
-  box-shadow: 0 2px 14px #94b8ff38;
+.qrcode-login p {
+  margin: 0;
+  color: #667482;
+  font-size: 13px;
 }
 
-.register-line {
-  width: 100%;
-  text-align: right;
-  font-size: 14.5px;
-  margin-top: 2px;
-  color: #8596b6;
+.submit-button {
+  margin-top: 18px;
+  min-height: 46px;
+  border-radius: 8px;
+  font-weight: 800;
 }
 
-.register-link {
-  color: #276ef1;
-  font-weight: 500;
-  text-decoration: none;
-  margin-left: 6px;
-  transition: color .17s;
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 16px;
+  color: #7a8794;
+  font-size: 14px;
 }
-.register-link:hover {
-  color: #1a47a7;
-  text-decoration: underline;
+
+@media (max-width: 980px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-visual {
+    min-height: 360px;
+  }
+
+  .visual-content {
+    padding: 32px;
+  }
+
+  .visual-content h1 {
+    font-size: 36px;
+  }
+
+  .auth-panel {
+    min-height: auto;
+    padding: 34px 20px 44px;
+  }
+
+  .auth-card {
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-visual {
+    min-height: 280px;
+  }
+
+  .visual-content {
+    padding: 24px 18px;
+  }
+
+  .visual-content h1 {
+    font-size: 28px;
+  }
+
+  .visual-content p,
+  .visual-metrics {
+    display: none;
+  }
+
+  .panel-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .panel-top h2 {
+    font-size: 28px;
+  }
+
+  .auth-card {
+    padding: 16px;
+  }
+
+  .captcha-row,
+  .code-row {
+    grid-template-columns: 1fr;
+  }
+
+  .captcha-image,
+  .code-button {
+    width: 100%;
+  }
 }
 </style>

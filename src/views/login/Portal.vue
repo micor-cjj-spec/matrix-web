@@ -79,7 +79,7 @@
           <h1>早上好，林澈</h1>
           <p>今日待处理 6 项，财务月结正在推进，知识系统与更多业务系统将从这里统一进入。</p>
           <div class="hero-actions">
-            <button type="button" class="primary-action" @click="navigateTo('/ledger')">
+            <button type="button" class="primary-action" @click="navigateTo('/finance', { newPage: true })">
               <Wallet class="svg-icon" />
               <span>进入财务系统</span>
             </button>
@@ -285,7 +285,7 @@ const currentDate = computed(() => {
 const navItems = [
   { key: 'workbench', label: '工作台', icon: House },
   { key: 'apps', label: '应用中心', icon: Grid },
-  { key: 'finance', label: '财务系统', icon: Wallet, path: '/ledger' },
+  { key: 'finance', label: '财务系统', icon: Wallet, path: '/finance', newPage: true },
   { key: 'knowledge', label: '知识系统', icon: Notebook, disabled: true },
   { key: 'settings', label: '平台设置', icon: Setting },
 ]
@@ -304,7 +304,8 @@ const apps = [
     status: '已上线',
     icon: Wallet,
     accent: '#0f8a6a',
-    path: '/ledger',
+    path: '/finance',
+    newPage: true,
     featured: true,
     available: true,
   },
@@ -392,7 +393,7 @@ function handleNav(item) {
 
   activeNav.value = item.key
   if (item.path) {
-    navigateTo(item.path)
+    navigateTo(item.path, { newPage: item.newPage })
   }
 }
 
@@ -401,15 +402,24 @@ function openApp(app) {
     showToast(`${app.name}正在规划中，将作为 Matrix 的下一批系统入口`)
     return
   }
-  navigateTo(app.path)
+  navigateTo(app.path, { newPage: app.newPage })
 }
 
-function navigateTo(path) {
+function navigateTo(path, options = {}) {
   if (!path) {
     showToast('该入口正在接入')
     return
   }
+  if (options.newPage) {
+    openRouteInNewPage(path)
+    return
+  }
   router.push(path)
+}
+
+function openRouteInNewPage(path) {
+  const url = router.resolve(path).href
+  window.open(url, '_blank', 'noopener')
 }
 
 function handleLogout() {

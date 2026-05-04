@@ -28,6 +28,7 @@ const PayableView = () => import('../views/login/finance/PayableView.vue')
 const ReceivableView = () => import('../views/login/finance/ReceivableView.vue')
 const ArapDocView = () => import('../views/login/finance/ArapDocView.vue')
 const AgingCreditView = () => import('../views/login/finance/AgingCreditView.vue')
+const FinanceSystemView = () => import('../views/login/finance/FinanceSystemView.vue')
 const FinanceBaseDataView = () => import('../views/login/finance/base-data/FinanceBaseDataView.vue')
 const AccountSubjectView = () => import('../views/login/finance/base-data/AccountSubjectView.vue')
 const AccountSubjectForm = () => import('../views/login/finance/base-data/account-subject/AccountSubjectForm.vue')
@@ -86,7 +87,7 @@ const routes = [
   { path: '/', name: 'Login', component: Login, meta: { title: '登录' } },
   { path: '/login', name: 'LoginPage', component: Login, meta: { title: '登录' } },
   { path: '/register', name: 'Register', component: Register, meta: { title: '注册' } },
-  { path: '/portal', name: 'Portal', component: Portal, meta: { title: '企业门户' } },
+  { path: '/portal', name: 'Portal', component: Portal, meta: { title: '个人工作台' } },
 
   { path: '/tax-connect', component: EmptyView, meta: { title: '税企直连' } },
   { path: '/invoice', component: EmptyView, meta: { title: '开票管理' } },
@@ -153,6 +154,7 @@ const routes = [
   { path: '/ledger/cashflow-item', name: 'CashflowItem', component: CashflowItemView, meta: { title: '现金流量项目' } },
   { path: '/ledger/report-account-map', name: 'ReportAccountMap', component: ReportAccountMapView, meta: { title: '报表科目映射' } },
 
+  { path: '/finance', name: 'FinanceSystem', component: FinanceSystemView, meta: { title: '财务系统' } },
   { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '财务基础资料' } },
   { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
   { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '会计科目维护' } },
