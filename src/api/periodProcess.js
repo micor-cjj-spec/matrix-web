@@ -40,6 +40,10 @@ export function listMonthEndBatches(params = {}) {
   return request.get('/period-process/month-end-check-batch/list', { params })
 }
 
+export function getMonthEndBatch(fid) {
+  return request.get(`/period-process/month-end-check-batch/${fid}`)
+}
+
 export function submitMonthEndBatch(fid, data = {}) {
   return request.post(`/period-process/month-end-check-batch/${fid}/submit`, data)
 }
@@ -75,6 +79,7 @@ export default {
   fetchMonthEndArchivePackage: getMonthEndArchivePackage,
   createMonthEndBatch,
   listMonthEndBatches,
+  getMonthEndBatch,
   submitMonthEndBatch,
   approveMonthEndBatch,
   executeMonthEndClose,

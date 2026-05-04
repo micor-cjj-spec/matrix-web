@@ -273,6 +273,15 @@
           >
             执行关账
           </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            color="primary"
+            :loading="snapshotLoadingId === item.fid"
+            @click="openBatchSnapshot(item)"
+          >
+            查看快照
+          </v-btn>
         </template>
       </v-data-table>
 
@@ -374,6 +383,80 @@
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2200">
       {{ snackbar.text }}
     </v-snackbar>
+
+    <v-dialog v-model="snapshotDialog.visible" max-width="1100">
+      <v-card>
+        <v-card-title class="snapshot-title">
+          <span>检查批次快照</span>
+          <v-chip size="small" variant="tonal" :color="closeStatusColor(snapshotDialog.batch?.fcloseStatus)">
+            {{ closeStatusLabel(snapshotDialog.batch?.fcloseStatus) }}
+          </v-chip>
+        </v-card-title>
+        <v-card-text>
+          <div class="snapshot-meta">
+            <div v-for="item in snapshotMetaCards" :key="item.label" class="snapshot-metric">
+              <div class="summary-label">{{ item.label }}</div>
+              <div class="summary-value" :class="item.tone">{{ item.value }}</div>
+              <div v-if="item.tip" class="summary-tip">{{ item.tip }}</div>
+            </div>
+          </div>
+
+          <v-alert
+            v-if="snapshotWarnings.length"
+            type="warning"
+            variant="tonal"
+            density="comfortable"
+            class="mb-4"
+          >
+            <div v-for="warning in snapshotWarnings" :key="warning">{{ warning }}</div>
+          </v-alert>
+
+          <div class="section-title compact-title">快照检查项</div>
+          <v-data-table
+            :headers="snapshotCheckHeaders"
+            :items="snapshotCheckItems"
+            item-key="code"
+            hide-default-footer
+            density="compact"
+            class="elevation-0"
+          >
+            <template #item.category="{ item }">
+              {{ checkCategoryLabel(item.category) }}
+            </template>
+            <template #item.status="{ item }">
+              <v-chip size="small" variant="tonal" :color="checkStatusColor(item.status)">
+                {{ checkStatusLabel(item.status) }}
+              </v-chip>
+            </template>
+            <template #item.severity="{ item }">
+              <v-chip size="small" variant="tonal" :color="severityColor(item.severity)">
+                {{ severityLabel(item.severity) }}
+              </v-chip>
+            </template>
+          </v-data-table>
+
+          <div class="section-title compact-title">快照月结步骤</div>
+          <v-data-table
+            :headers="snapshotStepHeaders"
+            :items="snapshotSteps"
+            item-key="stepCode"
+            hide-default-footer
+            density="compact"
+            class="elevation-0"
+          >
+            <template #item.status="{ item }">
+              <v-chip size="small" variant="tonal" :color="moduleStatusColor(item.status)">
+                {{ moduleStatusLabel(item.status) }}
+              </v-chip>
+            </template>
+          </v-data-table>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="snapshotDialog.visible = false">关闭</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -426,8 +509,14 @@ const executionLoading = ref(false)
 const executingBatchId = ref(null)
 const rolloverLoading = ref(false)
 const rollingExecutionId = ref(null)
+const snapshotLoadingId = ref(null)
 const archiveLoading = ref(false)
 const snackbar = ref({ show: false, text: '', color: 'info' })
+const snapshotDialog = reactive({
+  visible: false,
+  batch: null,
+  snapshot: null,
+})
 
 const query = reactive({
   forg: null,
@@ -493,7 +582,27 @@ const batchHeaders = [
   { title: '预警', key: 'fwarningCount', value: 'fwarningCount', width: 80, align: 'center' },
   { title: '申请状态', key: 'fapplicationStatus', value: 'fapplicationStatus', width: 110, align: 'center' },
   { title: '生成时间', key: 'fcreatedTime', value: 'fcreatedTime', width: 170 },
-  { title: '操作', key: 'actions', value: 'actions', width: 130, align: 'center' },
+  { title: '操作', key: 'actions', value: 'actions', width: 220, align: 'center' },
+]
+
+const snapshotCheckHeaders = [
+  { title: '类别', key: 'category', value: 'category', width: 110 },
+  { title: '检查项', key: 'name', value: 'name', width: 180 },
+  { title: '状态', key: 'status', value: 'status', width: 100, align: 'center' },
+  { title: '级别', key: 'severity', value: 'severity', width: 90, align: 'center' },
+  { title: '说明', key: 'message', value: 'message' },
+  { title: '建议动作', key: 'actionHint', value: 'actionHint' },
+  { title: '关联数', key: 'relatedCount', value: 'relatedCount', width: 90, align: 'center' },
+]
+
+const snapshotStepHeaders = [
+  { title: '序号', key: 'orderNo', value: 'orderNo', width: 80, align: 'center' },
+  { title: '步骤', key: 'stepName', value: 'stepName', width: 150 },
+  { title: '状态', key: 'status', value: 'status', width: 110, align: 'center' },
+  { title: '摘要', key: 'summary', value: 'summary' },
+  { title: '建议动作', key: 'actionHint', value: 'actionHint' },
+  { title: '阻塞', key: 'blockingCount', value: 'blockingCount', width: 80, align: 'center' },
+  { title: '预警', key: 'warningCount', value: 'warningCount', width: 80, align: 'center' },
 ]
 
 const executionHeaders = [
@@ -624,6 +733,100 @@ const healthSummaryCards = computed(() => {
   ]
 })
 
+const snapshotCheckItems = computed(() => normalizeSnapshotCheckItems(snapshotDialog.snapshot?.checkItems))
+
+const snapshotSteps = computed(() => normalizeSnapshotSteps(snapshotDialog.snapshot?.steps))
+
+const snapshotWarnings = computed(() => {
+  const warnings = snapshotDialog.snapshot?.warnings
+  if (Array.isArray(warnings)) return warnings
+  return warnings ? [warnings] : []
+})
+
+const snapshotMetaCards = computed(() => {
+  const batch = snapshotDialog.batch || {}
+  const snapshot = snapshotDialog.snapshot || {}
+  const readinessScore = firstDefined(snapshot.readinessScore, batch.freadinessScore, 0)
+  const passedCount = firstDefined(snapshot.passedCount, batch.fpassedCount, 0)
+  const totalCheckCount = firstDefined(snapshot.totalCheckCount, batch.ftotalCheckCount, 0)
+  const blockingCount = firstDefined(snapshot.blockingCount, snapshot.blockerCount, batch.fblockingCount, batch.fblockerCount, 0)
+  const warningCount = firstDefined(snapshot.warningCount, snapshot.warnCount, batch.fwarningCount, batch.fwarnCount, 0)
+  const pendingVoucherCount = firstDefined(
+    snapshot.pendingVoucherCount,
+    snapshot.unpostedVoucherCount,
+    batch.fpendingVoucherCount,
+    batch.funpostedVoucherCount,
+    0
+  )
+  const postedVoucherCount = firstDefined(snapshot.postedVoucherCount, batch.fpostedVoucherCount, 0)
+  const periodVoucherCount = firstDefined(snapshot.periodVoucherCount, batch.fperiodVoucherCount, 0)
+  const createdTime = firstDefined(batch.fcreatedTime, batch.fcreateTime, batch.createdTime, snapshot.checkedAt)
+  return [
+    {
+      label: '批次号',
+      value: batch.fbatchNo || '-',
+      tip: `生成时间 ${formatDateTime(createdTime)}`,
+      tone: 'tone-primary',
+    },
+    {
+      label: '快照准备度',
+      value: `${readinessScore}%`,
+      tip: `${passedCount}/${totalCheckCount} 项通过`,
+      tone: Number(blockingCount) > 0 ? 'tone-warning' : 'tone-success',
+    },
+    {
+      label: '阻塞 / 预警',
+      value: `${blockingCount}/${warningCount}`,
+      tip: '按生成批次时的检查结果固化',
+      tone: Number(blockingCount) > 0 ? 'tone-danger' : 'tone-warning',
+    },
+    {
+      label: '未过账凭证',
+      value: String(pendingVoucherCount),
+      tip: `${postedVoucherCount}/${periodVoucherCount} 已过账`,
+      tone: Number(pendingVoucherCount) > 0 ? 'tone-warning' : 'tone-success',
+    },
+  ]
+})
+
+function normalizeSnapshotCheckItems(items) {
+  if (!Array.isArray(items)) return []
+  return items.map((item, index) => {
+    const safe = item || {}
+    return {
+      ...safe,
+      code: firstDefined(safe.code, safe.checkCode, safe.name, `CHECK_${index + 1}`),
+      category: firstDefined(safe.category, safe.checkCategory, safe.type, '-'),
+      name: firstDefined(safe.name, safe.checkName, safe.label, '-'),
+      message: firstDefined(safe.message, safe.summary, safe.description, ''),
+      actionHint: firstDefined(safe.actionHint, safe.action, safe.suggestion, ''),
+      relatedCount: firstDefined(safe.relatedCount, safe.count, safe.total, ''),
+    }
+  })
+}
+
+function normalizeSnapshotSteps(items) {
+  if (!Array.isArray(items)) return []
+  return items.map((item, index) => {
+    const safe = item || {}
+    return {
+      ...safe,
+      orderNo: firstDefined(safe.orderNo, safe.order, safe.index, index + 1),
+      stepCode: firstDefined(safe.stepCode, safe.code, `STEP_${index + 1}`),
+      stepName: firstDefined(safe.stepName, safe.name, safe.label, safe.stepCode, '-'),
+      summary: firstDefined(safe.summary, safe.message, safe.description, ''),
+      actionHint: firstDefined(safe.actionHint, safe.action, safe.suggestion, ''),
+      blockingCount: firstDefined(safe.blockingCount, safe.blockerCount, 0),
+      warningCount: firstDefined(safe.warningCount, safe.warnCount, 0),
+    }
+  })
+}
+
+function firstDefined(...values) {
+  const found = values.find((value) => value !== undefined && value !== null && value !== '')
+  return found
+}
+
 async function fetchData() {
   loading.value = true
   try {
@@ -748,6 +951,22 @@ async function createBatch() {
     showMsg('生成检查批次失败', 'error')
   } finally {
     batchSaving.value = false
+  }
+}
+
+async function openBatchSnapshot(item) {
+  if (!item?.fid) return
+  snapshotLoadingId.value = item.fid
+  try {
+    const res = await periodProcessApi.getMonthEndBatch(item.fid)
+    const batch = res.data || item
+    snapshotDialog.batch = batch
+    snapshotDialog.snapshot = parseSnapshot(batch.fsnapshotJson)
+    snapshotDialog.visible = true
+  } catch {
+    showMsg('检查批次快照加载失败', 'error')
+  } finally {
+    snapshotLoadingId.value = null
   }
 }
 
@@ -930,6 +1149,17 @@ function formatDateTime(value) {
   return String(value).replace('T', ' ').slice(0, 19)
 }
 
+function parseSnapshot(value) {
+  if (!value) return null
+  if (typeof value === 'object') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    showMsg('检查批次快照内容无法解析', 'warning')
+    return null
+  }
+}
+
 function showMsg(text, color = 'info') {
   snackbar.value = { show: true, text, color }
 }
@@ -1043,6 +1273,10 @@ onMounted(async () => {
   margin: 0 0 12px;
 }
 
+.compact-title {
+  margin-top: 16px;
+}
+
 .health-panel {
   border: 1px solid #e6edf8;
   border-radius: 12px;
@@ -1083,6 +1317,27 @@ onMounted(async () => {
   margin-top: 12px;
 }
 
+.snapshot-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.snapshot-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.snapshot-metric {
+  border: 1px solid #eaf0f9;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
 .archive-alert {
   display: flex;
   align-items: center;
@@ -1107,13 +1362,15 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .health-summary {
+  .health-summary,
+  .snapshot-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .health-summary {
+  .health-summary,
+  .snapshot-meta {
     grid-template-columns: 1fr;
   }
 }
