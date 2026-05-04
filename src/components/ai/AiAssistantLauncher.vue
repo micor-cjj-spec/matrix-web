@@ -149,7 +149,7 @@ const floatBtnStyle = computed(() => ({
 }))
 
 const showLauncher = computed(() => {
-  const hiddenPaths = ['/', '/login', '/register']
+  const hiddenPaths = ['/', '/login', '/register', '/portal']
   if (hiddenPaths.includes(route.path)) return false
   const token = localStorage.getItem('token')
   return !!token && token !== 'undefined' && token !== 'null'
