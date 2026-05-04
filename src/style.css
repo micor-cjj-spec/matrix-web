@@ -34,6 +34,30 @@ select {
 
 button {
   -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+:where(.v-btn) {
+  vertical-align: middle;
+}
+
+:where(.v-btn .v-btn__content),
+:where(.v-btn .v-btn__prepend),
+:where(.v-btn .v-btn__append) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+:where(.v-btn .v-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 a {
