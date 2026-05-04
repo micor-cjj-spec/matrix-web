@@ -180,6 +180,23 @@ function clearCurrentMessages() {
   messages.value[activeConversationId.value] = []
 }
 
+function updateMessage(conversationId, index, patch) {
+  const list = messages.value[conversationId]
+  const current = list?.[index]
+  if (!current) return
+  list.splice(index, 1, { ...current, ...patch })
+}
+
+function appendMessageText(conversationId, index, delta = '') {
+  if (!delta) return
+  const currentText = messages.value[conversationId]?.[index]?.text || ''
+  updateMessage(conversationId, index, { text: currentText + delta })
+}
+
+function getMessageText(conversationId, index) {
+  return messages.value[conversationId]?.[index]?.text || ''
+}
+
 async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
@@ -195,8 +212,7 @@ async function send() {
   sending.value = true
   scrollToBottom()
 
-  const assistantMessage = { role: 'assistant', text: '' }
-  messages.value[conversationId].push(assistantMessage)
+  const assistantIndex = messages.value[conversationId].push({ role: 'assistant', text: '', citations: [] }) - 1
   scrollToBottom()
 
   try {
@@ -209,7 +225,7 @@ async function send() {
       },
       {
         onStart(payload) {
-          assistantMessage.citations = payload?.citations || []
+          updateMessage(conversationId, assistantIndex, { citations: payload?.citations || [] })
           if (payload?.conversationId) {
             activeConversationId.value = payload.conversationId
           }
@@ -221,13 +237,14 @@ async function send() {
           }
         },
         onDelta(payload) {
-          assistantMessage.text += payload?.delta || ''
+          appendMessageText(conversationId, assistantIndex, payload?.delta || '')
           scrollToBottom()
         },
         onDone(payload) {
-          assistantMessage.citations = payload?.citations || assistantMessage.citations || []
-          if (!assistantMessage.text?.trim()) {
-            assistantMessage.text = payload?.answer || '抱歉，暂时没有生成回复。'
+          const currentCitations = messages.value[conversationId]?.[assistantIndex]?.citations || []
+          updateMessage(conversationId, assistantIndex, { citations: payload?.citations || currentCitations })
+          if (!getMessageText(conversationId, assistantIndex).trim()) {
+            updateMessage(conversationId, assistantIndex, { text: payload?.answer || '抱歉，暂时没有生成回复。' })
           }
           if (payload?.mode) {
             configStatus.value.mode = payload.mode
@@ -241,20 +258,20 @@ async function send() {
           scrollToBottom()
         },
         onError(payload) {
-          if (!assistantMessage.text?.trim()) {
-            assistantMessage.text = payload?.message || 'AI 服务暂不可用，请稍后重试。'
+          if (!getMessageText(conversationId, assistantIndex).trim()) {
+            updateMessage(conversationId, assistantIndex, { text: payload?.message || 'AI 服务暂不可用，请稍后重试。' })
           }
           scrollToBottom()
         },
       }
     )
 
-    if (!assistantMessage.text?.trim()) {
-      assistantMessage.text = '抱歉，暂时没有生成回复。'
+    if (!getMessageText(conversationId, assistantIndex).trim()) {
+      updateMessage(conversationId, assistantIndex, { text: '抱歉，暂时没有生成回复。' })
     }
   } catch (e) {
-    if (!assistantMessage.text?.trim()) {
-      assistantMessage.text = 'AI 服务暂不可用，请稍后重试。'
+    if (!getMessageText(conversationId, assistantIndex).trim()) {
+      updateMessage(conversationId, assistantIndex, { text: 'AI 服务暂不可用，请稍后重试。' })
     }
   } finally {
     sending.value = false

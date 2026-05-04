@@ -175,6 +175,22 @@ function scrollToBottom() {
   })
 }
 
+function updateMessage(index, patch) {
+  const current = messages.value[index]
+  if (!current) return
+  messages.value.splice(index, 1, { ...current, ...patch })
+}
+
+function appendMessageText(index, delta = '') {
+  if (!delta) return
+  const currentText = messages.value[index]?.text || ''
+  updateMessage(index, { text: currentText + delta })
+}
+
+function getMessageText(index) {
+  return messages.value[index]?.text || ''
+}
+
 function handlePointerMove(event) {
   if (dragState.pointerId !== event.pointerId) return
   const nextX = dragState.originX + (event.clientX - dragState.startX)
@@ -264,7 +280,7 @@ function isConversationMissing(error) {
   return error?.code === 404 || String(message).includes('会话不存在')
 }
 
-async function sendStream(content, currentConversationId, assistantMessage) {
+async function sendStream(content, currentConversationId, assistantIndex) {
   await chatWithAiStream(
     {
       conversationId: currentConversationId,
@@ -286,12 +302,12 @@ async function sendStream(content, currentConversationId, assistantMessage) {
         }
       },
       onDelta(payload) {
-        assistantMessage.text += payload?.delta || ''
+        appendMessageText(assistantIndex, payload?.delta || '')
         scrollToBottom()
       },
       onDone(payload) {
-        if (!assistantMessage.text?.trim()) {
-          assistantMessage.text = payload?.answer || '抱歉，暂时没有生成回复。'
+        if (!getMessageText(assistantIndex).trim()) {
+          updateMessage(assistantIndex, { text: payload?.answer || '抱歉，暂时没有生成回复。' })
         }
         if (payload?.model) {
           configStatus.value.model = payload.model
@@ -303,8 +319,8 @@ async function sendStream(content, currentConversationId, assistantMessage) {
         scrollToBottom()
       },
       onError(payload) {
-        if (!assistantMessage.text?.trim()) {
-          assistantMessage.text = payload?.message || 'AI 服务暂不可用，请稍后重试。'
+        if (!getMessageText(assistantIndex).trim()) {
+          updateMessage(assistantIndex, { text: payload?.message || 'AI 服务暂不可用，请稍后重试。' })
         }
         scrollToBottom()
       },
@@ -320,29 +336,28 @@ async function handleAsk() {
   question.value = ''
   sending.value = true
 
-  const assistantMessage = { role: 'assistant', text: '' }
-  messages.value.push(assistantMessage)
+  const assistantIndex = messages.value.push({ role: 'assistant', text: '' }) - 1
   scrollToBottom()
 
   try {
     let currentConversationId = await ensureConversation()
     try {
-      await sendStream(content, currentConversationId, assistantMessage)
+      await sendStream(content, currentConversationId, assistantIndex)
     } catch (error) {
       if (!isConversationMissing(error)) {
         throw error
       }
       resetConversationCache()
       currentConversationId = await ensureConversation()
-      await sendStream(content, currentConversationId, assistantMessage)
+      await sendStream(content, currentConversationId, assistantIndex)
     }
 
-    if (!assistantMessage.text?.trim()) {
-      assistantMessage.text = '抱歉，暂时没有生成回复。'
+    if (!getMessageText(assistantIndex).trim()) {
+      updateMessage(assistantIndex, { text: '抱歉，暂时没有生成回复。' })
     }
   } catch (error) {
-    if (!assistantMessage.text?.trim()) {
-      assistantMessage.text = 'AI 服务暂不可用，请稍后重试。'
+    if (!getMessageText(assistantIndex).trim()) {
+      updateMessage(assistantIndex, { text: 'AI 服务暂不可用，请稍后重试。' })
     }
   } finally {
     sending.value = false
