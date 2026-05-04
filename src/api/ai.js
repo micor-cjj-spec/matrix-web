@@ -32,6 +32,61 @@ export function submitAiFeedback(data) {
   })
 }
 
+export function listKnowledgeDocs(params = {}) {
+  return request.get('/ai/knowledge/docs', {
+    params,
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function getKnowledgeDoc(docId) {
+  return request.get(`/ai/knowledge/docs/${docId}`, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function createKnowledgeDoc(data) {
+  return request.post('/ai/knowledge/docs', data, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function updateKnowledgeDoc(docId, data) {
+  return request.put(`/ai/knowledge/docs/${docId}`, data, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function deleteKnowledgeDoc(docId) {
+  return request.delete(`/ai/knowledge/docs/${docId}`, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function rebuildKnowledgeDoc(docId) {
+  return request.post(`/ai/knowledge/docs/${docId}/rebuild`, {}, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function listKnowledgeChunks(docId) {
+  return request.get(`/ai/knowledge/docs/${docId}/chunks`, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function listKnowledgeCategories() {
+  return request.get('/ai/knowledge/categories', {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function retrieveKnowledge(data) {
+  return request.post('/ai/knowledge/retrieve', data, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
 export async function chatWithAiStream(data, handlers = {}) {
   const token = localStorage.getItem('token')
   const controller = new AbortController()

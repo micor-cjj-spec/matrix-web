@@ -78,6 +78,7 @@ const BaseConfigItemView = () => import('../views/login/ledger/settings/BaseConf
 
 const SharedOperationsView = () => import('../views/login/shared/SharedOperationsView.vue')
 const AiAssistantView = () => import('../views/ai/AiAssistantView.vue')
+const KnowledgeSystemView = () => import('../views/ai/KnowledgeSystemView.vue')
 
 const EmptyView = {
   template: '<div style="padding: 20px; font-size: 18px;">这里是占位页面：{{ $route.path }}</div>',
@@ -181,6 +182,7 @@ const routes = [
 
   { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },
   { path: '/ai/assistant', name: 'AiAssistant', component: AiAssistantView, meta: { title: 'AI 助手' } },
+  { path: '/ai/knowledge', name: 'KnowledgeSystem', component: KnowledgeSystemView, meta: { title: '知识系统' } },
 
   { path: '/enterprise-modeling', name: 'EnterpriseModeling', component: EnterpriseModelingView, meta: { title: '企业建模' } },
   { path: '/base-data', name: 'BaseData', component: BaseDataView, meta: { title: '基础资料' } },

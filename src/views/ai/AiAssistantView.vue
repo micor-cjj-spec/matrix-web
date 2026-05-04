@@ -42,9 +42,14 @@
         <v-card class="h-100 d-flex flex-column" variant="outlined">
           <v-card-title class="d-flex align-center justify-space-between">
             <span>AI 助手（完整版）</span>
-            <v-btn variant="text" size="small" @click="clearCurrentMessages" :disabled="!activeConversationId || activeMessages.length === 0">
-              清空当前会话显示
-            </v-btn>
+            <div class="d-flex align-center ga-2">
+              <v-btn variant="tonal" size="small" prepend-icon="mdi-book-open-page-variant-outline" @click="router.push('/ai/knowledge')">
+                知识系统
+              </v-btn>
+              <v-btn variant="text" size="small" @click="clearCurrentMessages" :disabled="!activeConversationId || activeMessages.length === 0">
+                清空当前会话显示
+              </v-btn>
+            </div>
           </v-card-title>
           <v-divider />
 
@@ -59,6 +64,17 @@
             >
               <div class="msg-role">{{ msg.role === 'user' ? '我' : 'AI' }}</div>
               <div class="msg-text">{{ msg.text }}</div>
+              <div v-if="msg.citations?.length" class="msg-citations">
+                <button
+                  v-for="citation in msg.citations"
+                  :key="citation.chunkId"
+                  type="button"
+                  @click="router.push('/ai/knowledge')"
+                >
+                  <v-icon size="14">mdi-link-variant</v-icon>
+                  <span>{{ citation.docName || citation.docId }}</span>
+                </button>
+              </div>
             </div>
           </v-card-text>
 
@@ -88,8 +104,10 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { chatWithAiStream, createConversation, getAiConfigStatus, getConversationMessages } from '@/api/ai'
 
+const router = useRouter()
 const conversations = ref([])
 const activeConversationId = ref('')
 const input = ref('')
@@ -191,6 +209,7 @@ async function send() {
       },
       {
         onStart(payload) {
+          assistantMessage.citations = payload?.citations || []
           if (payload?.conversationId) {
             activeConversationId.value = payload.conversationId
           }
@@ -206,6 +225,7 @@ async function send() {
           scrollToBottom()
         },
         onDone(payload) {
+          assistantMessage.citations = payload?.citations || assistantMessage.citations || []
           if (!assistantMessage.text?.trim()) {
             assistantMessage.text = payload?.answer || '抱歉，暂时没有生成回复。'
           }
@@ -286,6 +306,27 @@ onMounted(async () => {
 .msg-text {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.msg-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.msg-citations button {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid rgba(26, 42, 58, 0.1);
+  border-radius: 8px;
+  color: #17696a;
+  background: #eef8f5;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .msg.user {

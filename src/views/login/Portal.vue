@@ -286,7 +286,7 @@ const navItems = [
   { key: 'workbench', label: '工作台', icon: House },
   { key: 'apps', label: '应用中心', icon: Grid },
   { key: 'finance', label: '财务系统', icon: Wallet, path: '/finance', newPage: true },
-  { key: 'knowledge', label: '知识系统', icon: Notebook, disabled: true },
+  { key: 'knowledge', label: '知识系统', icon: Notebook, path: '/ai/knowledge' },
   { key: 'settings', label: '平台设置', icon: Setting },
 ]
 
@@ -312,11 +312,12 @@ const apps = [
   {
     name: '知识系统',
     desc: '沉淀制度、流程、案例与业务问答，连接 AI 助手。',
-    meta: '即将扩展',
-    status: '规划中',
+    meta: '知识底座',
+    status: '已上线',
     icon: Notebook,
     accent: '#1769aa',
-    available: false,
+    path: '/ai/knowledge',
+    available: true,
   },
   {
     name: '审批系统',
