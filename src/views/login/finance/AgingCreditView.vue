@@ -57,6 +57,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api/arap-doc'
+import { exportRowsToXlsx } from '@/utils/excelExport'
 
 const route = useRoute()
 const title = computed(() => route.meta?.titleRoot || '应收')
@@ -144,13 +145,12 @@ async function saveConfig() {
 function exportWarnings() {
   const head = ['往来方','未结金额','信用额度','最大逾期天数','超限','超期','建议动作']
   const rows = warnings.value.map(w => [w.counterparty, w.totalOutstanding, w.creditLimit, w.maxOverdueDays, w.overLimit ? '是' : '否', w.overdue ? '是' : '否', w.suggestion || ''])
-  const csv = [head, ...rows].map(r => r.map(x => `"${String(x ?? '').replaceAll('"','""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `${docTypeRoot.value}-credit-warnings-${asOfDate.value}.csv`
-  a.click()
-  URL.revokeObjectURL(a.href)
+  exportRowsToXlsx({
+    filename: `${docTypeRoot.value}-credit-warnings-${asOfDate.value}.xlsx`,
+    sheetName: `${title.value}预警`,
+    headers: head,
+    rows,
+  })
 }
 
 onMounted(reloadAll)

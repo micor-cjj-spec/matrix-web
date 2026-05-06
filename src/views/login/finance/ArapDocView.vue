@@ -7,7 +7,7 @@
         <p>{{ pageDescription }}</p>
         <div class="hero-actions">
           <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">创建单据</v-btn>
-          <v-btn class="hero-secondary" color="white" variant="outlined" prepend-icon="mdi-export-variant" @click="exportCsv">导出清单</v-btn>
+          <v-btn class="hero-secondary" color="white" variant="outlined" prepend-icon="mdi-export-variant" @click="exportExcel">导出清单</v-btn>
         </div>
       </div>
       <div class="summary-grid">
@@ -221,6 +221,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/arap-doc'
+import { exportRowsToXlsx } from '@/utils/excelExport'
 
 const route = useRoute()
 const router = useRouter()
@@ -445,16 +446,15 @@ function goVoucher(item) {
   window.open(url, '_blank')
 }
 
-function exportCsv() {
+function exportExcel() {
   const head = ['单据号','日期','往来方','金额','状态','关联凭证']
   const rows = list.value.map(it => [it.fnumber,it.fdate,it.fcounterparty,it.famount,statusLabel(it.fstatus),it.fvoucherNumber || ''])
-  const csv = [head, ...rows].map(r => r.map(x => `"${String(x ?? '').replaceAll('"','""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `${docType.value}-list.csv`
-  a.click()
-  URL.revokeObjectURL(a.href)
+  exportRowsToXlsx({
+    filename: `${docType.value}-list.xlsx`,
+    sheetName: title.value || '单据清单',
+    headers: head,
+    rows,
+  })
 }
 
 function show(text, color='success'){ snackbar.text=text; snackbar.color=color; snackbar.show=true }

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { normalizeTextData } from './textEncoding.js'
 
 // 判断环境，自动切换 baseURL
 const baseURL = '/';     // 生产环境改成正式接口地址
@@ -43,7 +44,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
     (response) => {
         // 可以统一处理 response
-        return response.data
+        return normalizeTextData(response.data)
     },
     (error) => {
         // 可以统一处理错误，比如 401、403、500
