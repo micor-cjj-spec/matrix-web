@@ -1,3 +1,5 @@
+import { GBK_MOJIBAKE_REPLACEMENTS } from './gbkMojibakeMap.js'
+
 const WINDOWS_1252_BYTES = new Map([
   [0x20ac, 0x80],
   [0x201a, 0x82],
@@ -29,10 +31,20 @@ const WINDOWS_1252_BYTES = new Map([
 ])
 
 const GARBLED_HINT_RE = /[ÃÂ�]|[åæçèéä]|[€œŒšŠžŽŸ™‰‹›]/
+const GBK_GARBLED_HINT_RE = /璐㈠姟|绯荤粺|宸ヤ綔|宸蹭笂|鐭ヨ瘑|鍑瘉|浼佷笟|骞冲彴|搴旂敤|寰呭姙|鏈堢粨|鍗忓悓|瑙勫垝|杩涘叆|绠＄悊|鎼滅储|鍔╂墜|閫€鍑|鎬昏处|鐜伴噾|寰€鏉|鏌ヨ|鎶ヨ|[璐㈠姟绯荤粺宸蹭笂绾鐭瘑鍑瘉浼骞冲彴搴旂敤寰呭姙鏈堢粨鍗忓悓瑙勫垝杩涘叆绠＄悊鎼滅储鍔╂墜閫€]/
 const decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8') : null
 
 export function fixMojibake(value) {
-  if (typeof value !== 'string' || !value || !GARBLED_HINT_RE.test(value) || !decoder) {
+  if (typeof value !== 'string' || !value) {
+    return value
+  }
+
+  const gbkRepaired = fixKnownGbkMojibake(value)
+  if (gbkRepaired !== value) {
+    return gbkRepaired
+  }
+
+  if (!GARBLED_HINT_RE.test(value) || !decoder) {
     return value
   }
 
@@ -118,4 +130,18 @@ function countCjk(value) {
     }
   }
   return count
+}
+
+function fixKnownGbkMojibake(value) {
+  if (!GBK_GARBLED_HINT_RE.test(value)) {
+    return value
+  }
+
+  let repaired = value
+  for (const [bad, good] of GBK_MOJIBAKE_REPLACEMENTS) {
+    if (bad && repaired.includes(bad)) {
+      repaired = repaired.split(bad).join(good)
+    }
+  }
+  return repaired
 }
