@@ -127,6 +127,7 @@ const modulesMap = {
   '基础服务云': [
     { name: '企业建模', path: '/enterprise-modeling', icon: '🏗️', desc: '企业业务建模' },
     { name: '基础资料', path: '/base-data', icon: '📚', desc: '主数据与公共数据管理' },
+    { name: '开放平台', path: '/openapi', icon: '🔌', desc: '外部应用与 API 授权管理' },
     { name: 'AI 助手', path: '/ai/assistant', icon: '🤖', desc: '智能问答与业务助手' },
   ],
 }
@@ -205,6 +206,7 @@ function handleLogout() {
   align-items: center;
   transition: background 0.18s, color 0.18s;
 }
+
 .sidebar-item:deep(.v-list-item--active), .sidebar-item.active, .sidebar-active {
   background: #e7f1ff !important;
   color: #1976d2 !important;
@@ -230,17 +232,20 @@ function handleLogout() {
   cursor: pointer;
   background: #fff;
 }
+
 .module-card:hover {
   box-shadow: 0 8px 26px 0 rgba(72, 129, 240, 0.11);
   border-color: #b5cdfb !important;
   background: #fafdff;
 }
+
 .module-icon {
   font-size: 37px;
   margin-bottom: 8px;
   line-height: 1.2;
   color: #246efc;
 }
+
 .module-name {
   font-weight: 600;
   margin-bottom: 5px;
@@ -248,6 +253,7 @@ function handleLogout() {
   color: #20294a;
   letter-spacing: 1px;
 }
+
 .module-desc {
   font-size: 13px;
   color: #7381a7;
