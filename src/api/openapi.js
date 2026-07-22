@@ -16,6 +16,10 @@ export function updateOpenApiAppStatus(id, status) {
   return request.put(`/openapi/admin/apps/${id}/status`, null, { params: { status } })
 }
 
+export function updateOpenApiCallbackSettings(id, data) {
+  return request.put(`/openapi/admin/apps/${id}/callback`, data)
+}
+
 export function rotateOpenApiSecret(id) {
   return request.post(`/openapi/admin/apps/${id}/rotate-secret`)
 }
@@ -62,4 +66,28 @@ export function getOpenApiWriteRequest(requestId) {
 
 export function retryOpenApiWriteRequest(requestId) {
   return request.post(`/openapi/admin/write-requests/${requestId}/retry`)
+}
+
+export function listOpenApiCallbacks(params) {
+  return request.get('/openapi/admin/callbacks', { params })
+}
+
+export function retryOpenApiCallback(eventId) {
+  return request.post(`/openapi/admin/callbacks/${eventId}/retry`)
+}
+
+export function listOpenApiReconciliation(params) {
+  return request.get('/openapi/admin/reconciliation', { params })
+}
+
+export function runOpenApiReconciliation(lookbackDays = 7) {
+  return request.post('/openapi/admin/reconciliation/run', null, { params: { lookbackDays } })
+}
+
+export function repairOpenApiReconciliation(recordId) {
+  return request.post(`/openapi/admin/reconciliation/${recordId}/repair`)
+}
+
+export function resolveOpenApiReconciliation(recordId, data) {
+  return request.post(`/openapi/admin/reconciliation/${recordId}/resolve`, data)
 }
