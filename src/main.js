@@ -44,6 +44,13 @@ router.addRoute({
 })
 
 router.addRoute({
+  path: '/openapi/reliability',
+  name: 'OpenApiReliability',
+  component: () => import('./views/login/openapi/OpenApiReliabilityView.vue'),
+  meta: { title: '开放平台可靠性中心' },
+})
+
+router.addRoute({
   path: '/notifications',
   name: 'Notifications',
   component: () => import('./views/im/NotificationsView.vue'),
