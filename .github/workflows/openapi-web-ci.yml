@@ -13,7 +13,7 @@ on:
       - '.github/workflows/openapi-web-ci.yml'
   push:
     branches:
-      - agent/openapi-management-v2-dev
+      - 'agent/openapi-*'
     paths:
       - 'src/api/openapi.js'
       - 'src/views/login/openapi/**'

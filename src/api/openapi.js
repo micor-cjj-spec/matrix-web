@@ -51,3 +51,15 @@ export function listOpenApiLogs(params) {
 export function getOpenApiLog(requestId) {
   return request.get(`/openapi/admin/logs/${requestId}`)
 }
+
+export function listOpenApiWriteRequests(params) {
+  return request.get('/openapi/admin/write-requests', { params })
+}
+
+export function getOpenApiWriteRequest(requestId) {
+  return request.get(`/openapi/admin/write-requests/${requestId}`)
+}
+
+export function retryOpenApiWriteRequest(requestId) {
+  return request.post(`/openapi/admin/write-requests/${requestId}/retry`)
+}

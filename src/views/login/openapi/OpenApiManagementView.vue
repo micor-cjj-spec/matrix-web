@@ -4,7 +4,7 @@
       <div>
         <div class="eyebrow">PLATFORM INTEGRATION</div>
         <h1>Matrix 开放平台</h1>
-        <p>管理外部应用、数据授权、调用日志与运行指标。</p>
+        <p>管理外部应用、数据授权、凭证写入任务、调用日志与运行指标。</p>
       </div>
       <div class="header-actions">
         <el-button @click="loadAll" :loading="loading">刷新</el-button>
@@ -109,13 +109,14 @@
             <el-alert
               type="info"
               :closable="false"
-              title="租户由应用固定；组织、账簿与请求条件取交集，凭证状态最多只能开放 POSTED。"
+              title="租户由应用固定；只读接口最多开放 POSTED，写入接口只能创建草稿且单独配置额度。"
             />
           </div>
           <el-table :data="definitions" border>
             <el-table-column prop="apiName" label="API" min-width="160" />
-            <el-table-column prop="apiCode" label="API 编码" min-width="180" />
-            <el-table-column prop="externalPath" label="外部路径" min-width="260" />
+            <el-table-column prop="apiCode" label="API 编码" min-width="210" />
+            <el-table-column prop="httpMethod" label="方法" width="90" />
+            <el-table-column prop="externalPath" label="外部路径" min-width="280" />
             <el-table-column label="授权状态" width="110">
               <template #default="scope">
                 <el-tag :type="grantFor(scope.row.id)?.status === 'ENABLED' ? 'success' : 'info'">
@@ -123,8 +124,8 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="数据范围" min-width="260">
-              <template #default="scope">{{ permissionText(grantFor(scope.row.id)) }}</template>
+            <el-table-column label="数据范围" min-width="300">
+              <template #default="scope">{{ permissionText(grantFor(scope.row.id), scope.row) }}</template>
             </el-table-column>
             <el-table-column label="操作" width="160" fixed="right">
               <template #default="scope">
@@ -142,8 +143,81 @@
           </el-table>
         </el-tab-pane>
 
+        <el-tab-pane label="写入任务" name="writes">
+          <el-form :inline="true" class="filter-form" @submit.prevent>
+            <el-form-item label="请求 ID">
+              <el-input v-model="writeQuery.requestId" clearable placeholder="vwr_..." />
+            </el-form-item>
+            <el-form-item label="应用">
+              <el-select v-model="writeQuery.appId" clearable filterable placeholder="全部应用">
+                <el-option v-for="app in apps" :key="app.appId" :label="app.appName" :value="app.appId" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="外部业务单号">
+              <el-input v-model="writeQuery.externalBizNo" clearable />
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-select v-model="writeQuery.status" clearable placeholder="全部状态">
+                <el-option v-for="status in writeStatuses" :key="status" :label="status" :value="status" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="searchWriteRequests">查询</el-button>
+              <el-button @click="resetWriteRequests">重置</el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-table :data="writeRequests" border stripe v-loading="writeLoading">
+            <el-table-column label="受理时间" min-width="165">
+              <template #default="scope">{{ formatDate(scope.row.createdAt, false) }}</template>
+            </el-table-column>
+            <el-table-column label="请求 ID" min-width="250">
+              <template #default="scope"><code>{{ scope.row.requestId }}</code></template>
+            </el-table-column>
+            <el-table-column prop="externalBizNo" label="外部业务单号" min-width="180" />
+            <el-table-column label="组织 / 账簿" min-width="190">
+              <template #default="scope">{{ scope.row.organizationId }} / {{ scope.row.bookId }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="150">
+              <template #default="scope">
+                <el-tag :type="writeStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="凭证" min-width="150">
+              <template #default="scope">{{ scope.row.voucherNumber || scope.row.voucherId || '—' }}</template>
+            </el-table-column>
+            <el-table-column prop="retryCount" label="重试" width="70" />
+            <el-table-column label="错误" min-width="220" show-overflow-tooltip>
+              <template #default="scope">{{ scope.row.errorMessage || '—' }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="150" fixed="right">
+              <template #default="scope">
+                <el-button link type="primary" @click="openWriteRequest(scope.row.requestId)">详情</el-button>
+                <el-button
+                  v-if="canRetryWrite(scope.row.status)"
+                  link
+                  type="warning"
+                  @click="retryWriteRequest(scope.row.requestId)"
+                >重试</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="pagination-row">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="writeTotal"
+              v-model:current-page="writeQuery.pageNo"
+              v-model:page-size="writeQuery.pageSize"
+              :page-sizes="[20, 50, 100]"
+              @current-change="loadWriteRequests"
+              @size-change="searchWriteRequests"
+            />
+          </div>
+        </el-tab-pane>
+
         <el-tab-pane label="调用日志" name="logs">
-          <el-form :inline="true" class="log-filter" @submit.prevent>
+          <el-form :inline="true" class="filter-form" @submit.prevent>
             <el-form-item label="Request ID">
               <el-input v-model="logQuery.requestId" clearable placeholder="req_..." />
             </el-form-item>
@@ -177,7 +251,7 @@
               <template #default="scope"><code>{{ scope.row.requestId }}</code></template>
             </el-table-column>
             <el-table-column prop="appId" label="App ID" min-width="190" />
-            <el-table-column prop="apiCode" label="API" min-width="160" />
+            <el-table-column prop="apiCode" label="API" min-width="180" />
             <el-table-column prop="clientIp" label="客户端 IP" min-width="130" />
             <el-table-column label="结果" width="90">
               <template #default="scope">
@@ -186,7 +260,7 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="responseCode" label="错误码" min-width="150" />
+            <el-table-column prop="responseCode" label="错误码" min-width="170" />
             <el-table-column prop="durationMs" label="耗时(ms)" width="100" />
             <el-table-column label="操作" width="80" fixed="right">
               <template #default="scope">
@@ -202,7 +276,8 @@
               v-model:current-page="logQuery.pageNo"
               v-model:page-size="logQuery.pageSize"
               :page-sizes="[20, 50, 100]"
-              @change="loadLogs"
+              @current-change="loadLogs"
+              @size-change="searchLogs"
             />
           </div>
         </el-tab-pane>
@@ -234,16 +309,23 @@
       <template #footer><el-button type="primary" @click="credentialDialog = false">我已保存</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="grantDialog" title="配置 API 授权" width="680px">
-      <el-form label-width="110px">
+    <el-dialog v-model="grantDialog" title="配置 API 授权" width="700px">
+      <el-form label-width="120px">
         <el-form-item label="API"><el-input :model-value="grantTarget?.apiName" readonly /></el-form-item>
         <el-form-item label="授权状态">
           <el-select v-model="grantForm.status"><el-option label="ENABLED" value="ENABLED" /><el-option label="DISABLED" value="DISABLED" /></el-select>
         </el-form-item>
-        <el-form-item label="允许状态"><el-select v-model="grantForm.allowedStatuses" multiple disabled><el-option label="POSTED" value="POSTED" /></el-select></el-form-item>
-        <el-form-item label="组织范围"><el-input v-model="grantForm.organizationIds" placeholder="ORG-001,ORG-002；* 表示全部" /></el-form-item>
-        <el-form-item label="账簿范围"><el-input v-model="grantForm.bookIds" placeholder="BOOK-001；* 表示全部" /></el-form-item>
-        <el-form-item label="历史月份"><el-input-number v-model="grantForm.maxHistoryMonths" :min="1" :max="120" /></el-form-item>
+        <el-form-item label="组织范围"><el-input v-model="grantForm.organizationIds" placeholder="ORG-001,ORG-002；* 表示租户内全部" /></el-form-item>
+        <el-form-item label="账簿范围"><el-input v-model="grantForm.bookIds" placeholder="BOOK-001；* 表示租户内全部" /></el-form-item>
+        <template v-if="isWriteApi(grantTarget)">
+          <el-form-item label="最大分录数"><el-input-number v-model="grantForm.maxLinesPerVoucher" :min="2" :max="500" /></el-form-item>
+          <el-form-item label="每日写入额度"><el-input-number v-model="grantForm.dailyWriteQuota" :min="1" :max="1000000" /></el-form-item>
+          <el-alert type="warning" :closable="false" title="写入权限只创建凭证草稿，不包含提交、审核、过账、冲销和删除。" />
+        </template>
+        <template v-else>
+          <el-form-item label="允许状态"><el-select v-model="grantForm.allowedStatuses" multiple disabled><el-option label="POSTED" value="POSTED" /></el-select></el-form-item>
+          <el-form-item label="历史月份"><el-input-number v-model="grantForm.maxHistoryMonths" :min="1" :max="120" /></el-form-item>
+        </template>
         <el-form-item label="失效时间"><el-date-picker v-model="grantForm.validTo" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" /></el-form-item>
       </el-form>
       <template #footer>
@@ -251,6 +333,46 @@
         <el-button type="primary" :loading="saving" @click="saveGrant">保存授权</el-button>
       </template>
     </el-dialog>
+
+    <el-drawer v-model="writeDrawer" title="凭证写入任务详情" size="760px">
+      <template v-if="selectedWrite?.request">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="请求 ID" :span="2"><code>{{ selectedWrite.request.requestId }}</code></el-descriptions-item>
+          <el-descriptions-item label="外部业务单号">{{ selectedWrite.request.externalBizNo }}</el-descriptions-item>
+          <el-descriptions-item label="状态"><el-tag :type="writeStatusType(selectedWrite.request.status)">{{ selectedWrite.request.status }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="租户">{{ selectedWrite.request.tenantId }}</el-descriptions-item>
+          <el-descriptions-item label="组织 / 账簿">{{ selectedWrite.request.organizationId }} / {{ selectedWrite.request.bookId }}</el-descriptions-item>
+          <el-descriptions-item label="凭证日期">{{ selectedWrite.request.voucherDate }}</el-descriptions-item>
+          <el-descriptions-item label="凭证编号">{{ selectedWrite.request.voucherNumber || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="摘要" :span="2">{{ selectedWrite.request.summary }}</el-descriptions-item>
+          <el-descriptions-item label="错误码">{{ selectedWrite.request.errorCode || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="重试次数">{{ selectedWrite.request.retryCount }}</el-descriptions-item>
+          <el-descriptions-item label="错误信息" :span="2">{{ selectedWrite.request.errorMessage || '—' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <h3 class="drawer-title">凭证分录</h3>
+        <el-table :data="selectedWrite.lines || []" border size="small">
+          <el-table-column prop="lineNo" label="行" width="55" />
+          <el-table-column prop="accountCode" label="科目" min-width="120" />
+          <el-table-column prop="summary" label="摘要" min-width="160" />
+          <el-table-column prop="debitAmount" label="借方" width="110" />
+          <el-table-column prop="creditAmount" label="贷方" width="110" />
+        </el-table>
+
+        <h3 class="drawer-title">状态轨迹</h3>
+        <el-timeline>
+          <el-timeline-item
+            v-for="item in selectedWrite.logs || []"
+            :key="item.id"
+            :timestamp="formatDate(item.createdAt, false)"
+            placement="top"
+          >
+            <strong>{{ item.fromStatus || 'NEW' }} → {{ item.toStatus }}</strong>
+            <p class="timeline-message">{{ item.message || item.errorCode || '—' }}</p>
+          </el-timeline-item>
+        </el-timeline>
+      </template>
+    </el-drawer>
 
     <el-drawer v-model="logDrawer" title="调用日志详情" size="520px">
       <el-descriptions v-if="selectedLog" :column="1" border>
@@ -276,10 +398,13 @@ import {
   createOpenApiApp,
   getOpenApiDashboard,
   getOpenApiLog,
+  getOpenApiWriteRequest,
   listOpenApiApps,
   listOpenApiDefinitions,
   listOpenApiGrants,
   listOpenApiLogs,
+  listOpenApiWriteRequests,
+  retryOpenApiWriteRequest,
   revokeOpenApiGrant,
   rotateOpenApiSecret,
   saveOpenApiGrant,
@@ -292,11 +417,14 @@ const activeTab = ref('overview')
 const loading = ref(false)
 const saving = ref(false)
 const logLoading = ref(false)
+const writeLoading = ref(false)
 const apps = ref([])
 const definitions = ref([])
 const grants = ref([])
 const logs = ref([])
+const writeRequests = ref([])
 const logTotal = ref(0)
+const writeTotal = ref(0)
 const selectedAppId = ref(null)
 const dashboard = reactive({ hours: 24, total: 0, successCount: 0, failureCount: 0, successRate: 0, averageDurationMs: 0, p95DurationMs: 0, topApis: {}, errorCodes: {}, sampleTruncated: false })
 
@@ -304,13 +432,17 @@ const appDialog = ref(false)
 const credentialDialog = ref(false)
 const grantDialog = ref(false)
 const logDrawer = ref(false)
+const writeDrawer = ref(false)
 const editingApp = ref(null)
 const grantTarget = ref(null)
 const selectedLog = ref(null)
+const selectedWrite = ref(null)
 const credential = reactive({ appId: '', appKey: '', appSecret: '' })
 const appForm = reactive(defaultAppForm())
 const grantForm = reactive(defaultGrantForm())
 const logQuery = reactive({ pageNo: 1, pageSize: 20, requestId: '', appId: '', apiCode: '', success: null })
+const writeQuery = reactive({ pageNo: 1, pageSize: 20, requestId: '', appId: '', externalBizNo: '', status: '' })
+const writeStatuses = ['ACCEPTED', 'PROCESSING', 'RETRYING', 'PROCESSING_FAILED', 'SUCCEEDED', 'MANUAL_REQUIRED']
 
 const enabledAppCount = computed(() => apps.value.filter((item) => item.status === 'ENABLED').length)
 const grantMap = computed(() => new Map(grants.value.map((item) => [item.apiDefinitionId, item])))
@@ -322,13 +454,18 @@ onMounted(loadAll)
 async function loadAll() {
   loading.value = true
   try {
-    const [appRes, apiRes, dashboardRes] = await Promise.all([listOpenApiApps(), listOpenApiDefinitions(), getOpenApiDashboard({ hours: 24 })])
+    const [appRes, apiRes, dashboardRes] = await Promise.all([
+      listOpenApiApps(),
+      listOpenApiDefinitions(),
+      getOpenApiDashboard({ hours: 24 }),
+    ])
     apps.value = unwrap(appRes)
     definitions.value = unwrap(apiRes)
     Object.assign(dashboard, unwrap(dashboardRes))
     if (!selectedAppId.value && apps.value.length) selectedAppId.value = apps.value[0].id
     if (selectedAppId.value) await loadGrants(selectedAppId.value)
     if (activeTab.value === 'logs') await loadLogs()
+    if (activeTab.value === 'writes') await loadWriteRequests()
   } catch (error) {
     showError(error)
   } finally {
@@ -338,6 +475,7 @@ async function loadAll() {
 
 async function handleTabChange(name) {
   if (name === 'logs') await loadLogs()
+  if (name === 'writes') await loadWriteRequests()
 }
 
 async function loadGrants(appId = selectedAppId.value) {
@@ -358,6 +496,19 @@ async function loadLogs() {
   }
 }
 
+async function loadWriteRequests() {
+  writeLoading.value = true
+  try {
+    const page = unwrap(await listOpenApiWriteRequests(cleanParams(writeQuery)))
+    writeRequests.value = page.items || []
+    writeTotal.value = Number(page.total || 0)
+  } catch (error) {
+    showError(error)
+  } finally {
+    writeLoading.value = false
+  }
+}
+
 function searchLogs() {
   logQuery.pageNo = 1
   loadLogs()
@@ -366,6 +517,16 @@ function searchLogs() {
 function resetLogs() {
   Object.assign(logQuery, { pageNo: 1, pageSize: 20, requestId: '', appId: '', apiCode: '', success: null })
   loadLogs()
+}
+
+function searchWriteRequests() {
+  writeQuery.pageNo = 1
+  loadWriteRequests()
+}
+
+function resetWriteRequests() {
+  Object.assign(writeQuery, { pageNo: 1, pageSize: 20, requestId: '', appId: '', externalBizNo: '', status: '' })
+  loadWriteRequests()
 }
 
 function openCreateApp() {
@@ -427,14 +588,41 @@ function openGrant(api) {
   grantTarget.value = api
   const existing = grantFor(api.id)
   const permission = parsePermission(existing?.dataPermissionJson)
-  Object.assign(grantForm, { id: existing?.id || null, status: existing?.status === 'REVOKED' ? 'ENABLED' : (existing?.status || 'ENABLED'), allowedStatuses: ['POSTED'], organizationIds: permission.organizationIds.join(','), bookIds: permission.bookIds.join(','), maxHistoryMonths: permission.maxHistoryMonths, validTo: existing?.validTo || '' })
+  Object.assign(grantForm, {
+    id: existing?.id || null,
+    status: existing?.status === 'REVOKED' ? 'ENABLED' : (existing?.status || 'ENABLED'),
+    allowedStatuses: ['POSTED'],
+    organizationIds: permission.organizationIds.join(','),
+    bookIds: permission.bookIds.join(','),
+    maxHistoryMonths: permission.maxHistoryMonths,
+    maxLinesPerVoucher: permission.maxLinesPerVoucher,
+    dailyWriteQuota: permission.dailyWriteQuota,
+    validTo: existing?.validTo || '',
+  })
   grantDialog.value = true
 }
 
 async function saveGrant() {
   if (!grantTarget.value || !selectedAppId.value) return
   saving.value = true
-  const payload = { status: grantForm.status, dataPermissionJson: JSON.stringify({ allowedStatuses: ['POSTED'], organizationIds: parseCsv(grantForm.organizationIds), bookIds: parseCsv(grantForm.bookIds), maxHistoryMonths: Number(grantForm.maxHistoryMonths || 24) }), fieldPermissionJson: null, validFrom: null, validTo: grantForm.validTo || null }
+  const dataPermission = {
+    organizationIds: parseCsv(grantForm.organizationIds),
+    bookIds: parseCsv(grantForm.bookIds),
+  }
+  if (isWriteApi(grantTarget.value)) {
+    dataPermission.maxLinesPerVoucher = Number(grantForm.maxLinesPerVoucher || 200)
+    dataPermission.dailyWriteQuota = Number(grantForm.dailyWriteQuota || 10000)
+  } else {
+    dataPermission.allowedStatuses = ['POSTED']
+    dataPermission.maxHistoryMonths = Number(grantForm.maxHistoryMonths || 24)
+  }
+  const payload = {
+    status: grantForm.status,
+    dataPermissionJson: JSON.stringify(dataPermission),
+    fieldPermissionJson: null,
+    validFrom: null,
+    validTo: grantForm.validTo || null,
+  }
   try {
     if (grantForm.id) unwrap(await updateOpenApiGrant(grantForm.id, payload))
     else unwrap(await saveOpenApiGrant({ appId: selectedAppId.value, apiDefinitionId: grantTarget.value.id, ...payload }))
@@ -455,6 +643,25 @@ async function revokeGrant(grant) {
   }
 }
 
+async function openWriteRequest(requestId) {
+  try {
+    selectedWrite.value = unwrap(await getOpenApiWriteRequest(requestId))
+    writeDrawer.value = true
+  } catch (error) { showError(error) }
+}
+
+async function retryWriteRequest(requestId) {
+  try {
+    await ElMessageBox.confirm('确认重新执行该凭证写入任务？财务服务仍会通过来源请求号保证幂等。', '重新执行', { type: 'warning' })
+    unwrap(await retryOpenApiWriteRequest(requestId))
+    ElMessage.success('已提交重试')
+    await loadWriteRequests()
+    if (writeDrawer.value) await openWriteRequest(requestId)
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') showError(error)
+  }
+}
+
 async function openLog(requestId) {
   try {
     selectedLog.value = unwrap(await getOpenApiLog(requestId))
@@ -463,23 +670,43 @@ async function openLog(requestId) {
 }
 
 function grantFor(apiDefinitionId) { return grantMap.value.get(apiDefinitionId) }
-function permissionText(grant) {
+function isWriteApi(api) { return Boolean(api?.apiCode?.startsWith('fi.voucher.write')) }
+function permissionText(grant, api) {
   if (!grant) return '—'
   const value = parsePermission(grant.dataPermissionJson)
+  if (isWriteApi(api)) {
+    return `组织 ${value.organizationIds.join(',')}；账簿 ${value.bookIds.join(',')}；最多 ${value.maxLinesPerVoucher} 行；每日 ${value.dailyWriteQuota} 笔`
+  }
   return `组织 ${value.organizationIds.join(',')}；账簿 ${value.bookIds.join(',')}；最近 ${value.maxHistoryMonths} 月`
 }
 function parsePermission(value) {
   try {
     const data = value ? JSON.parse(value) : {}
-    return { organizationIds: data.organizationIds?.length ? data.organizationIds : ['*'], bookIds: data.bookIds?.length ? data.bookIds : ['*'], maxHistoryMonths: data.maxHistoryMonths || 24 }
-  } catch { return { organizationIds: ['*'], bookIds: ['*'], maxHistoryMonths: 24 } }
+    return {
+      organizationIds: data.organizationIds?.length ? data.organizationIds : ['*'],
+      bookIds: data.bookIds?.length ? data.bookIds : ['*'],
+      maxHistoryMonths: data.maxHistoryMonths || 24,
+      maxLinesPerVoucher: data.maxLinesPerVoucher || 200,
+      dailyWriteQuota: data.dailyWriteQuota || 10000,
+    }
+  } catch {
+    return { organizationIds: ['*'], bookIds: ['*'], maxHistoryMonths: 24, maxLinesPerVoucher: 200, dailyWriteQuota: 10000 }
+  }
 }
 function parseCsv(value) {
   const values = String(value || '*').split(',').map((item) => item.trim()).filter(Boolean)
   return values.includes('*') || !values.length ? ['*'] : [...new Set(values)]
 }
+function writeStatusType(status) {
+  if (status === 'SUCCEEDED') return 'success'
+  if (status === 'MANUAL_REQUIRED' || status === 'PROCESSING_FAILED') return 'danger'
+  if (status === 'RETRYING') return 'warning'
+  if (status === 'PROCESSING') return 'primary'
+  return 'info'
+}
+function canRetryWrite(status) { return ['MANUAL_REQUIRED', 'PROCESSING_FAILED'].includes(status) }
 function defaultAppForm() { return { appName: '', tenantId: 'default', ipWhitelist: '', qpsLimit: 10, maxPageSize: 200, validTo: '' } }
-function defaultGrantForm() { return { id: null, status: 'ENABLED', allowedStatuses: ['POSTED'], organizationIds: '*', bookIds: '*', maxHistoryMonths: 24, validTo: '' } }
+function defaultGrantForm() { return { id: null, status: 'ENABLED', allowedStatuses: ['POSTED'], organizationIds: '*', bookIds: '*', maxHistoryMonths: 24, maxLinesPerVoucher: 200, dailyWriteQuota: 10000, validTo: '' } }
 function cleanParams(source) { return Object.fromEntries(Object.entries(source).filter(([, value]) => value !== '' && value !== null && value !== undefined)) }
 function unwrap(response) { if (!response || response.code !== 200) throw new Error(response?.message || '请求失败'); return response.data ?? [] }
 function showError(error) { ElMessage.error(error?.response?.data?.message || error?.message || '请求失败') }
@@ -494,20 +721,31 @@ function formatDate(value, fallbackLong = true) { if (!value) return fallbackLon
 .eyebrow { font-size: 12px; letter-spacing: 2px; color: #2878d0; font-weight: 700; }
 .header-actions { display: flex; gap: 10px; }
 .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
-.metric-card { padding: 20px; border: 1px solid #e2e8f2; border-radius: 14px; background: #fff; box-shadow: 0 8px 26px rgba(33, 62, 99, .06); }
-.metric-card span, .metric-card small { display: block; color: #718096; }
-.metric-card strong { display: block; margin: 10px 0 6px; font-size: 28px; }
-.content-card, .panel { padding: 20px; border: 1px solid #e2e8f2; border-radius: 14px; background: #fff; }
-.overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.panel-title { margin-bottom: 14px; font-weight: 700; }
+.metric-card { padding: 20px; border: 1px solid #dfe7f2; background: #fff; border-radius: 14px; box-shadow: 0 8px 28px rgba(30, 60, 100, 0.06); }
+.metric-card span, .metric-card small { display: block; color: #728096; }
+.metric-card strong { display: block; margin: 8px 0; font-size: 28px; }
+.content-card { padding: 18px; background: #fff; border: 1px solid #dfe7f2; border-radius: 14px; box-shadow: 0 8px 28px rgba(30, 60, 100, 0.06); }
+.overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.panel { min-height: 260px; padding: 18px; border: 1px solid #e4eaf2; border-radius: 12px; }
+.panel-title { margin-bottom: 14px; font-size: 17px; font-weight: 700; }
 .rank-list { display: grid; gap: 10px; }
-.rank-item { display: flex; justify-content: space-between; padding: 12px 14px; border-radius: 9px; background: #f4f8fd; }
-.rank-item.error { background: #fff4f2; }
-.toolbar-row { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: center; margin-bottom: 16px; }
-.log-filter { margin-bottom: 4px; }
+.rank-item { display: flex; justify-content: space-between; padding: 12px; background: #f6f9fd; border-radius: 8px; }
+.rank-item.error { background: #fff6f5; }
+.toolbar-row { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: center; margin-bottom: 16px; }
+.filter-form { margin-bottom: 4px; }
 .pagination-row { display: flex; justify-content: flex-end; margin-top: 18px; }
+.drawer-title { margin: 24px 0 12px; }
+.timeline-message { margin: 6px 0 0; color: #6d788b; }
 .mb-16 { margin-bottom: 16px; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
-@media (max-width: 1000px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } .overview-grid { grid-template-columns: 1fr; } .toolbar-row { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .openapi-page { padding: 16px; } .page-header { align-items: flex-start; flex-direction: column; } .metric-grid { grid-template-columns: 1fr; } }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; }
+:deep(.el-tabs__content) { padding-top: 14px; }
+@media (max-width: 980px) {
+  .metric-grid, .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .openapi-page { padding: 16px; }
+  .page-header { align-items: flex-start; flex-direction: column; }
+  .metric-grid, .overview-grid { grid-template-columns: 1fr; }
+}
 </style>
