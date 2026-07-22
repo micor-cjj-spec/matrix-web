@@ -10,3 +10,8 @@ export const runSchedulerJobNow = (jobId) => request.post(`/scheduler/jobs/${job
 export const deleteSchedulerJob = (jobId) => request.delete(`/scheduler/jobs/${jobId}`)
 export const previewSchedulerCron = (params) => request.get('/scheduler/cron/preview', { params })
 export const listSchedulerExecutions = (params) => request.get('/scheduler/executions', { params })
+export const listSchedulerExecutors = () => request.get('/scheduler/executors')
+export const listSchedulerExecutorHandlers = (executorCode) =>
+  request.get(`/scheduler/executors/${executorCode}/handlers`)
+export const listSchedulerExecutorInstances = (executorCode) =>
+  request.get(`/scheduler/executors/${executorCode}/instances`)
