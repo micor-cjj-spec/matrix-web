@@ -16,6 +16,13 @@ router.addRoute({
 })
 
 router.addRoute({
+  path: '/scheduler/operations',
+  name: 'SchedulerOperations',
+  component: () => import('./views/scheduler/SchedulerOperationsView.vue'),
+  meta: { title: '调度运行中心' },
+})
+
+router.addRoute({
   path: '/botp',
   name: 'BotpManagement',
   component: () => import('./views/botp/BotpManagementView.vue'),
@@ -34,6 +41,13 @@ router.addRoute({
   name: 'OpenApiManagement',
   component: () => import('./views/login/openapi/OpenApiManagementView.vue'),
   meta: { title: 'Matrix 开放平台' },
+})
+
+router.addRoute({
+  path: '/notifications',
+  name: 'Notifications',
+  component: () => import('./views/im/NotificationsView.vue'),
+  meta: { title: '消息中心' },
 })
 
 const app = createApp(App)

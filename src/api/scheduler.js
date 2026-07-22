@@ -15,3 +15,20 @@ export const listSchedulerExecutorHandlers = (executorCode) =>
   request.get(`/scheduler/executors/${executorCode}/handlers`)
 export const listSchedulerExecutorInstances = (executorCode) =>
   request.get(`/scheduler/executors/${executorCode}/instances`)
+
+export const getSchedulerDashboardSummary = () => request.get('/scheduler/dashboard/summary')
+export const listSchedulerAlerts = (params) => request.get('/scheduler/alerts', { params })
+export const acknowledgeSchedulerAlert = (alertId) => request.post(`/scheduler/alerts/${alertId}/ack`)
+
+export const retrySchedulerExecutionNow = (executionNo, reason) =>
+  request.post(`/scheduler/executions/${executionNo}/retry-now`, { reason })
+export const stopSchedulerExecutionRetry = (executionNo, reason) =>
+  request.post(`/scheduler/executions/${executionNo}/stop-retry`, { reason })
+export const cancelSchedulerExecution = (executionNo, reason) =>
+  request.post(`/scheduler/executions/${executionNo}/cancel`, { reason })
+export const skipSchedulerExecution = (executionNo, reason) =>
+  request.post(`/scheduler/executions/${executionNo}/skip`, { reason })
+export const markSchedulerExecutionSuccess = (executionNo, reason) =>
+  request.post(`/scheduler/executions/${executionNo}/mark-success`, { reason })
+export const listSchedulerOperationLogs = (executionNo, params) =>
+  request.get(`/scheduler/executions/${executionNo}/operation-logs`, { params })
