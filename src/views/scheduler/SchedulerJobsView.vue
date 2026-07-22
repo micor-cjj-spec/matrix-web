@@ -4,7 +4,7 @@
       <div>
         <div class="text-h5 font-weight-bold">定时任务调度</div>
         <div class="text-body-2 text-medium-emphasis mt-1">
-          动态配置 Cron、执行器、并发策略和失败策略
+          动态配置 Cron、在线执行器、并发策略和失败重试
         </div>
       </div>
       <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreate">新建任务</v-btn>
@@ -42,12 +42,12 @@
 
     <v-card elevation="1">
       <v-data-table-server
+        v-model:page="filters.page"
+        v-model:items-per-page="filters.size"
         :headers="headers"
         :items="jobs"
         :items-length="total"
         :loading="loading"
-        v-model:page="filters.page"
-        v-model:items-per-page="filters.size"
         @update:options="loadJobs"
       >
         <template #item.fstatus="{ item }">
@@ -125,12 +125,37 @@
                 <v-select v-model="form.executeType" :items="executeTypes" label="执行类型" />
               </v-col>
               <v-col cols="12" md="4">
-                <v-text-field v-model="form.executorCode" label="执行器编码" :rules="requiredRules" />
+                <v-select
+                  v-model="form.executorCode"
+                  :items="executorOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="执行器"
+                  :rules="requiredRules"
+                  @update:model-value="loadHandlers"
+                />
               </v-col>
               <v-col cols="12" md="4">
-                <v-text-field v-model="form.handlerCode" label="处理器编码" :rules="requiredRules" />
+                <v-select
+                  v-model="form.handlerCode"
+                  :items="handlerOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="处理器"
+                  :rules="requiredRules"
+                  :disabled="!form.executorCode"
+                />
               </v-col>
               <v-col cols="12">
+                <v-alert
+                  v-if="form.executorCode && selectedExecutorStatus !== 'ONLINE'"
+                  type="warning"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                >
+                  当前执行器状态为 {{ selectedExecutorStatus || 'UNKNOWN' }}，任务可以保存，但到点可能无法执行。
+                </v-alert>
                 <v-textarea
                   v-model="form.executeParameters"
                   label="执行参数 JSON"
@@ -151,7 +176,7 @@
                 <v-text-field v-model.number="form.retryCount" type="number" label="重试次数" />
               </v-col>
               <v-col cols="12" md="4">
-                <v-text-field v-model.number="form.retryIntervalSeconds" type="number" label="重试间隔秒数" />
+                <v-text-field v-model.number="form.retryIntervalSeconds" type="number" label="基础重试间隔秒数" />
               </v-col>
               <v-col cols="12" md="4">
                 <v-switch v-model="form.enabled" color="primary" label="创建后立即启用" />
@@ -167,7 +192,7 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="executionVisible" max-width="1100">
+    <v-dialog v-model="executionVisible" max-width="1200">
       <v-card>
         <v-card-title>{{ selectedJob?.fjobName }} · 执行记录</v-card-title>
         <v-divider />
@@ -189,11 +214,13 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import {
   createSchedulerJob,
   deleteSchedulerJob,
   listSchedulerExecutions,
+  listSchedulerExecutorHandlers,
+  listSchedulerExecutors,
   listSchedulerJobs,
   pauseSchedulerJob,
   previewSchedulerCron,
@@ -206,6 +233,8 @@ const loading = ref(false)
 const saving = ref(false)
 const jobs = ref([])
 const total = ref(0)
+const executors = ref([])
+const handlerOptions = ref([])
 const editorVisible = ref(false)
 const executionVisible = ref(false)
 const executionLoading = ref(false)
@@ -218,10 +247,18 @@ const snackbar = reactive({ visible: false, message: '', color: 'success' })
 
 const filters = reactive({ page: 1, size: 20, keyword: '', status: '' })
 const statusOptions = ['ENABLED', 'PAUSED']
-const executeTypes = ['MQ', 'INTERNAL_HANDLER', 'HTTP']
+const executeTypes = ['MQ']
 const concurrencyPolicies = ['SKIP', 'SERIAL', 'PARALLEL']
 const misfirePolicies = ['FIRE_ONCE_NOW', 'DO_NOTHING', 'FIRE_ALL']
 const requiredRules = [(value) => Boolean(value) || '不能为空']
+
+const executorOptions = computed(() => executors.value.map((item) => ({
+  title: `${item.fexecutorName} · ${item.fexecutorCode} · ${item.fstatus}`,
+  value: item.fexecutorCode,
+})))
+const selectedExecutorStatus = computed(() =>
+  executors.value.find((item) => item.fexecutorCode === form.executorCode)?.fstatus,
+)
 
 const defaultForm = () => ({
   jobCode: '',
@@ -256,9 +293,10 @@ const executionHeaders = [
   { title: '执行编号', key: 'fexecutionNo' },
   { title: '计划时间', key: 'fscheduledTime' },
   { title: '触发方式', key: 'ftriggerType' },
-  { title: '执行器', key: 'fexecutorCode' },
-  { title: '处理器', key: 'fhandlerCode' },
+  { title: '尝试次数', key: 'fattemptNo' },
+  { title: '执行实例', key: 'fexecutorInstance' },
   { title: '状态', key: 'fstatus' },
+  { title: '下次重试', key: 'fnextRetryTime' },
   { title: '错误信息', key: 'ferrorMessage' },
 ]
 
@@ -275,6 +313,30 @@ async function loadJobs() {
   }
 }
 
+async function loadExecutors() {
+  try {
+    const response = await listSchedulerExecutors()
+    executors.value = response.data || []
+  } catch (error) {
+    notify(error?.response?.data?.message || error.message || '执行器加载失败', 'error')
+  }
+}
+
+async function loadHandlers(executorCode) {
+  handlerOptions.value = []
+  if (!executorCode) return
+  if (!editingId.value || form.executorCode !== executorCode) form.handlerCode = ''
+  try {
+    const response = await listSchedulerExecutorHandlers(executorCode)
+    handlerOptions.value = (response.data || []).map((item) => ({
+      title: `${item.fhandlerName} · ${item.fhandlerCode}`,
+      value: item.fhandlerCode,
+    }))
+  } catch (error) {
+    notify(error?.response?.data?.message || error.message || '处理器加载失败', 'error')
+  }
+}
+
 function resetFilters() {
   Object.assign(filters, { page: 1, size: 20, keyword: '', status: '' })
   loadJobs()
@@ -284,10 +346,11 @@ function openCreate() {
   editingId.value = null
   Object.assign(form, defaultForm())
   cronPreview.value = []
+  handlerOptions.value = []
   editorVisible.value = true
 }
 
-function openEdit(item) {
+async function openEdit(item) {
   editingId.value = item.fid
   Object.assign(form, {
     jobCode: item.fjobCode,
@@ -306,6 +369,8 @@ function openEdit(item) {
     retryIntervalSeconds: item.fretryIntervalSeconds,
     enabled: item.fstatus === 'ENABLED',
   })
+  await loadHandlers(item.fexecutorCode)
+  form.handlerCode = item.fhandlerCode
   editorVisible.value = true
 }
 
@@ -368,9 +433,9 @@ async function openExecutions(item) {
 }
 
 function statusColor(status) {
-  if (['ENABLED', 'SUCCESS', 'SENT'].includes(status)) return 'success'
-  if (['FAILED', 'TIMEOUT', 'DEAD'].includes(status)) return 'error'
-  if (['PAUSED', 'SKIPPED'].includes(status)) return 'warning'
+  if (['ENABLED', 'SUCCESS', 'SENT', 'ONLINE'].includes(status)) return 'success'
+  if (['FAILED', 'TIMEOUT', 'DEAD', 'OFFLINE'].includes(status)) return 'error'
+  if (['PAUSED', 'SKIPPED', 'WAITING', 'RETRY_WAIT'].includes(status)) return 'warning'
   return 'primary'
 }
 
@@ -380,7 +445,10 @@ function notify(message, color = 'success') {
   snackbar.visible = true
 }
 
-onMounted(loadJobs)
+onMounted(() => {
+  loadJobs()
+  loadExecutors()
+})
 </script>
 
 <style scoped>
