@@ -108,7 +108,7 @@
               @click="openOperation(item, 'skip')"
             >跳过</v-btn>
             <v-btn
-              v-if="item.fstatus !== 'SUCCESS'"
+              v-if="canMarkSuccess(item)"
               size="small"
               variant="text"
               @click="openOperation(item, 'mark-success')"
@@ -163,12 +163,12 @@
             :rules="[(value) => Boolean(value?.trim()) || '操作原因不能为空']"
           />
           <v-alert
-            v-if="selectedOperation === 'cancel' && selectedExecution?.fstatus === 'RUNNING'"
+            v-if="selectedOperation === 'cancel' && ['QUEUED', 'RUNNING'].includes(selectedExecution?.fstatus)"
             type="warning"
             variant="tonal"
             density="compact"
           >
-            取消运行中任务只会更新平台状态，不能强制终止远程 Java 线程。
+            消息可能已经投递。取消只会更新平台状态，不能撤回已发送消息或强制终止远程 Java 线程。
           </v-alert>
         </v-card-text>
         <v-card-actions class="justify-end">
@@ -404,7 +404,11 @@ function canCancel(item) {
 }
 
 function canSkip(item) {
-  return ['WAITING', 'CREATED', 'QUEUED', 'RETRY_WAIT'].includes(item.fstatus)
+  return ['WAITING', 'CREATED', 'RETRY_WAIT'].includes(item.fstatus)
+}
+
+function canMarkSuccess(item) {
+  return ['RETRY_WAIT', 'FAILED', 'TIMEOUT', 'DEAD', 'CANCELLED', 'SKIPPED'].includes(item.fstatus)
 }
 
 function statusColor(status) {
