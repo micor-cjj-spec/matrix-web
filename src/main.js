@@ -29,6 +29,13 @@ router.addRoute({
   meta: { title: 'Matrix 开放平台' },
 })
 
+router.addRoute({
+  path: '/notifications',
+  name: 'Notifications',
+  component: () => import('./views/im/NotificationsView.vue'),
+  meta: { title: '消息中心' },
+})
+
 const app = createApp(App)
 app.use(ElementPlus)
 app.use(vuetify)
