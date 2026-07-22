@@ -68,6 +68,7 @@ const VoucherCollaborationCheckView = () => import('../views/login/ledger/collab
 const SubjectCompareView = () => import('../views/login/ledger/collaboration/SubjectCompareView.vue')
 
 const SharedOperationsView = () => import('../views/login/shared/SharedOperationsView.vue')
+const OpenApiManagementView = () => import('../views/login/openapi/OpenApiManagementView.vue')
 const AiAssistantView = () => import('../views/ai/AiAssistantView.vue')
 
 const EmptyView = {
@@ -151,6 +152,7 @@ const routes = [
   { path: '/receivable/aging-credit', component: AgingCreditView, meta: { title: '应收账龄与信用预警', titleRoot: '应收', docTypeRoot: 'AR' } },
 
   { path: '/shared/operations', name: 'SharedOperations', component: SharedOperationsView, meta: { title: '共享运营管理' } },
+  { path: '/openapi', name: 'OpenApiManagement', component: OpenApiManagementView, meta: { title: '开放平台' } },
   { path: '/ai/assistant', name: 'AiAssistant', component: AiAssistantView, meta: { title: 'AI 助手' } },
 
   { path: '/enterprise-modeling', name: 'EnterpriseModeling', component: EnterpriseModelingView, meta: { title: '企业建模' } },
