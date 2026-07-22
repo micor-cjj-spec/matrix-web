@@ -15,6 +15,13 @@ router.addRoute({
   meta: { title: '定时任务调度' },
 })
 
+router.addRoute({
+  path: '/botp',
+  name: 'BotpManagement',
+  component: () => import('./views/botp/BotpManagementView.vue'),
+  meta: { title: 'BOTP 单据下推反写' },
+})
+
 const app = createApp(App)
 // app.use(ElementPlus)
 app.use(vuetify)
