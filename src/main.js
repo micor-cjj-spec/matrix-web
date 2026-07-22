@@ -16,6 +16,13 @@ router.addRoute({
 })
 
 router.addRoute({
+  path: '/scheduler/operations',
+  name: 'SchedulerOperations',
+  component: () => import('./views/scheduler/SchedulerOperationsView.vue'),
+  meta: { title: '调度运行中心' },
+})
+
+router.addRoute({
   path: '/botp',
   name: 'BotpManagement',
   component: () => import('./views/botp/BotpManagementView.vue'),
