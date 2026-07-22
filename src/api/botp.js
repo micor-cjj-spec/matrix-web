@@ -32,6 +32,14 @@ export function executeBotp(payload) {
   return request.post('/botp/executions', payload)
 }
 
+export function getBotpExecutions(limit = 50) {
+  return request.get('/botp/executions', { params: { limit } })
+}
+
 export function getBotpExecution(executionId) {
   return request.get(`/botp/executions/${encodeURIComponent(executionId)}`)
+}
+
+export function getBotpRelations(params = {}) {
+  return request.get('/botp/relations', { params })
 }

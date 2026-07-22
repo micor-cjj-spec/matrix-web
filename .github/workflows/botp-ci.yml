@@ -11,7 +11,7 @@ on:
       - '.github/workflows/botp-ci.yml'
   push:
     branches:
-      - feature/botp-foundation
+      - 'feature/botp-*'
     paths:
       - 'src/api/botp.js'
       - 'src/views/botp/**'
