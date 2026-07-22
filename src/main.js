@@ -23,6 +23,13 @@ router.addRoute({
 })
 
 router.addRoute({
+  path: '/botp/operations',
+  name: 'BotpOperations',
+  component: () => import('./views/botp/BotpOperationsView.vue'),
+  meta: { title: 'BOTP 异常恢复与对账' },
+})
+
+router.addRoute({
   path: '/openapi',
   name: 'OpenApiManagement',
   component: () => import('./views/login/openapi/OpenApiManagementView.vue'),
