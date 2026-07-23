@@ -5,7 +5,7 @@
         <div class="brand-mark">M</div>
         <div class="brand-copy">
           <strong>Matrix</strong>
-          <span>企业智能工作台</span>
+          <span>企业智能平台</span>
         </div>
       </div>
 
@@ -15,25 +15,26 @@
           :key="item.key"
           type="button"
           class="nav-item"
-          :class="{ active: activeNav === item.key, disabled: item.disabled }"
-          :title="item.label"
+          :class="{ active: activeNav === item.key }"
           @click="handleNav(item)"
         >
-          <component :is="item.icon" class="svg-icon" />
+          <component :is="item.icon" class="nav-icon" />
           <span>{{ item.label }}</span>
         </button>
       </nav>
 
-      <div class="side-status">
-        <div class="status-dot"></div>
+      <div class="side-spacer"></div>
+
+      <div class="platform-status">
+        <span class="status-dot"></span>
         <div>
-          <span>平台运行正常</span>
-          <strong>99.98%</strong>
+          <strong>平台运行正常</strong>
+          <small>核心服务可用</small>
         </div>
       </div>
 
       <button type="button" class="logout-link" @click="handleLogout">
-        <SwitchButton class="svg-icon" />
+        <SwitchButton class="nav-icon" />
         <span>退出登录</span>
       </button>
     </aside>
@@ -42,191 +43,73 @@
       <header class="topbar">
         <div class="page-title">
           <span>{{ currentDate }}</span>
-          <strong>个人工作台</strong>
+          <strong>{{ currentPage.title }}</strong>
+          <small>{{ currentPage.subtitle }}</small>
         </div>
 
-        <label class="search-box" aria-label="搜索业务、知识与单据">
-          <Search class="svg-icon" />
-          <input v-model="searchKeyword" type="search" placeholder="搜索业务、知识与单据" />
-        </label>
-
         <div class="top-actions">
-          <button type="button" class="icon-button" title="新建事项" @click="showToast('统一新建入口正在接入')">
-            <Plus class="svg-icon" />
+          <button type="button" class="top-action" title="统一新建" @click="showToast('统一新建入口正在接入')">
+            <Plus />
           </button>
-          <button type="button" class="icon-button" title="通知中心" @click="showToast('你有 3 条新的平台通知')">
-            <Bell class="svg-icon" />
+          <button type="button" class="top-action notification-button" title="IM 消息中心" @click="navigateTo('/notifications')">
+            <Bell />
             <span class="notice-badge"></span>
           </button>
-          <button type="button" class="avatar-button" title="个人中心" @click="showToast('个人中心正在设计中')">
-            <span>林</span>
-            <div>
+          <button type="button" class="profile-button" @click="showToast('个人中心正在建设中')">
+            <span class="avatar">林</span>
+            <span class="profile-copy">
               <strong>林澈</strong>
               <small>财务共享中心</small>
-            </div>
+            </span>
           </button>
         </div>
       </header>
 
-      <section class="hero-band" aria-label="Matrix 工作台概览">
-        <img src="/assets/matrix-workbench-hero.png" alt="Matrix 企业工作台视觉概览" class="hero-image" />
-        <div class="hero-shade"></div>
-        <div class="hero-content">
-          <div class="eyebrow">
-            <span></span>
-            Matrix 个人工作台
-          </div>
-          <h1>早上好，林澈</h1>
-          <p>今日待处理 6 项，财务月结正在推进，知识系统与更多业务系统将从这里统一进入。</p>
-          <div class="hero-actions">
-            <button type="button" class="primary-action" @click="navigateTo('/finance', { newPage: true })">
-              <Wallet class="svg-icon" />
-              <span>进入财务系统</span>
-            </button>
-            <button type="button" class="secondary-action" @click="navigateTo('/ai/assistant')">
-              <ChatDotRound class="svg-icon" />
-              <span>询问 AI 助手</span>
-            </button>
-          </div>
-        </div>
+      <div class="page-content">
+        <WorkbenchPanel
+          v-if="activeNav === 'workbench'"
+          :hero-metrics="heroMetrics"
+          :todos="todos"
+          :recent-items="recentItems"
+          :notices="notices"
+          :quick-actions="quickActions"
+          @navigate="navigateTo"
+          @open-app-center="switchInternalView('apps')"
+          @refresh="refreshWorkbench"
+        />
 
-        <div class="hero-metrics" aria-label="今日关键指标">
-          <div v-for="metric in heroMetrics" :key="metric.label" class="metric-item">
-            <span>{{ metric.label }}</span>
-            <strong>{{ metric.value }}</strong>
-            <small>{{ metric.hint }}</small>
-          </div>
-        </div>
-      </section>
+        <ApplicationCenterPanel
+          v-else-if="activeNav === 'apps'"
+          :apps="apps"
+          @open="openApp"
+        />
 
-      <section class="content-grid">
-        <section class="main-column">
-          <div class="section-heading">
-            <div>
-              <span>Application Hub</span>
-              <h2>我的应用</h2>
-            </div>
-            <button type="button" class="text-button" @click="showToast('应用中心将支持按角色配置')">
-              <Grid class="svg-icon" />
-              <span>管理应用</span>
-            </button>
+        <section v-else class="settings-view">
+          <div class="settings-hero">
+            <Setting class="settings-icon" />
+            <span>PLATFORM SETTINGS</span>
+            <h1>平台设置</h1>
+            <p>后续将在这里配置应用可见范围、角色入口、首页偏好和平台级参数。</p>
           </div>
-
-          <div class="app-grid">
-            <article
-              v-for="app in apps"
-              :key="app.name"
-              class="app-card"
-              :class="{ featured: app.featured, disabled: !app.available }"
-              @click="openApp(app)"
-            >
-              <div class="app-card-head">
-                <span class="app-icon" :style="{ '--accent': app.accent }">
-                  <component :is="app.icon" class="svg-icon" />
-                </span>
-                <span class="app-status" :class="{ live: app.available }">{{ app.status }}</span>
-              </div>
-              <h3>{{ app.name }}</h3>
-              <p>{{ app.desc }}</p>
-              <div class="app-card-foot">
-                <span>{{ app.meta }}</span>
-                <ArrowRight class="svg-icon" />
-              </div>
+          <div class="settings-grid">
+            <article>
+              <Grid />
+              <strong>应用配置</strong>
+              <span>维护应用名称、入口、状态、分类和展示顺序。</span>
+            </article>
+            <article>
+              <OfficeBuilding />
+              <strong>组织与权限</strong>
+              <span>按租户、组织、角色控制应用与菜单的可见范围。</span>
+            </article>
+            <article>
+              <Operation />
+              <strong>工作台配置</strong>
+              <span>配置指标、待办、快捷操作和通知内容。</span>
             </article>
           </div>
-
-          <div class="lower-grid">
-            <section class="work-section">
-              <div class="section-heading compact">
-                <div>
-                  <span>Recent</span>
-                  <h2>最近访问</h2>
-                </div>
-              </div>
-              <div class="recent-list">
-                <button
-                  v-for="item in recentItems"
-                  :key="item.title"
-                  type="button"
-                  class="recent-item"
-                  @click="navigateTo(item.path)"
-                >
-                  <component :is="item.icon" class="svg-icon recent-icon" />
-                  <div>
-                    <strong>{{ item.title }}</strong>
-                    <span>{{ item.detail }}</span>
-                  </div>
-                  <small>{{ item.time }}</small>
-                </button>
-              </div>
-            </section>
-
-            <section class="work-section">
-              <div class="section-heading compact">
-                <div>
-                  <span>Notice</span>
-                  <h2>通知动态</h2>
-                </div>
-              </div>
-              <div class="notice-list">
-                <div v-for="notice in notices" :key="notice.title" class="notice-item">
-                  <span :class="['notice-type', notice.type]">{{ notice.tag }}</span>
-                  <div>
-                    <strong>{{ notice.title }}</strong>
-                    <p>{{ notice.desc }}</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
         </section>
-
-        <aside class="right-column">
-          <section class="today-panel">
-            <div class="section-heading compact">
-              <div>
-                <span>Today</span>
-                <h2>我的待办</h2>
-              </div>
-              <button type="button" class="icon-button small" title="刷新待办" @click="showToast('待办已刷新')">
-                <Refresh class="svg-icon" />
-              </button>
-            </div>
-
-            <div class="todo-list">
-              <button
-                v-for="todo in todos"
-                :key="todo.title"
-                type="button"
-                class="todo-item"
-                @click="navigateTo(todo.path)"
-              >
-                <span class="todo-priority" :class="todo.priority"></span>
-                <div>
-                  <strong>{{ todo.title }}</strong>
-                  <small>{{ todo.desc }}</small>
-                </div>
-                <Clock class="svg-icon" />
-              </button>
-            </div>
-          </section>
-
-          <section class="quick-panel">
-            <div class="section-heading compact">
-              <div>
-                <span>Quick Actions</span>
-                <h2>快捷操作</h2>
-              </div>
-            </div>
-            <div class="quick-grid">
-              <button v-for="action in quickActions" :key="action.label" type="button" @click="navigateTo(action.path)">
-                <component :is="action.icon" class="svg-icon" />
-                <span>{{ action.label }}</span>
-              </button>
-            </div>
-          </section>
-        </aside>
-      </section>
+      </div>
     </section>
 
     <transition name="toast">
@@ -238,29 +121,30 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { getWorkbench } from '@/api/platform'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getApps, getWorkbench } from '@/api/platform'
+import ApplicationCenterPanel from '@/components/platform/ApplicationCenterPanel.vue'
+import WorkbenchPanel from '@/components/platform/WorkbenchPanel.vue'
 import { clearToken } from '@/utils/auth'
 import { resolveMatrixIcon } from '@/utils/matrixIcons'
 import {
-  ArrowRight,
   Bell,
-  Briefcase,
   Calendar,
   ChatDotRound,
-  Clock,
+  Connection,
+  Cpu,
   DataAnalysis,
-  DocumentChecked,
   Files,
   Grid,
   House,
   Link,
+  Message,
   Notebook,
   OfficeBuilding,
+  Operation,
   Plus,
-  Refresh,
-  Search,
+  Promotion,
   Setting,
   SwitchButton,
   Tickets,
@@ -270,27 +154,43 @@ import {
   Wallet,
 } from '@element-plus/icons-vue'
 
+const route = useRoute()
 const router = useRouter()
-const activeNav = ref('workbench')
-const searchKeyword = ref('')
 const snackbar = ref({ show: false, text: '', type: 'info' })
 let toastTimer = null
 
-const currentDate = computed(() => {
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  }).format(new Date())
-})
+const activeNav = ref(resolveInternalView(route.query.view))
 
 const navItems = [
-  { key: 'workbench', label: '工作台', icon: House },
-  { key: 'apps', label: '应用中心', icon: Grid },
+  { key: 'workbench', label: '工作台', icon: House, internal: true },
+  { key: 'apps', label: '应用中心', icon: Grid, internal: true },
   { key: 'finance', label: '财务系统', icon: Wallet, path: '/finance', newPage: true },
   { key: 'knowledge', label: '知识系统', icon: Notebook, path: '/ai/knowledge' },
-  { key: 'settings', label: '平台设置', icon: Setting },
+  { key: 'im', label: 'IM 推送平台', icon: Message, path: '/notifications' },
+  { key: 'settings', label: '平台设置', icon: Setting, internal: true },
 ]
+
+const pageMap = {
+  workbench: {
+    title: '个人工作台',
+    subtitle: '聚焦今日任务、关键指标与最近工作',
+  },
+  apps: {
+    title: '应用中心',
+    subtitle: '统一进入 Matrix 业务系统与平台能力',
+  },
+  settings: {
+    title: '平台设置',
+    subtitle: '配置应用、权限与个性化工作台',
+  },
+}
+
+const currentPage = computed(() => pageMap[activeNav.value] || pageMap.workbench)
+const currentDate = computed(() => new Intl.DateTimeFormat('zh-CN', {
+  month: 'long',
+  day: 'numeric',
+  weekday: 'long',
+}).format(new Date()))
 
 const defaultHeroMetrics = [
   { label: '月结进度', value: '82%', hint: '较昨日 +11%' },
@@ -298,85 +198,22 @@ const defaultHeroMetrics = [
   { label: '本月凭证', value: '1,280', hint: '自动生成 64%' },
 ]
 
-const defaultApps = [
-  {
-    name: '财务系统',
-    desc: '总账、应收应付、报表、月结协同统一入口。',
-    meta: '核心系统',
-    status: '已上线',
-    icon: Wallet,
-    accent: '#0f8a6a',
-    path: '/finance',
-    newPage: true,
-    featured: true,
-    available: true,
-  },
-  {
-    name: '知识系统',
-    desc: '沉淀制度、流程、案例与业务问答，连接 AI 助手。',
-    meta: '知识底座',
-    status: '已上线',
-    icon: Notebook,
-    accent: '#1769aa',
-    path: '/ai/knowledge',
-    available: true,
-  },
-  {
-    name: '审批系统',
-    desc: '费用、付款、合同与组织审批流的统一处理中心。',
-    meta: '流程能力',
-    status: '规划中',
-    icon: DocumentChecked,
-    accent: '#b7791f',
-    available: false,
-  },
-  {
-    name: '项目系统',
-    desc: '项目预算、成本归集、里程碑与经营分析。',
-    meta: '业务协同',
-    status: '规划中',
-    icon: Briefcase,
-    accent: '#6f7b35',
-    available: false,
-  },
-  {
-    name: 'AI 助手',
-    desc: '围绕财务、数据与知识的智能问答入口。',
-    meta: '智能协作',
-    status: '已上线',
-    icon: ChatDotRound,
-    accent: '#2454a6',
-    path: '/ai/assistant',
-    available: true,
-  },
-  {
-    name: '基础服务',
-    desc: '企业建模、主数据、人员与组织基础能力。',
-    meta: '平台底座',
-    status: '已上线',
-    icon: OfficeBuilding,
-    accent: '#56636f',
-    path: '/base-data',
-    available: true,
-  },
-]
-
 const defaultTodos = [
-  { title: '确认 4 月月结检查项', desc: '总账模块还有 3 项需确认', path: '/ledger/month-end-close-workbench', priority: 'high' },
+  { title: '确认月结检查项', desc: '总账模块还有 3 项需确认', path: '/ledger/month-end-close-workbench', priority: 'high' },
   { title: '复核应付账龄预警', desc: '2 家供应商超过信用期', path: '/payable/aging-credit', priority: 'medium' },
   { title: '补充现金流通知单', desc: '经营活动现金流待勾稽', path: '/ledger/cashflow-notice-check', priority: 'low' },
 ]
 
 const defaultRecentItems = [
-  { title: '资产负债表', detail: '2026 年 4 月报表', time: '10:24', path: '/ledger/balance-sheet', icon: DataAnalysis },
+  { title: '资产负债表', detail: '本期财务报表', time: '10:24', path: '/ledger/balance-sheet', icon: DataAnalysis },
   { title: '凭证协同检查', detail: '自动生成凭证复核', time: '昨天', path: '/ledger/voucher-collaboration-check', icon: Tickets },
   { title: '往来对账单', detail: '客户与供应商余额核对', time: '周五', path: '/ledger/counterparty-statement', icon: Files },
 ]
 
 const defaultNotices = [
   { tag: '财务', type: 'finance', title: '月结监控中心已更新', desc: '新增异常凭证定位与结转进度提醒。' },
-  { tag: '平台', type: 'platform', title: 'Matrix 工作台升级', desc: '多系统入口、待办与最近访问已整合。' },
-  { tag: '知识', type: 'knowledge', title: '知识系统进入产品设计', desc: '后续会接入制度、问答与文档资产。' },
+  { tag: '平台', type: 'platform', title: '应用中心完成重构', desc: '工作台与应用目录已拆分为不同职责。' },
+  { tag: 'IM', type: 'knowledge', title: '实时消息能力已接入', desc: '支持消息中心、断线同步和已读回执。' },
 ]
 
 const defaultQuickActions = [
@@ -385,36 +222,201 @@ const defaultQuickActions = [
   { label: '查看报表', icon: TrendCharts, path: '/ledger/balance-sheet' },
   { label: '企业建模', icon: Link, path: '/enterprise-modeling' },
   { label: '我的档案', icon: User, path: '/personal' },
-  { label: '日程日历', icon: Calendar, path: '/ledger/period-monitor-center' },
+  { label: '调度中心', icon: Calendar, path: '/scheduler/jobs' },
+]
+
+const defaultApps = [
+  {
+    key: 'finance',
+    name: '财务系统',
+    desc: '覆盖总账、凭证、应收应付、报表、期末处理和财务基础资料。',
+    meta: '核心业务系统',
+    status: '已上线',
+    category: 'business',
+    tags: ['总账', '应收应付', '报表', '月结'],
+    icon: Wallet,
+    accent: '#15745f',
+    path: '/finance',
+    newPage: true,
+    featured: true,
+    available: true,
+    order: 10,
+  },
+  {
+    key: 'knowledge',
+    name: '知识系统',
+    desc: '统一维护制度、流程、业务文档和知识切片，为检索与 AI 问答提供底座。',
+    meta: '企业知识底座',
+    status: '已上线',
+    category: 'intelligence',
+    tags: ['知识库', '文档', '检索', 'RAG'],
+    icon: Notebook,
+    accent: '#2f66a3',
+    path: '/ai/knowledge',
+    featured: true,
+    available: true,
+    order: 20,
+  },
+  {
+    key: 'im',
+    name: 'IM 推送平台',
+    desc: '提供站内消息、邮件通知、WebSocket 实时推送、同步恢复和已读回执。',
+    meta: '统一消息能力',
+    status: '已上线',
+    category: 'platform',
+    tags: ['WebSocket', '消息中心', '邮件', 'ACK'],
+    icon: Message,
+    accent: '#7356a8',
+    path: '/notifications',
+    featured: true,
+    available: true,
+    order: 30,
+  },
+  {
+    key: 'workflow',
+    name: '工作流与共享运营',
+    desc: '承载审批任务、费用报销流程、共享任务池、协同处理和状态追踪。',
+    meta: '流程协同平台',
+    status: '已上线',
+    category: 'business',
+    tags: ['审批流', '费用报销', '任务池', '协同'],
+    icon: Operation,
+    accent: '#a36a28',
+    path: '/shared/operations',
+    available: true,
+    order: 40,
+  },
+  {
+    key: 'scheduler',
+    name: '任务调度中心',
+    desc: '管理定时任务、执行实例、重试、补偿、运行监控和可靠性处置。',
+    meta: '平台调度能力',
+    status: '已上线',
+    category: 'platform',
+    tags: ['Quartz', '任务管理', '重试', '监控'],
+    icon: Calendar,
+    accent: '#267b83',
+    path: '/scheduler/jobs',
+    available: true,
+    order: 50,
+  },
+  {
+    key: 'openapi',
+    name: 'Matrix 开放平台',
+    desc: '管理外部应用、接口授权、数据范围、调用日志、异步任务和回调可靠性。',
+    meta: '外部系统接入',
+    status: '已上线',
+    category: 'integration',
+    tags: ['AppKey', 'HMAC', '授权', '回调'],
+    icon: Connection,
+    accent: '#3c6f9f',
+    path: '/openapi',
+    available: true,
+    order: 60,
+  },
+  {
+    key: 'botp',
+    name: 'BOTP 单据转换平台',
+    desc: '配置单据转换规则、字段映射、下推反写、执行追踪和异常对账。',
+    meta: '业务单据集成',
+    status: '已上线',
+    category: 'integration',
+    tags: ['单据转换', '映射规则', '反写', '对账'],
+    icon: Promotion,
+    accent: '#8b5d3b',
+    path: '/botp',
+    available: true,
+    order: 70,
+  },
+  {
+    key: 'ai-assistant',
+    name: 'AI 助手',
+    desc: '围绕财务、数据、知识和平台文档提供智能问答与业务辅助。',
+    meta: '智能协作入口',
+    status: '已上线',
+    category: 'intelligence',
+    tags: ['智能问答', '流式输出', '业务助手'],
+    icon: ChatDotRound,
+    accent: '#365bc0',
+    path: '/ai/assistant',
+    available: true,
+    order: 80,
+  },
+  {
+    key: 'master-data',
+    name: '企业建模与主数据',
+    desc: '维护组织、人员、客户、供应商、物料、币种和公共基础资料。',
+    meta: '平台基础服务',
+    status: '已上线',
+    category: 'platform',
+    tags: ['组织', '人员', '客户', '供应商'],
+    icon: OfficeBuilding,
+    accent: '#596d72',
+    path: '/enterprise-modeling',
+    available: true,
+    order: 90,
+  },
+  {
+    key: 'scheduler-operations',
+    name: '调度运行与可靠性中心',
+    desc: '集中查看调度执行、失败记录、补偿任务和异常恢复操作。',
+    meta: '运行保障',
+    status: '已上线',
+    category: 'platform',
+    tags: ['运行中心', '补偿', '异常恢复'],
+    icon: Cpu,
+    accent: '#4c758a',
+    path: '/scheduler/operations',
+    available: true,
+    order: 100,
+  },
 ]
 
 const heroMetrics = ref(defaultHeroMetrics)
-const apps = ref(defaultApps)
 const todos = ref(defaultTodos)
 const recentItems = ref(defaultRecentItems)
 const notices = ref(defaultNotices)
 const quickActions = ref(defaultQuickActions)
+const apps = ref(defaultApps)
 
-onMounted(loadWorkbench)
+watch(() => route.query.view, (view) => {
+  activeNav.value = resolveInternalView(view)
+})
 
-async function loadWorkbench() {
-  try {
-    const res = await getWorkbench()
-    const data = unwrapResponse(res)
-    heroMetrics.value = hydrateList(data.heroMetrics, hydrateMetric, defaultHeroMetrics)
-    apps.value = hydrateList(data.apps, hydrateApp, defaultApps)
-    todos.value = hydrateList(data.todos, hydrateTodo, defaultTodos)
-    recentItems.value = hydrateList(data.recentItems, hydrateRecent, defaultRecentItems)
-    notices.value = hydrateList(data.notices, hydrateNotice, defaultNotices)
-    quickActions.value = hydrateList(data.quickActions, hydrateQuickAction, defaultQuickActions)
-  } catch (error) {
-    console.warn('Matrix workbench config fallback to local data', error)
+onMounted(loadPortalData)
+
+async function loadPortalData() {
+  const [workbenchResult, appsResult] = await Promise.allSettled([
+    getWorkbench(),
+    getApps(),
+  ])
+
+  if (workbenchResult.status === 'fulfilled') {
+    try {
+      const data = unwrapResponse(workbenchResult.value)
+      heroMetrics.value = hydrateList(data.heroMetrics, hydrateMetric, defaultHeroMetrics)
+      todos.value = hydrateList(data.todos, hydrateTodo, defaultTodos)
+      recentItems.value = hydrateList(data.recentItems, hydrateRecent, defaultRecentItems)
+      notices.value = hydrateList(data.notices, hydrateNotice, defaultNotices)
+      quickActions.value = hydrateList(data.quickActions, hydrateQuickAction, defaultQuickActions)
+    } catch (error) {
+      console.warn('Matrix workbench config fallback to local data', error)
+    }
+  }
+
+  if (appsResult.status === 'fulfilled') {
+    try {
+      const remoteApps = unwrapResponse(appsResult.value)
+      apps.value = mergeAppCatalog(Array.isArray(remoteApps) ? remoteApps : [])
+    } catch (error) {
+      console.warn('Matrix application center fallback to local catalog', error)
+    }
   }
 }
 
 function unwrapResponse(res) {
   if (res?.code && res.code !== 200) {
-    throw new Error(res.message || 'workbench api error')
+    throw new Error(res.message || 'platform api error')
   }
   return res?.data || res || {}
 }
@@ -431,21 +433,6 @@ function hydrateMetric(item) {
     label: item.label || item.name || item.title,
     value: item.value,
     hint: item.hint,
-  }
-}
-
-function hydrateApp(item) {
-  return {
-    name: item.name || item.title || item.label,
-    desc: item.desc || item.description || item.detail,
-    meta: item.meta || item.hint,
-    status: item.status,
-    icon: resolveMatrixIcon(item.iconKey, Grid),
-    accent: item.accent,
-    path: item.path || item.routePath,
-    newPage: item.newPage === true,
-    featured: item.featured === true,
-    available: item.available !== false,
   }
 }
 
@@ -485,21 +472,100 @@ function hydrateQuickAction(item) {
   }
 }
 
-function handleNav(item) {
-  if (item.disabled) {
-    showToast(`${item.label}正在规划中`)
-    return
-  }
-
-  activeNav.value = item.key
-  if (item.path) {
-    navigateTo(item.path, { newPage: item.newPage })
+function hydrateRemoteApp(item) {
+  return {
+    key: item.key,
+    name: item.name || item.title || item.label,
+    desc: item.desc || item.description || item.detail,
+    meta: item.meta || item.hint,
+    status: normalizeStatus(item.status, item.available),
+    icon: resolveMatrixIcon(item.iconKey, Grid),
+    accent: item.accent,
+    path: item.path || item.routePath,
+    newPage: item.newPage === true,
+    featured: item.featured === true,
+    available: item.available !== false,
   }
 }
 
+function mergeAppCatalog(remoteApps) {
+  const catalog = defaultApps.map((item) => ({ ...item }))
+  const byKey = new Map(catalog.map((item) => [item.key, item]))
+  const byName = new Map(catalog.map((item) => [item.name, item]))
+
+  remoteApps.forEach((raw) => {
+    const remote = hydrateRemoteApp(raw)
+    const target = byKey.get(remote.key) || byName.get(remote.name)
+    if (target) {
+      Object.assign(target, {
+        ...remote,
+        category: target.category,
+        tags: target.tags,
+        icon: raw.iconKey ? remote.icon : target.icon,
+        accent: remote.accent || target.accent,
+        path: remote.path || target.path,
+        meta: remote.meta || target.meta,
+        order: target.order,
+      })
+      return
+    }
+
+    catalog.push({
+      ...remote,
+      key: remote.key || `remote-${catalog.length + 1}`,
+      category: inferCategory(remote),
+      tags: [],
+      order: 1000 + catalog.length,
+    })
+  })
+
+  return catalog.sort((left, right) => (left.order || 9999) - (right.order || 9999))
+}
+
+function inferCategory(app) {
+  const text = `${app.name || ''} ${app.meta || ''}`.toLowerCase()
+  if (text.includes('ai') || text.includes('知识') || text.includes('智能')) {
+    return 'intelligence'
+  }
+  if (text.includes('开放') || text.includes('集成') || text.includes('botp')) {
+    return 'integration'
+  }
+  if (text.includes('财务') || text.includes('审批') || text.includes('业务')) {
+    return 'business'
+  }
+  return 'platform'
+}
+
+function normalizeStatus(status, available) {
+  if (status === 'ENABLED') {
+    return '已上线'
+  }
+  if (status === 'DISABLED') {
+    return '规划中'
+  }
+  return status || (available === false ? '规划中' : '已上线')
+}
+
+function resolveInternalView(value) {
+  return ['workbench', 'apps', 'settings'].includes(value) ? value : 'workbench'
+}
+
+function handleNav(item) {
+  if (item.internal) {
+    switchInternalView(item.key)
+    return
+  }
+  navigateTo(item.path, { newPage: item.newPage })
+}
+
+function switchInternalView(view) {
+  activeNav.value = view
+  router.replace({ path: '/portal', query: view === 'workbench' ? {} : { view } })
+}
+
 function openApp(app) {
-  if (!app.available) {
-    showToast(`${app.name}正在规划中，将作为 Matrix 的下一批系统入口`)
+  if (app.available === false) {
+    showToast(`${app.name}仍在规划中`)
     return
   }
   navigateTo(app.path, { newPage: app.newPage })
@@ -511,21 +577,22 @@ function navigateTo(path, options = {}) {
     return
   }
   if (options.newPage) {
-    openRouteInNewPage(path)
+    const url = router.resolve(path).href
+    window.open(url, '_blank', 'noopener')
     return
   }
   router.push(path)
 }
 
-function openRouteInNewPage(path) {
-  const url = router.resolve(path).href
-  window.open(url, '_blank', 'noopener')
+async function refreshWorkbench() {
+  showToast('正在刷新工作台', 'success')
+  await loadPortalData()
 }
 
 function handleLogout() {
   clearToken()
   showToast('已退出登录', 'success')
-  window.setTimeout(() => router.push('/login'), 700)
+  window.setTimeout(() => router.push('/login'), 600)
 }
 
 function showToast(text, type = 'info') {
@@ -543,990 +610,425 @@ function showToast(text, type = 'info') {
 .matrix-shell {
   min-height: 100vh;
   display: flex;
-  background:
-    linear-gradient(180deg, rgba(247, 250, 249, 0.96) 0%, rgba(237, 243, 244, 0.96) 100%),
-    #f4f7f8;
-  color: #17202c;
-}
-
-.svg-icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
+  color: #1b2d2a;
+  background: #f2f6f5;
 }
 
 .side-nav {
-  width: 236px;
-  min-height: 100vh;
   position: sticky;
   top: 0;
-  align-self: flex-start;
   display: flex;
+  width: 226px;
+  height: 100vh;
+  flex: 0 0 226px;
   flex-direction: column;
-  gap: 22px;
-  padding: 22px 16px;
-  border-right: 1px solid rgba(26, 42, 58, 0.1);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(18px);
+  padding: 24px 16px 18px;
+  border-right: 1px solid #dfe8e5;
+  background: #ffffff;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
+  padding: 0 8px 26px;
 }
 
 .brand-mark {
+  display: grid;
   width: 42px;
   height: 42px;
-  border-radius: 8px;
-  display: grid;
   place-items: center;
+  border-radius: 14px;
   color: #ffffff;
-  font-size: 22px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #0d5f69 0%, #0f8a6a 58%, #d6a23a 100%);
-  box-shadow: 0 12px 28px rgba(15, 138, 106, 0.22);
+  background: linear-gradient(135deg, #1e6957, #3d9a7e);
+  box-shadow: 0 10px 22px rgba(30, 105, 87, 0.25);
+  font-size: 21px;
+  font-weight: 900;
 }
 
-.brand-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.brand-copy strong,
+.brand-copy span {
+  display: block;
 }
 
 .brand-copy strong {
+  color: #17312d;
   font-size: 19px;
-  line-height: 1.1;
+  letter-spacing: 0.04em;
 }
 
 .brand-copy span {
-  margin-top: 4px;
-  color: #667482;
-  font-size: 12px;
+  margin-top: 3px;
+  color: #7a8986;
+  font-size: 11px;
 }
 
 .nav-group {
   display: grid;
-  gap: 6px;
+  gap: 7px;
 }
 
 .nav-item,
-.logout-link,
-.text-button,
-.primary-action,
-.secondary-action,
-.recent-item,
-.todo-item,
-.quick-grid button {
-  border: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-.nav-item {
-  min-height: 44px;
+.logout-link {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 12px;
-  border-radius: 8px;
-  color: #4c5967;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 12px;
+  color: #60716d;
   background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
   text-align: left;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
-.nav-item:hover {
-  color: #0d5f69;
-  background: rgba(13, 95, 105, 0.08);
+.nav-item:hover,
+.logout-link:hover {
+  color: #1f6956;
+  background: #f0f8f5;
+  transform: translateX(2px);
 }
 
 .nav-item.active {
-  color: #0c5b63;
-  background: rgba(15, 138, 106, 0.12);
-  font-weight: 700;
+  color: #1e6956;
+  background: #e8f5f0;
+  box-shadow: inset 3px 0 0 #2f8b70;
 }
 
-.nav-item.disabled {
-  color: #9aa4ad;
+.nav-icon,
+.nav-item :deep(svg),
+.logout-link :deep(svg) {
+  width: 19px;
+  height: 19px;
 }
 
-.side-status {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
+.side-spacer {
+  flex: 1;
+}
+
+.platform-status {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
   gap: 10px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(15, 138, 106, 0.16);
-  background: #f4fbf7;
+  align-items: center;
+  margin: 18px 4px;
+  padding: 14px;
+  border: 1px solid #e3ece9;
+  border-radius: 14px;
+  background: #f8fbfa;
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #12a66a;
-  box-shadow: 0 0 0 5px rgba(18, 166, 106, 0.12);
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #39a77f;
+  box-shadow: 0 0 0 5px rgba(57, 167, 127, 0.11);
 }
 
-.side-status span,
-.side-status strong {
+.platform-status strong,
+.platform-status small {
   display: block;
 }
 
-.side-status span {
-  color: #5c6976;
+.platform-status strong {
+  color: #36534d;
   font-size: 12px;
 }
 
-.side-status strong {
-  margin-top: 2px;
-  color: #152331;
-  font-size: 15px;
+.platform-status small {
+  margin-top: 3px;
+  color: #879591;
+  font-size: 10px;
 }
 
 .logout-link {
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  border-radius: 8px;
-  color: #6a7480;
-  background: #f7f9fa;
-}
-
-.logout-link:hover {
-  color: #a64024;
-  background: #fff2ec;
+  color: #8a5b5b;
 }
 
 .workspace {
-  flex: 1;
   min-width: 0;
-  padding: 20px 24px 34px;
+  flex: 1;
 }
 
 .topbar {
-  min-height: 58px;
-  display: grid;
-  grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr) auto;
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: space-between;
+  min-height: 82px;
+  gap: 24px;
+  padding: 14px 30px;
+  border-bottom: 1px solid rgba(218, 230, 226, 0.9);
+  background: rgba(247, 250, 249, 0.9);
+  backdrop-filter: blur(16px);
 }
 
-.page-title {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.page-title span,
+.page-title strong,
+.page-title small {
+  display: block;
 }
 
 .page-title span {
-  color: #74808c;
-  font-size: 13px;
+  color: #7e8d89;
+  font-size: 11px;
 }
 
 .page-title strong {
+  margin-top: 3px;
+  color: #172d29;
+  font-size: 20px;
+}
+
+.page-title small {
   margin-top: 2px;
-  font-size: 22px;
-}
-
-.search-box {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  border: 1px solid rgba(28, 44, 61, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 10px 30px rgba(34, 53, 73, 0.06);
-}
-
-.search-box .svg-icon {
-  color: #7f8d99;
-}
-
-.search-box input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  color: #17202c;
-  background: transparent;
-  font-size: 14px;
-}
-
-.search-box input::placeholder {
-  color: #8b96a1;
+  color: #87938f;
+  font-size: 11px;
 }
 
 .top-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 9px;
 }
 
-.icon-button {
-  width: 42px;
-  height: 42px;
+.top-action {
   position: relative;
   display: grid;
+  width: 38px;
+  height: 38px;
   place-items: center;
-  border-radius: 8px;
-  border: 1px solid rgba(28, 44, 61, 0.1);
-  color: #354151;
+  border: 1px solid #dbe7e3;
+  border-radius: 12px;
+  color: #56716a;
   background: #ffffff;
   cursor: pointer;
 }
 
-.icon-button:hover {
-  color: #0f766e;
-  border-color: rgba(15, 118, 110, 0.24);
-}
-
-.icon-button.small {
-  width: 34px;
-  height: 34px;
+.top-action svg {
+  width: 18px;
+  height: 18px;
 }
 
 .notice-badge {
-  width: 8px;
-  height: 8px;
   position: absolute;
-  top: 9px;
-  right: 9px;
-  border-radius: 50%;
-  background: #d67c21;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #e45c58;
 }
 
-.avatar-button {
-  min-width: 168px;
-  height: 44px;
+.profile-button {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 10px 0 8px;
-  border: 1px solid rgba(28, 44, 61, 0.1);
-  border-radius: 8px;
-  background: #ffffff;
-  color: #17202c;
+  gap: 9px;
+  min-height: 42px;
+  padding: 3px 10px 3px 4px;
+  border: 0;
+  border-radius: 14px;
+  color: inherit;
+  background: transparent;
   cursor: pointer;
+}
+
+.avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 12px;
+  color: #ffffff;
+  background: #2f7f6b;
+  font-weight: 800;
+}
+
+.profile-copy strong,
+.profile-copy small {
+  display: block;
   text-align: left;
 }
 
-.avatar-button > span {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: #0d5f69;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.avatar-button div {
-  min-width: 0;
-}
-
-.avatar-button strong,
-.avatar-button small {
-  display: block;
-  white-space: nowrap;
-}
-
-.avatar-button strong {
-  font-size: 13px;
-}
-
-.avatar-button small {
-  margin-top: 1px;
-  color: #73808d;
-  font-size: 11px;
-}
-
-.hero-band {
-  min-height: 316px;
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 440px);
-  align-items: end;
-  gap: 18px;
-  margin-top: 12px;
-  padding: 34px;
-  border-radius: 8px;
-  border: 1px solid rgba(18, 32, 45, 0.12);
-  background: #10222b;
-  box-shadow: 0 22px 58px rgba(26, 42, 58, 0.16);
-}
-
-.hero-image,
-.hero-shade {
-  position: absolute;
-  inset: 0;
-}
-
-.hero-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero-shade {
-  background:
-    linear-gradient(90deg, rgba(10, 28, 34, 0.82) 0%, rgba(10, 28, 34, 0.58) 38%, rgba(10, 28, 34, 0.18) 74%),
-    linear-gradient(180deg, rgba(10, 28, 34, 0.08) 0%, rgba(10, 28, 34, 0.48) 100%);
-}
-
-.hero-content,
-.hero-metrics {
-  position: relative;
-  z-index: 1;
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #b7ead8;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.eyebrow span {
-  width: 24px;
-  height: 2px;
-  border-radius: 2px;
-  background: #d6a23a;
-}
-
-.hero-content h1 {
-  max-width: 680px;
-  margin: 14px 0 12px;
-  color: #ffffff;
-  font-size: 42px;
-  line-height: 1.12;
-  letter-spacing: 0;
-}
-
-.hero-content p {
-  max-width: 640px;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 16px;
-  line-height: 1.8;
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.primary-action,
-.secondary-action {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 0 18px;
-  border-radius: 8px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.primary-action {
-  color: #ffffff;
-  background: #0f8a6a;
-  box-shadow: 0 14px 30px rgba(15, 138, 106, 0.3);
-}
-
-.secondary-action {
-  color: #f8fbfb;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.primary-action:hover,
-.secondary-action:hover {
-  transform: translateY(-1px);
-}
-
-.hero-metrics {
-  display: grid;
-  gap: 10px;
-  align-self: stretch;
-}
-
-.metric-item {
-  display: grid;
-  align-content: center;
-  gap: 4px;
-  min-height: 82px;
-  padding: 14px 16px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(8, 27, 33, 0.45);
-  backdrop-filter: blur(16px);
-}
-
-.metric-item span {
-  color: rgba(255, 255, 255, 0.68);
+.profile-copy strong {
+  color: #2a3e3a;
   font-size: 12px;
 }
 
-.metric-item strong {
-  color: #ffffff;
-  font-size: 25px;
-  line-height: 1;
+.profile-copy small {
+  margin-top: 2px;
+  color: #87938f;
+  font-size: 10px;
 }
 
-.metric-item small {
-  color: #b7ead8;
-  font-size: 12px;
+.page-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 28px 30px 42px;
 }
 
-.content-grid {
+.settings-view {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 352px;
-  gap: 22px;
-  margin-top: 24px;
+  gap: 24px;
 }
 
-.main-column,
-.right-column {
-  min-width: 0;
+.settings-hero {
+  display: grid;
+  justify-items: start;
+  padding: 42px;
+  border-radius: 28px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #273b45 0%, #365a61 100%);
 }
 
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
+.settings-icon {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 18px;
 }
 
-.section-heading.compact {
-  margin-bottom: 12px;
-}
-
-.section-heading span {
-  display: block;
-  color: #0f766e;
+.settings-hero span {
+  color: #b9d5d2;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  letter-spacing: 0.16em;
 }
 
-.section-heading h2 {
-  margin: 2px 0 0;
-  font-size: 22px;
-  line-height: 1.25;
+.settings-hero h1 {
+  margin: 9px 0 0;
+  font-size: 38px;
 }
 
-.section-heading.compact h2 {
-  font-size: 18px;
+.settings-hero p {
+  max-width: 640px;
+  margin: 14px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.75;
 }
 
-.text-button {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-radius: 8px;
-  color: #1b4d5c;
-  background: #e8f4f1;
-}
-
-.app-grid {
+.settings-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.app-card {
-  min-height: 186px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  border: 1px solid rgba(26, 42, 58, 0.1);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 14px 38px rgba(34, 53, 73, 0.08);
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.app-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(15, 138, 106, 0.34);
-  box-shadow: 0 18px 46px rgba(34, 53, 73, 0.12);
-}
-
-.app-card.featured {
-  color: #ffffff;
-  border-color: rgba(15, 138, 106, 0.24);
-  background:
-    linear-gradient(135deg, rgba(13, 95, 105, 0.96) 0%, rgba(15, 138, 106, 0.94) 58%, rgba(35, 65, 76, 0.98) 100%);
-}
-
-.app-card.disabled {
-  cursor: default;
-  background: #f7f9fa;
-}
-
-.app-card-head,
-.app-card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.app-icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, #ffffff);
-}
-
-.app-card.featured .app-icon {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.app-status {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 9px;
-  border-radius: 999px;
-  color: #7b8792;
-  background: #edf1f3;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.app-status.live {
-  color: #0f6f55;
-  background: #def6eb;
-}
-
-.app-card.featured .app-status {
-  color: #173126;
-  background: #b7ead8;
-}
-
-.app-card h3 {
-  margin: 4px 0 0;
-  font-size: 19px;
-  line-height: 1.28;
-}
-
-.app-card p {
-  margin: 0;
-  color: #65717d;
-  font-size: 14px;
-  line-height: 1.65;
-}
-
-.app-card.featured p {
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.app-card-foot {
-  margin-top: auto;
-  color: #53606d;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.app-card.featured .app-card-foot {
-  color: #ffffff;
-}
-
-.lower-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  margin-top: 22px;
 }
 
-.work-section,
-.today-panel,
-.quick-panel {
-  padding: 18px;
-  border: 1px solid rgba(26, 42, 58, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 14px 38px rgba(34, 53, 73, 0.07);
-}
-
-.right-column {
+.settings-grid article {
   display: grid;
+  min-height: 180px;
   align-content: start;
-  gap: 16px;
-}
-
-.recent-list,
-.notice-list,
-.todo-list {
-  display: grid;
-  gap: 10px;
-}
-
-.recent-item,
-.todo-item {
-  width: 100%;
-  min-height: 62px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  color: #17202c;
-  background: #f7f9fa;
-  text-align: left;
+  padding: 24px;
+  border: 1px solid #e0e9e6;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(38, 70, 68, 0.06);
 }
 
-.recent-item:hover,
-.todo-item:hover {
-  background: #edf6f3;
+.settings-grid svg {
+  width: 28px;
+  height: 28px;
+  color: #2f7f6b;
 }
 
-.recent-icon {
-  color: #0d5f69;
+.settings-grid strong {
+  color: #203632;
+  font-size: 17px;
 }
 
-.recent-item strong,
-.recent-item span,
-.todo-item strong,
-.todo-item small {
-  display: block;
-}
-
-.recent-item strong,
-.todo-item strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-}
-
-.recent-item span,
-.todo-item small {
-  margin-top: 3px;
-  color: #697684;
-  font-size: 12px;
-}
-
-.recent-item small {
-  color: #87929d;
-  font-size: 12px;
-}
-
-.notice-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(26, 42, 58, 0.08);
-}
-
-.notice-item:last-child {
-  border-bottom: 0;
-}
-
-.notice-type {
-  min-width: 42px;
-  height: 24px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.notice-type.finance {
-  color: #0f6f55;
-  background: #def6eb;
-}
-
-.notice-type.platform {
-  color: #2454a6;
-  background: #e4edff;
-}
-
-.notice-type.knowledge {
-  color: #8a5a0f;
-  background: #fff1cf;
-}
-
-.notice-item strong {
-  display: block;
-  font-size: 14px;
-}
-
-.notice-item p {
-  margin: 4px 0 0;
-  color: #667482;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.todo-priority {
-  width: 9px;
-  height: 38px;
-  border-radius: 999px;
-  background: #8ca0ad;
-}
-
-.todo-priority.high {
-  background: #c9562d;
-}
-
-.todo-priority.medium {
-  background: #d6a23a;
-}
-
-.todo-priority.low {
-  background: #0f8a6a;
-}
-
-.todo-item .svg-icon {
-  color: #96a0aa;
-}
-
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.quick-grid button {
-  min-height: 76px;
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  padding: 12px 8px;
-  border-radius: 8px;
-  color: #263443;
-  background: #f7f9fa;
-}
-
-.quick-grid button:hover {
-  color: #0d5f69;
-  background: #edf6f3;
-}
-
-.quick-grid span {
-  max-width: 100%;
-  overflow-wrap: anywhere;
+.settings-grid span {
+  color: #73847f;
   font-size: 13px;
-  font-weight: 700;
+  line-height: 1.7;
 }
 
 .toast {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 30;
-  max-width: min(360px, calc(100vw - 48px));
-  padding: 12px 16px;
-  border-radius: 8px;
+  z-index: 100;
+  right: 28px;
+  bottom: 28px;
+  max-width: 360px;
+  padding: 13px 18px;
+  border-radius: 12px;
   color: #ffffff;
-  background: #17202c;
-  box-shadow: 0 16px 38px rgba(23, 32, 44, 0.22);
+  background: #344e49;
+  box-shadow: 0 16px 38px rgba(20, 48, 43, 0.24);
+  font-size: 13px;
 }
 
 .toast.success {
-  background: #0f8a6a;
+  background: #23785f;
 }
 
 .toast-enter-active,
 .toast-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(10px);
 }
 
-@media (max-width: 1180px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .right-column {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 980px) {
+@media (max-width: 920px) {
   .side-nav {
-    width: 84px;
-    padding: 18px 12px;
-    align-items: center;
+    width: 78px;
+    flex-basis: 78px;
+    padding-inline: 10px;
   }
 
   .brand-copy,
   .nav-item span,
-  .side-status,
-  .logout-link span {
+  .logout-link span,
+  .platform-status div {
     display: none;
+  }
+
+  .brand {
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .nav-item,
   .logout-link {
-    width: 46px;
     justify-content: center;
     padding: 0;
   }
 
-  .topbar {
+  .platform-status {
     grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 12px 6px;
   }
 
-  .top-actions {
-    justify-content: space-between;
-  }
-
-  .search-box {
-    order: 3;
-  }
-
-  .hero-band {
+  .settings-grid {
     grid-template-columns: 1fr;
-  }
-
-  .hero-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .app-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 720px) {
-  .matrix-shell {
-    display: block;
+@media (max-width: 680px) {
+  .topbar {
+    align-items: flex-start;
+    padding: 14px 18px;
   }
 
-  .side-nav {
-    width: 100%;
-    min-height: auto;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    overflow-x: auto;
-    padding: 10px 12px;
-    border-right: 0;
-    border-bottom: 1px solid rgba(26, 42, 58, 0.1);
-  }
-
-  .brand-copy,
-  .nav-item span,
-  .logout-link span {
+  .profile-copy,
+  .top-action:first-child {
     display: none;
   }
 
-  .nav-group {
-    display: flex;
-    gap: 6px;
-  }
-
-  .workspace {
-    padding: 16px 14px 28px;
-  }
-
-  .top-actions {
-    flex-wrap: wrap;
-  }
-
-  .avatar-button {
-    min-width: 144px;
-  }
-
-  .hero-band {
-    min-height: auto;
-    padding: 26px 18px;
-  }
-
-  .hero-content h1 {
-    font-size: 32px;
-  }
-
-  .hero-content p {
-    font-size: 14px;
-  }
-
-  .hero-metrics,
-  .app-grid,
-  .lower-grid,
-  .right-column {
-    grid-template-columns: 1fr;
-  }
-
-  .metric-item {
-    min-height: 72px;
-  }
-
-  .section-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .text-button {
-    align-self: stretch;
-    justify-content: center;
-  }
-
-  .toast {
-    right: 14px;
-    bottom: 14px;
-    max-width: calc(100vw - 28px);
-  }
-}
-
-@media (max-width: 430px) {
-  .top-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .icon-button {
-    width: 100%;
-  }
-
-  .avatar-button {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .primary-action,
-  .secondary-action {
-    width: 100%;
+  .page-content {
+    padding: 20px 16px 32px;
   }
 }
 </style>
