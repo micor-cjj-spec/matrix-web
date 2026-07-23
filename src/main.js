@@ -8,6 +8,14 @@ import vuetify from './plugins/vuetify'
 import router from './router'
 import { initAuth } from './utils/auth'
 
+router.removeRoute('Portal')
+router.addRoute({
+  path: '/portal',
+  name: 'Portal',
+  component: () => import('./views/login/PlatformPortalView.vue'),
+  meta: { title: '个人工作台' },
+})
+
 router.addRoute({
   path: '/scheduler/jobs',
   name: 'SchedulerJobs',
