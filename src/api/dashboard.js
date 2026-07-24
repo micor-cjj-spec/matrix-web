@@ -8,7 +8,7 @@ function localPeriod() {
 export function getFinanceDashboardOverview(params = {}) {
   const utcPeriod = new Date().toISOString().slice(0, 7)
   const requestedPeriod = params.period || localPeriod()
-  return request.get('/finance-dashboard/overview', {
+  return request.get('/voucher/dashboard/overview', {
     params: {
       ...params,
       period: requestedPeriod === utcPeriod ? localPeriod() : requestedPeriod,
