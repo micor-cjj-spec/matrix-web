@@ -1,8 +1,15 @@
 import request from '@/utils/request'
-import { newRequestId } from '@/utils/currentUser'
+import { getCurrentTenantId, newRequestId } from '@/utils/currentUser'
 
-export function listWorkflowTaskCenter(params) {
-  return request.get('/workflow/task-center', { params })
+export function listWorkflowTaskCenter(params = {}) {
+  return request.get('/workflow/task-center', {
+    params: {
+      ...params,
+      tenantId: params.tenantId && params.tenantId !== 'default'
+        ? params.tenantId
+        : getCurrentTenantId(params.tenantId || 'default'),
+    },
+  })
 }
 
 export function getWorkflowTask(taskId) {
