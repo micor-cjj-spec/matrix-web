@@ -226,7 +226,10 @@ router.beforeEach((to, from, next) => {
   const publicPages = ['/', '/login', '/register']
   const token = localStorage.getItem('token')
   if (!token && !publicPages.includes(to.path)) {
-    return next('/login')
+    return next({
+      path: '/login',
+      query: { redirect: to.fullPath },
+    })
   }
 
   if (token) {

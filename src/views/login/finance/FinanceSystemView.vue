@@ -65,7 +65,13 @@
           <strong>今日关注</strong>
         </div>
         <div class="focus-list">
-          <button v-for="item in focusItems" :key="item.name" type="button" @click="go(item.path)">
+          <button
+            v-for="item in focusItems"
+            :key="item.name"
+            type="button"
+            :class="{ muted: !item.path }"
+            @click="openBusiness(item)"
+          >
             <span>{{ item.name }}</span>
             <em>{{ item.status }}</em>
           </button>
@@ -171,7 +177,7 @@
                     :key="`${domain.id}-${item.name}`"
                     type="button"
                     class="business-card"
-                    :class="{ muted: item.ready === false }"
+                    :class="{ muted: item.ready === false || !item.path }"
                     @click="openBusiness(item)"
                   >
                     <span class="business-icon">
@@ -219,7 +225,13 @@
               <strong>高频操作</strong>
             </div>
             <div class="quick-grid">
-              <button v-for="item in quickActions" :key="item.name" type="button" @click="go(item.path)">
+              <button
+                v-for="item in quickActions"
+                :key="item.name"
+                type="button"
+                :class="{ muted: !item.path }"
+                @click="openBusiness(item)"
+              >
                 <component :is="item.icon" class="svg-icon" />
                 <span>{{ item.name }}</span>
               </button>
@@ -980,12 +992,16 @@ function openBusiness(item) {
     go(item.path)
     return
   }
-  stagedFeature.value = item
+  stagedFeature.value = {
+    ...item,
+    desc: item.desc || item.summary || '该入口正在接入',
+    status: item.status || '规划中',
+  }
 }
 
 function go(path) {
   if (!path) return
-  router.push(path)
+  router.push(path).catch(() => {})
 }
 </script>
 
@@ -1244,6 +1260,7 @@ button {
   border-radius: 8px;
   background: #f5f8f7;
 }
+
 
 .focus-list span {
   overflow: hidden;
@@ -1772,6 +1789,22 @@ button {
   background: color-mix(in srgb, var(--accent) 10%, #ffffff);
   font-size: 13px;
   font-weight: 900;
+}
+
+.focus-list button.muted,
+.quick-grid button.muted,
+.business-card.muted {
+  cursor: default;
+  opacity: 0.68;
+}
+
+.focus-list button.muted:hover,
+.quick-grid button.muted:hover,
+.business-card.muted:hover {
+  color: inherit;
+  border-color: rgba(27, 45, 57, 0.08);
+  background: #f7f9fa;
+  transform: none;
 }
 
 @media (max-width: 1280px) {
