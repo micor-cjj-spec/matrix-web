@@ -24,7 +24,15 @@
               <v-text-field v-model.trim="form.name" label="名称" :rules="requiredRules" maxlength="120" counter />
             </v-col>
             <v-col cols="12" md="6">
-              <v-number-input v-model="form.amount" label="金额" :min="0" :precision="2" :rules="amountRules" />
+              <v-text-field
+                v-model="form.amount"
+                label="金额"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                :rules="amountRules"
+              />
             </v-col>
             <v-col cols="12">
               <v-textarea v-model="form.remark" label="说明" rows="4" maxlength="500" counter />
@@ -64,7 +72,10 @@ const pageTitle = computed(() => ({ create: '新增 TODO(matrix)', edit: '编辑
 const emptyForm = () => ({ number: '', name: '', amount: null, remark: '' })
 const form = reactive(emptyForm())
 const requiredRules = [(value) => Boolean(String(value ?? '').trim()) || '该字段不能为空']
-const amountRules = [(value) => value !== null && value !== undefined || '请输入金额']
+const amountRules = [
+  (value) => value !== null && value !== undefined && value !== '' || '请输入金额',
+  (value) => Number(value) >= 0 || '金额不能小于 0',
+]
 
 function snapshot() {
   return JSON.stringify(form)
@@ -107,7 +118,7 @@ async function handleSubmit() {
     const payload = {
       number: form.number,
       name: form.name,
-      amount: form.amount === null ? null : String(form.amount),
+      amount: form.amount === null || form.amount === '' ? null : String(form.amount),
       remark: form.remark || null,
     }
     if (recordId.value) {
