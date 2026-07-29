@@ -25,6 +25,18 @@ Each skill directory may contain:
 - `assets/`: reusable checklists and templates.
 - `scripts/`: deterministic validation or generation tools.
 
+## Deterministic validation and assets
+
+See `.agents/VALIDATION.md` for complete usage.
+
+```bash
+python .agents/scripts/validate_skills.py
+node .agents/skills/matrix-frontend-review/scripts/scan-sensitive-logs.mjs
+npm run build
+```
+
+Reusable Element Plus and Vuetify table/form page templates are stored under the corresponding skill's `assets/` directory. Copy only the template matching the surrounding feature and replace every `TODO(matrix)` marker.
+
 ## Maintenance principles
 
 - Keep repository-wide invariants in `/AGENTS.md`.
