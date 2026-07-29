@@ -18,7 +18,6 @@
         :rules="rules"
         label-width="120px"
         :disabled="readOnly || saving"
-        @change="markDirty"
       >
         <el-form-item label="编号" prop="number">
           <el-input v-model.trim="form.number" maxlength="64" show-word-limit />
@@ -43,7 +42,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 // TODO(matrix): replace with the owning feature API module.
 import { createRecord, getRecord, updateRecord } from '@/api/replace-with-feature-api'
@@ -74,13 +73,14 @@ function snapshot() {
   return JSON.stringify(form)
 }
 
-function markDirty() {
+watch(form, () => {
   dirty.value = snapshot() !== initialSnapshot
-}
+}, { deep: true })
 
 async function loadDetail() {
   if (!recordId.value) {
     initialSnapshot = snapshot()
+    dirty.value = false
     return
   }
   loading.value = true
