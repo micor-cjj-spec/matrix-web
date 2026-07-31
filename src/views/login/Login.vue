@@ -33,7 +33,6 @@
           <span class="overline">Welcome back</span>
           <h2>登录 Matrix</h2>
         </div>
-        <RouterLink to="/register" class="ghost-link">创建账号</RouterLink>
       </div>
 
       <v-card class="auth-card" elevation="0">

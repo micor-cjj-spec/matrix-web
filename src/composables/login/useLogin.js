@@ -41,6 +41,14 @@ export function useLogin(router, snackbar) {
     },
   })
 
+  function resolveLoginTarget() {
+    const redirect = router.currentRoute.value?.query?.redirect
+    if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      return redirect
+    }
+    return '/portal'
+  }
+
   function showMsg(text, color = 'success') {
     if (snackbar?.value) {
       snackbar.value.text = text
@@ -90,7 +98,7 @@ export function useLogin(router, snackbar) {
           if (token) saveToken(token)
           showMsg('扫码登录成功', 'success')
           stopQrPolling()
-          await router.push('/portal')
+          await router.push(resolveLoginTarget())
         } else if (res.data?.status === 'expired') {
           showMsg('二维码已过期，请刷新', 'error')
           stopQrPolling()
@@ -158,7 +166,7 @@ export function useLogin(router, snackbar) {
         if (token) saveToken(token)
         showMsg('登录成功', 'success')
         resetAll()
-        await router.push('/portal')
+        await router.push(resolveLoginTarget())
       } catch (error) {
         const msg = error.response?.data?.message || error.response?.data?.msg || '登录失败'
         if (msg.includes('验证码') || msg.includes('3次')) {
@@ -182,7 +190,7 @@ export function useLogin(router, snackbar) {
         if (token) saveToken(token)
         showMsg('登录成功', 'success')
         resetAll()
-        await router.push('/portal')
+        await router.push(resolveLoginTarget())
       } catch (error) {
         showMsg(error.response?.data?.message || '登录失败', 'error')
       } finally {
