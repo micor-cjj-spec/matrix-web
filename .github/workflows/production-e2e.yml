@@ -1,0 +1,71 @@
+name: Matrix Production E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: '待验收的 Matrix 地址'
+        required: true
+        default: 'https://micor.top'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: matrix-production-e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: Playwright production acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ inputs.base_url }}
+      E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Install Playwright test runtime
+        run: npm install --no-save --package-lock=false @playwright/test@1.62.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production acceptance
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: matrix-playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: matrix-test-results
+          path: test-results/
+          retention-days: 14
