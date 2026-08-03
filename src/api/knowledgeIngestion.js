@@ -11,7 +11,6 @@ export function getKnowledgeIngestionConfig() {
 export function importKnowledgeFile(formData) {
   return request.post('/ai/knowledge/import', formData, {
     timeout: INGESTION_TIMEOUT,
-    headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
 
