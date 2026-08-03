@@ -37,7 +37,7 @@
             :kb-id="selectedKbId"
             :kb-name="selectedBaseName"
           />
-          <div v-else class="empty-state">当前账号没有可管理的知识库</div>
+          <div v-else class="empty-state">当前账号没有ADMIN或OWNER权限的知识库</div>
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -48,6 +48,7 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { listKnowledgeBases } from '@/api/ai'
+import { getKnowledgeBaseAccess } from '@/api/knowledgeAcl'
 import KnowledgeEvaluationPanel from '@/views/ai/components/KnowledgeEvaluationPanel.vue'
 
 const route = useRoute()
@@ -65,7 +66,14 @@ async function open() {
   loadingBases.value = true
   try {
     const response = await listKnowledgeBases()
-    bases.value = response?.data || []
+    const visibleBases = response?.data || []
+    const accessResults = await Promise.allSettled(
+      visibleBases.map(item => getKnowledgeBaseAccess(item.kbId)),
+    )
+    bases.value = visibleBases.filter((item, index) => {
+      const result = accessResults[index]
+      return result.status === 'fulfilled' && Boolean(result.value?.data?.canAdmin)
+    })
     if (!bases.value.some(item => item.kbId === selectedKbId.value)) {
       selectedKbId.value = bases.value[0]?.kbId || ''
     }
