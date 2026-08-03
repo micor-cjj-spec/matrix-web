@@ -99,6 +99,7 @@
                 icon="mdi-pencil-outline"
                 size="small"
                 variant="text"
+                :disabled="entry.permission === 'OWNER' && !access.canOwn"
                 @click="editEntry(entry)"
               />
               <v-btn
@@ -154,13 +155,16 @@ const subjectTypeItems = [
   { title: '组织', value: 'ORGANIZATION' },
   { title: '认证权限', value: 'AUTHORITY' },
 ]
-const permissionItems = [
+const basePermissionItems = [
   { title: '查看者 VIEWER', value: 'VIEWER' },
   { title: '编辑者 EDITOR', value: 'EDITOR' },
   { title: '管理员 ADMIN', value: 'ADMIN' },
   { title: '所有者 OWNER', value: 'OWNER' },
 ]
 
+const permissionItems = computed(() => access.value?.canOwn
+  ? basePermissionItems
+  : basePermissionItems.filter(item => item.value !== 'OWNER'))
 const permissionLabel = computed(() => permissionText(access.value?.permission || 'NONE'))
 const permissionColor = computed(() => permissionColorFor(access.value?.permission || 'NONE'))
 const subjectIdLabel = computed(() => {
@@ -177,6 +181,9 @@ async function load() {
   try {
     const accessResp = await getKnowledgeBaseAccess(props.kbId)
     access.value = accessResp?.data || null
+    if (!access.value?.canOwn && form.permission === 'OWNER') {
+      form.permission = 'ADMIN'
+    }
     emit('access-change', access.value)
     if (access.value?.aclEnabled && access.value?.canAdmin) {
       const aclResp = await listKnowledgeBaseAcl(props.kbId)
@@ -218,6 +225,7 @@ async function saveGrant() {
 }
 
 function editEntry(entry) {
+  if (entry.permission === 'OWNER' && !access.value?.canOwn) return
   form.subjectType = entry.subjectType
   form.subjectId = entry.subjectId
   form.permission = entry.permission
