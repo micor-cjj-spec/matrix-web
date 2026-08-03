@@ -6,6 +6,8 @@ on:
       - dev
       - 'agent/knowledge-*'
     paths:
+      - 'src/App.vue'
+      - 'src/components/ai/KnowledgeAclLauncher.vue'
       - 'src/views/ai/**'
       - 'src/api/ai.js'
       - 'src/api/knowledge*.js'
@@ -18,6 +20,8 @@ on:
       - dev
       - 'agent/knowledge-*'
     paths:
+      - 'src/App.vue'
+      - 'src/components/ai/KnowledgeAclLauncher.vue'
       - 'src/views/ai/**'
       - 'src/api/ai.js'
       - 'src/api/knowledge*.js'
