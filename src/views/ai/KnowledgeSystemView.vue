@@ -4,7 +4,7 @@
       <div>
         <span class="eyebrow">Matrix Knowledge</span>
         <h1>企业知识系统</h1>
-        <p>按知识库组织制度、流程、案例和业务口径，并作为 AI 助手可追溯的引用来源。</p>
+        <p>按知识库组织制度、流程、案例和业务口径，并通过文件导入、异步索引和可追溯引用持续沉淀。</p>
       </div>
       <div class="hero-actions">
         <v-btn color="primary" prepend-icon="mdi-database-plus-outline" @click="openBaseCreate">新建知识库</v-btn>
@@ -36,6 +36,12 @@
       </article>
     </section>
 
+    <KnowledgeIngestionPanel
+      :knowledge-bases="knowledgeBases"
+      :selected-kb-id="selectedKbId"
+      @imported="handleImported"
+    />
+
     <section class="workspace-grid">
       <aside class="panel base-panel">
         <div class="panel-title">
@@ -46,12 +52,7 @@
           <v-btn icon="mdi-refresh" size="small" variant="text" :loading="baseLoading" @click="refreshAll" />
         </div>
 
-        <button
-          type="button"
-          class="base-item"
-          :class="{ active: selectedKbId === 'all' }"
-          @click="selectBase('all')"
-        >
+        <button type="button" class="base-item" :class="{ active: selectedKbId === 'all' }" @click="selectBase('all')">
           <div>
             <strong>全部知识</strong>
             <small>跨知识库检索</small>
@@ -60,12 +61,7 @@
         </button>
 
         <div v-for="base in knowledgeBases" :key="base.kbId" class="base-item-wrap">
-          <button
-            type="button"
-            class="base-item"
-            :class="{ active: selectedKbId === base.kbId }"
-            @click="selectBase(base.kbId)"
-          >
+          <button type="button" class="base-item" :class="{ active: selectedKbId === base.kbId }" @click="selectBase(base.kbId)">
             <div>
               <strong>{{ base.name }}</strong>
               <small>{{ base.description || base.kbId }}</small>
@@ -89,7 +85,7 @@
       </aside>
 
       <section class="panel document-panel">
-        <div class="panel-title document-heading">
+        <div class="panel-title">
           <div>
             <span>Documents</span>
             <strong>{{ selectedBaseName }}</strong>
@@ -147,9 +143,7 @@
               <small>{{ item.docId }}</small>
             </div>
           </template>
-          <template #item.kbId="{ item }">
-            {{ baseName(item.kbId) }}
-          </template>
+          <template #item.kbId="{ item }">{{ baseName(item.kbId) }}</template>
           <template #item.status="{ item }">
             <v-chip :color="item.status === 'ACTIVE' ? 'success' : 'grey'" size="small" variant="tonal">
               {{ item.status === 'ACTIVE' ? '启用' : '停用' }}
@@ -189,12 +183,11 @@
           <div class="detail-actions">
             <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil" @click="openDocEdit">编辑</v-btn>
             <v-btn size="small" variant="tonal" prepend-icon="mdi-vector-polyline" :loading="rebuilding" @click="rebuildSelected">重建分片</v-btn>
-            <v-btn size="small" variant="tonal" prepend-icon="mdi-database-sync-outline" :loading="reindexing" @click="reindexSelected">重建向量</v-btn>
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-database-clock-outline" :loading="reindexing" @click="reindexSelected">异步重建向量</v-btn>
             <v-btn size="small" color="error" variant="tonal" prepend-icon="mdi-delete-outline" @click="confirmDocDelete">删除</v-btn>
           </div>
 
           <div class="content-preview">{{ selectedDetail.content }}</div>
-
           <div class="chunk-list">
             <div
               v-for="chunk in selectedDetail.chunks || []"
@@ -267,7 +260,7 @@
         <v-card-title>{{ baseEditor.mode === 'create' ? '新建知识库' : '编辑知识库' }}</v-card-title>
         <v-card-text class="dialog-fields">
           <v-text-field v-model="baseEditor.form.name" label="知识库名称" variant="outlined" />
-          <v-text-field v-model="baseEditor.form.kbId" :disabled="baseEditor.mode === 'edit'" label="知识库编号" variant="outlined" hint="留空时根据名称生成" persistent-hint />
+          <v-text-field v-model="baseEditor.form.kbId" :disabled="baseEditor.mode === 'edit'" label="知识库编号" variant="outlined" hint="留空时自动生成" persistent-hint />
           <v-textarea v-model="baseEditor.form.description" label="说明" rows="3" variant="outlined" />
           <v-select v-model="baseEditor.form.status" :items="statusOptions" item-title="title" item-value="value" label="状态" variant="outlined" />
         </v-card-text>
@@ -317,9 +310,7 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2200">
-      {{ snackbar.text }}
-    </v-snackbar>
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2200">{{ snackbar.text }}</v-snackbar>
   </main>
 </template>
 
@@ -336,11 +327,12 @@ import {
   listKnowledgeCategories,
   listKnowledgeDocs,
   rebuildKnowledgeDoc,
-  reindexKnowledgeDoc,
   retrieveKnowledge,
   updateKnowledgeBase,
   updateKnowledgeDoc,
 } from '@/api/ai'
+import { enqueueKnowledgeIndexJob } from '@/api/knowledgeIngestion'
+import KnowledgeIngestionPanel from '@/views/ai/components/KnowledgeIngestionPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -472,6 +464,12 @@ async function refreshAll() {
   await fetchDocs()
 }
 
+async function handleImported(docId) {
+  await refreshAll()
+  await openDocument(docId)
+  showMsg('文件已导入，向量索引将在后台完成')
+}
+
 async function selectBase(kbId) {
   selectedKbId.value = kbId
   page.value = 1
@@ -506,11 +504,7 @@ async function openDocument(docId, chunkId = '') {
     selectedDetail.value = resp?.data || null
     selectedDoc.value = selectedDetail.value ? { ...selectedDetail.value } : null
     highlightChunkId.value = chunkId
-    if (selectedDetail.value?.kbId && selectedKbId.value !== 'all') selectedKbId.value = selectedDetail.value.kbId
-    await router.replace({
-      path: '/ai/knowledge',
-      query: { docId, ...(chunkId ? { chunkId } : {}) },
-    })
+    await router.replace({ path: '/ai/knowledge', query: { docId, ...(chunkId ? { chunkId } : {}) } })
     if (chunkId) {
       await nextTick()
       document.getElementById(`chunk-${chunkId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -532,12 +526,7 @@ function openBaseCreate() {
 
 function openBaseEdit(base) {
   baseEditor.mode = 'edit'
-  baseEditor.form = {
-    kbId: base.kbId,
-    name: base.name,
-    description: base.description || '',
-    status: base.status,
-  }
+  baseEditor.form = { kbId: base.kbId, name: base.name, description: base.description || '', status: base.status }
   baseEditor.visible = true
 }
 
@@ -584,9 +573,7 @@ function openDocEdit() {
 }
 
 async function saveDoc() {
-  if (!docEditor.form.title.trim() || !docEditor.form.content.trim()) {
-    return showMsg('标题和正文不能为空', 'warning')
-  }
+  if (!docEditor.form.title.trim() || !docEditor.form.content.trim()) return showMsg('标题和正文不能为空', 'warning')
   docSaving.value = true
   try {
     const resp = docEditor.mode === 'create'
@@ -594,7 +581,7 @@ async function saveDoc() {
       : await updateKnowledgeDoc(docEditor.form.docId, { ...docEditor.form })
     const detail = resp?.data
     docEditor.visible = false
-    await Promise.all([fetchBases(), fetchCategories(), fetchDocs()])
+    await refreshAll()
     if (detail?.docId) await openDocument(detail.docId)
     showMsg('知识文档已保存')
   } catch (error) {
@@ -606,12 +593,7 @@ async function saveDoc() {
 
 function confirmDocDelete() {
   if (!selectedDetail.value) return
-  Object.assign(deleteDialog, {
-    visible: true,
-    type: 'doc',
-    id: selectedDetail.value.docId,
-    name: selectedDetail.value.title,
-  })
+  Object.assign(deleteDialog, { visible: true, type: 'doc', id: selectedDetail.value.docId, name: selectedDetail.value.title })
 }
 
 async function performDelete() {
@@ -644,9 +626,9 @@ async function rebuildSelected() {
     await rebuildKnowledgeDoc(selectedDetail.value.docId)
     await openDocument(selectedDetail.value.docId)
     await fetchDocs()
-    showMsg('分片和向量已重建')
+    showMsg('分片已重建')
   } catch (error) {
-    showMsg('分片重建失败', 'error')
+    showMsg(error?.response?.data?.message || '分片重建失败', 'error')
   } finally {
     rebuilding.value = false
   }
@@ -656,11 +638,10 @@ async function reindexSelected() {
   if (!selectedDetail.value) return
   reindexing.value = true
   try {
-    const resp = await reindexKnowledgeDoc(selectedDetail.value.docId)
-    const status = resp?.data?.status || 'INDEXED'
-    showMsg(`向量索引完成：${status}`)
+    await enqueueKnowledgeIndexJob(selectedDetail.value.docId)
+    showMsg('向量索引任务已进入后台队列')
   } catch (error) {
-    showMsg(error?.response?.data?.message || '向量索引失败', 'error')
+    showMsg(error?.response?.data?.message || '索引任务创建失败', 'error')
   } finally {
     reindexing.value = false
   }
@@ -671,9 +652,7 @@ async function runRetrieve() {
   if (retrieveScope.value === 'current' && !selectedDetail.value) return showMsg('请先选择文档', 'warning')
   retrieving.value = true
   try {
-    const kbIds = retrieveScope.value === 'current'
-      ? [selectedDetail.value.docId]
-      : [retrieveScope.value || 'all']
+    const kbIds = retrieveScope.value === 'current' ? [selectedDetail.value.docId] : [retrieveScope.value || 'all']
     const resp = await retrieveKnowledge({ question: retrieveQuestion.value.trim(), kbIds, topK: 6 })
     citations.value = resp?.data || []
   } catch (error) {
@@ -730,26 +709,12 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-.hero-row h1 {
-  margin: 8px 0;
-  font-size: 38px;
-}
-
-.hero-row p {
-  max-width: 720px;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.82);
-}
-
+.hero-row h1 { margin: 8px 0; font-size: 38px; }
+.hero-row p { max-width: 760px; margin: 0; color: rgba(255, 255, 255, 0.82); line-height: 1.7; }
 .hero-actions,
 .detail-actions,
 .retrieve-bar,
-.filters {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+.filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .metric-row {
   display: grid;
@@ -766,26 +731,15 @@ onMounted(async () => {
   box-shadow: 0 14px 34px rgba(34, 53, 73, 0.07);
 }
 
-.metric-card {
-  display: grid;
-  gap: 5px;
-  padding: 17px;
-}
-
+.metric-card { display: grid; gap: 5px; padding: 17px; }
 .metric-card span,
 .metric-card small,
 .doc-title small,
 .base-item small,
 .detail-head p,
 .chunk-head small,
-.citation-card small {
-  color: #6c7784;
-  font-size: 12px;
-}
-
-.metric-card strong {
-  font-size: 28px;
-}
+.citation-card small { color: #6c7784; font-size: 12px; }
+.metric-card strong { font-size: 28px; }
 
 .workspace-grid {
   display: grid;
@@ -793,35 +747,12 @@ onMounted(async () => {
   gap: 16px;
 }
 
-.panel {
-  padding: 18px;
-}
-
-.panel-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.panel-title > div:first-child {
-  display: grid;
-  gap: 3px;
-}
-
-.panel-title strong {
-  font-size: 19px;
-}
-
-.base-panel {
-  align-self: start;
-}
-
-.base-item-wrap {
-  position: relative;
-  margin-bottom: 8px;
-}
+.panel { padding: 18px; }
+.panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.panel-title > div:first-child { display: grid; gap: 3px; }
+.panel-title strong { font-size: 19px; }
+.base-panel { align-self: start; }
+.base-item-wrap { position: relative; margin-bottom: 8px; }
 
 .base-item {
   width: 100%;
@@ -838,81 +769,20 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.base-item > div {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.base-item small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.base-item.active {
-  border-color: rgba(18, 126, 105, 0.3);
-  background: #e9f6f1;
-}
-
-.base-actions {
-  position: absolute;
-  top: 18px;
-  right: 5px;
-  display: flex;
-}
-
-.document-panel {
-  min-width: 0;
-}
-
-.filters {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) 150px 130px auto;
-  margin-bottom: 12px;
-}
-
-.doc-title {
-  display: grid;
-  gap: 3px;
-}
-
-.selected-row {
-  background: #edf8f4 !important;
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 10px;
-  font-size: 13px;
-}
-
-.detail-panel {
-  max-height: 920px;
-  overflow: auto;
-}
-
+.base-item > div { min-width: 0; display: grid; gap: 4px; }
+.base-item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.base-item.active { border-color: rgba(18, 126, 105, 0.3); background: #e9f6f1; }
+.base-actions { position: absolute; top: 18px; right: 5px; display: flex; }
+.document-panel { min-width: 0; }
+.filters { display: grid; grid-template-columns: minmax(220px, 1fr) 150px 130px auto; margin-bottom: 12px; }
+.doc-title { display: grid; gap: 3px; }
+.selected-row { background: #edf8f4 !important; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-size: 13px; }
+.detail-panel { max-height: 920px; overflow: auto; }
 .empty-state,
-.empty-citation {
-  min-height: 150px;
-  display: grid;
-  place-content: center;
-  gap: 8px;
-  color: #7a8792;
-  text-align: center;
-}
-
-.detail-head h2 {
-  margin: 0 0 6px;
-  font-size: 22px;
-}
-
-.detail-head p {
-  margin: 0 0 12px;
-}
+.empty-citation { min-height: 150px; display: grid; place-content: center; gap: 8px; color: #7a8792; text-align: center; }
+.detail-head h2 { margin: 0 0 6px; font-size: 22px; }
+.detail-head p { margin: 0 0 12px; }
 
 .content-preview {
   max-height: 220px;
@@ -926,58 +796,16 @@ onMounted(async () => {
   line-height: 1.65;
 }
 
-.chunk-list {
-  display: grid;
-  gap: 10px;
-}
-
-.chunk-card {
-  padding: 12px;
-  border: 1px solid rgba(23, 42, 52, 0.08);
-  border-radius: 10px;
-  background: #fff;
-  transition: 0.25s ease;
-}
-
-.chunk-card.highlighted {
-  border-color: #d4a943;
-  background: #fff8df;
-  box-shadow: 0 0 0 3px rgba(212, 169, 67, 0.14);
-}
-
-.chunk-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
+.chunk-list { display: grid; gap: 10px; }
+.chunk-card { padding: 12px; border: 1px solid rgba(23, 42, 52, 0.08); border-radius: 10px; background: #fff; transition: 0.25s ease; }
+.chunk-card.highlighted { border-color: #d4a943; background: #fff8df; box-shadow: 0 0 0 3px rgba(212, 169, 67, 0.14); }
+.chunk-head { display: flex; justify-content: space-between; gap: 8px; }
 .chunk-card p,
-.citation-card p {
-  margin: 8px 0 0;
-  color: #465564;
-  line-height: 1.6;
-}
-
-.retrieve-panel {
-  margin-top: 16px;
-}
-
-.retrieve-scope {
-  min-width: 260px;
-  max-width: 420px;
-}
-
-.retrieve-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.citation-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
+.citation-card p { margin: 8px 0 0; color: #465564; line-height: 1.6; }
+.retrieve-panel { margin-top: 16px; }
+.retrieve-scope { min-width: 260px; max-width: 420px; }
+.retrieve-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.citation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 
 .citation-card {
   min-height: 130px;
@@ -989,72 +817,27 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.citation-card:hover {
-  border-color: rgba(18, 126, 105, 0.36);
-  transform: translateY(-1px);
-}
-
-.citation-card > div {
-  display: grid;
-  gap: 3px;
-}
-
-.editor-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.span-2 {
-  grid-column: 1 / -1;
-}
-
-.dialog-fields {
-  display: grid;
-  gap: 4px;
-}
-
-.delete-tip {
-  margin: 10px 0 0;
-  color: #7a4d20;
-}
+.citation-card:hover { border-color: rgba(18, 126, 105, 0.36); transform: translateY(-1px); }
+.citation-card > div { display: grid; gap: 3px; }
+.editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.span-2 { grid-column: 1 / -1; }
+.dialog-fields { display: grid; gap: 4px; }
+.delete-tip { margin: 10px 0 0; color: #7a4d20; }
 
 @media (max-width: 1280px) {
-  .workspace-grid {
-    grid-template-columns: 230px minmax(0, 1fr);
-  }
-
-  .detail-panel {
-    grid-column: 1 / -1;
-    max-height: none;
-  }
+  .workspace-grid { grid-template-columns: 230px minmax(0, 1fr); }
+  .detail-panel { grid-column: 1 / -1; max-height: none; }
 }
 
 @media (max-width: 900px) {
-  .knowledge-page {
-    padding: 14px;
-  }
-
-  .hero-row {
-    align-items: start;
-    flex-direction: column;
-  }
-
+  .knowledge-page { padding: 14px; }
+  .hero-row { align-items: start; flex-direction: column; }
   .metric-row,
   .workspace-grid,
   .citation-grid,
   .filters,
-  .editor-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .retrieve-bar {
-    grid-template-columns: 1fr;
-  }
-
-  .retrieve-scope {
-    min-width: 100%;
-    max-width: 100%;
-  }
+  .editor-grid { grid-template-columns: 1fr; }
+  .retrieve-bar { grid-template-columns: 1fr; }
+  .retrieve-scope { min-width: 100%; max-width: 100%; }
 }
 </style>
