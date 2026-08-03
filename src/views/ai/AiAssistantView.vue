@@ -40,9 +40,23 @@
 
       <v-col cols="12" md="9">
         <v-card class="h-100 d-flex flex-column" variant="outlined">
-          <v-card-title class="d-flex align-center justify-space-between">
+          <v-card-title class="assistant-heading">
             <span>AI 助手（完整版）</span>
-            <div class="d-flex align-center ga-2">
+            <div class="assistant-actions">
+              <v-select
+                v-model="selectedKbIds"
+                :items="knowledgeBaseItems"
+                item-title="title"
+                item-value="value"
+                label="知识范围"
+                multiple
+                chips
+                closable-chips
+                density="compact"
+                hide-details
+                variant="outlined"
+                class="kb-select"
+              />
               <v-btn variant="tonal" size="small" prepend-icon="mdi-book-open-page-variant-outline" @click="router.push('/ai/knowledge')">
                 知识系统
               </v-btn>
@@ -69,7 +83,7 @@
                   v-for="citation in msg.citations"
                   :key="citation.chunkId"
                   type="button"
-                  @click="router.push('/ai/knowledge')"
+                  @click="openCitation(citation)"
                 >
                   <v-icon size="14">mdi-link-variant</v-icon>
                   <span>{{ citation.docName || citation.docId }}</span>
@@ -105,7 +119,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { chatWithAiStream, createConversation, getAiConfigStatus, getConversationMessages } from '@/api/ai'
+import {
+  chatWithAiStream,
+  createConversation,
+  getAiConfigStatus,
+  getConversationMessages,
+  listKnowledgeBases,
+} from '@/api/ai'
 
 const router = useRouter()
 const conversations = ref([])
@@ -115,6 +135,8 @@ const sending = ref(false)
 const messages = ref({})
 const configStatus = ref({ configured: false, model: '', mode: 'fallback' })
 const messagePanelRef = ref(null)
+const knowledgeBases = ref([])
+const selectedKbIds = ref(['default'])
 
 const activeMessages = computed(() => messages.value[activeConversationId.value] || [])
 const configModeText = computed(() => {
@@ -122,13 +144,17 @@ const configModeText = computed(() => {
   if (configStatus.value.mode === 'fallback') return '降级占位模式'
   return configStatus.value.mode || '未知模式'
 })
+const knowledgeBaseItems = computed(() => [
+  { title: '全部知识库', value: 'all' },
+  ...knowledgeBases.value
+    .filter(item => item.status === 'ACTIVE')
+    .map(item => ({ title: `${item.name}（${item.documentCount || 0}）`, value: item.kbId })),
+])
 
 function scrollToBottom() {
   requestAnimationFrame(() => {
     const el = messagePanelRef.value?.$el || messagePanelRef.value
-    if (el) {
-      el.scrollTop = el.scrollHeight
-    }
+    if (el) el.scrollTop = el.scrollHeight
   })
 }
 
@@ -141,6 +167,19 @@ async function refreshConfigStatus() {
   }
 }
 
+async function refreshKnowledgeBases() {
+  try {
+    const resp = await listKnowledgeBases({ status: 'ACTIVE' })
+    knowledgeBases.value = resp?.data || []
+    if (!knowledgeBases.value.some(item => selectedKbIds.value.includes(item.kbId))) {
+      selectedKbIds.value = knowledgeBases.value.some(item => item.kbId === 'default') ? ['default'] : ['all']
+    }
+  } catch (error) {
+    knowledgeBases.value = []
+    selectedKbIds.value = ['all']
+  }
+}
+
 async function createConversationAction() {
   const seq = conversations.value.length + 1
   const resp = await createConversation({ title: `新会话 ${seq}`, scene: 'knowledge_qa' })
@@ -149,16 +188,14 @@ async function createConversationAction() {
   if (!id) return
 
   conversations.value.unshift({ id, title })
-  messages.value[id] = [{ role: 'assistant', text: '你好，我已经准备好了。你可以继续追问，不用每次重复背景。' }]
+  messages.value[id] = [{ role: 'assistant', text: '你好，我已经准备好了。可以选择知识库后继续提问。' }]
   activeConversationId.value = id
   scrollToBottom()
 }
 
 async function selectConversation(conversationId) {
   activeConversationId.value = conversationId
-  if (!messages.value[conversationId] || messages.value[conversationId].length === 0) {
-    await loadMessages(conversationId)
-  }
+  if (!messages.value[conversationId]?.length) await loadMessages(conversationId)
   scrollToBottom()
 }
 
@@ -167,7 +204,7 @@ async function loadMessages(conversationId) {
     const resp = await getConversationMessages(conversationId)
     const list = resp?.data?.messages || []
     messages.value[conversationId] = list.map(item => ({ role: item.role, text: item.content }))
-  } catch (e) {
+  } catch (error) {
     if (!messages.value[conversationId]) {
       messages.value[conversationId] = [{ role: 'assistant', text: '历史消息加载失败，请稍后重试。' }]
     }
@@ -176,15 +213,23 @@ async function loadMessages(conversationId) {
 }
 
 function clearCurrentMessages() {
-  if (!activeConversationId.value) return
-  messages.value[activeConversationId.value] = []
+  if (activeConversationId.value) messages.value[activeConversationId.value] = []
+}
+
+function openCitation(citation) {
+  router.push({
+    path: '/ai/knowledge',
+    query: {
+      docId: citation.docId,
+      chunkId: citation.chunkId,
+    },
+  })
 }
 
 function updateMessage(conversationId, index, patch) {
   const list = messages.value[conversationId]
   const current = list?.[index]
-  if (!current) return
-  list.splice(index, 1, { ...current, ...patch })
+  if (current) list.splice(index, 1, { ...current, ...patch })
 }
 
 function appendMessageText(conversationId, index, delta = '') {
@@ -199,19 +244,13 @@ function getMessageText(conversationId, index) {
 
 async function send() {
   const text = input.value.trim()
-  if (!text || sending.value) return
+  if (!text || sending.value || !activeConversationId.value) return
   const conversationId = activeConversationId.value
-  if (!conversationId) return
-
-  if (!messages.value[conversationId]) {
-    messages.value[conversationId] = []
-  }
+  if (!messages.value[conversationId]) messages.value[conversationId] = []
 
   messages.value[conversationId].push({ role: 'user', text })
   input.value = ''
   sending.value = true
-  scrollToBottom()
-
   const assistantIndex = messages.value[conversationId].push({ role: 'assistant', text: '', citations: [] }) - 1
   scrollToBottom()
 
@@ -220,56 +259,38 @@ async function send() {
       {
         conversationId,
         userMessage: text,
-        kbIds: ['default'],
+        kbIds: selectedKbIds.value.length ? selectedKbIds.value : ['all'],
         stream: true,
       },
       {
         onStart(payload) {
           updateMessage(conversationId, assistantIndex, { citations: payload?.citations || [] })
-          if (payload?.conversationId) {
-            activeConversationId.value = payload.conversationId
-          }
-          if (payload?.model) {
-            configStatus.value.model = payload.model
-          }
-          if (payload?.mode) {
-            configStatus.value.mode = payload.mode
-          }
+          if (payload?.model) configStatus.value.model = payload.model
+          if (payload?.mode) configStatus.value.mode = payload.mode
         },
         onDelta(payload) {
           appendMessageText(conversationId, assistantIndex, payload?.delta || '')
           scrollToBottom()
         },
         onDone(payload) {
-          const currentCitations = messages.value[conversationId]?.[assistantIndex]?.citations || []
-          updateMessage(conversationId, assistantIndex, { citations: payload?.citations || currentCitations })
+          const citations = messages.value[conversationId]?.[assistantIndex]?.citations || []
+          updateMessage(conversationId, assistantIndex, { citations: payload?.citations || citations })
           if (!getMessageText(conversationId, assistantIndex).trim()) {
             updateMessage(conversationId, assistantIndex, { text: payload?.answer || '抱歉，暂时没有生成回复。' })
           }
-          if (payload?.mode) {
-            configStatus.value.mode = payload.mode
-            if (payload.mode === 'real-model') {
-              configStatus.value.configured = true
-            }
-          }
-          if (payload?.model) {
-            configStatus.value.model = payload.model
-          }
+          if (payload?.mode) configStatus.value.mode = payload.mode
+          if (payload?.model) configStatus.value.model = payload.model
+          if (payload?.mode === 'real-model') configStatus.value.configured = true
           scrollToBottom()
         },
         onError(payload) {
           if (!getMessageText(conversationId, assistantIndex).trim()) {
             updateMessage(conversationId, assistantIndex, { text: payload?.message || 'AI 服务暂不可用，请稍后重试。' })
           }
-          scrollToBottom()
         },
       }
     )
-
-    if (!getMessageText(conversationId, assistantIndex).trim()) {
-      updateMessage(conversationId, assistantIndex, { text: '抱歉，暂时没有生成回复。' })
-    }
-  } catch (e) {
+  } catch (error) {
     if (!getMessageText(conversationId, assistantIndex).trim()) {
       updateMessage(conversationId, assistantIndex, { text: 'AI 服务暂不可用，请稍后重试。' })
     }
@@ -280,7 +301,7 @@ async function send() {
 }
 
 onMounted(async () => {
-  await refreshConfigStatus()
+  await Promise.all([refreshConfigStatus(), refreshKnowledgeBases()])
   await createConversationAction()
 })
 </script>
@@ -295,7 +316,28 @@ onMounted(async () => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.assistant-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.assistant-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kb-select {
+  min-width: 260px;
+  max-width: 420px;
+}
+
 .message-panel {
+  min-height: 560px;
   background: linear-gradient(180deg, #fafcff 0%, #f7f9fc 100%);
 }
 
@@ -312,6 +354,16 @@ onMounted(async () => {
   margin-bottom: 12px;
   line-height: 1.6;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.msg.user {
+  margin-left: auto;
+  background: #e8f1ff;
+}
+
+.msg.assistant {
+  margin-right: auto;
+  background: #ffffff;
 }
 
 .msg-role {
@@ -333,25 +385,26 @@ onMounted(async () => {
 }
 
 .msg-citations button {
-  min-height: 26px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 8px;
-  border: 1px solid rgba(26, 42, 58, 0.1);
-  border-radius: 8px;
-  color: #17696a;
-  background: #eef8f5;
-  font-size: 12px;
+  padding: 0 9px;
+  border: 1px solid rgba(25, 118, 210, 0.18);
+  border-radius: 999px;
+  color: #155b9b;
+  background: #eff7ff;
   cursor: pointer;
 }
 
-.msg.user {
-  margin-left: auto;
-  background: #e8f1ff;
-}
+@media (max-width: 960px) {
+  .kb-select {
+    min-width: 100%;
+    max-width: 100%;
+  }
 
-.msg.assistant {
-  background: #ffffff;
+  .message-panel {
+    min-height: 420px;
+  }
 }
 </style>
