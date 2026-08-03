@@ -32,6 +32,31 @@ export function submitAiFeedback(data) {
   })
 }
 
+export function listKnowledgeBases(params = {}) {
+  return request.get('/ai/knowledge/bases', {
+    params,
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function createKnowledgeBase(data) {
+  return request.post('/ai/knowledge/bases', data, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function updateKnowledgeBase(kbId, data) {
+  return request.put(`/ai/knowledge/bases/${kbId}`, data, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function deleteKnowledgeBase(kbId) {
+  return request.delete(`/ai/knowledge/bases/${kbId}`, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
 export function listKnowledgeDocs(params = {}) {
   return request.get('/ai/knowledge/docs', {
     params,
@@ -65,6 +90,12 @@ export function deleteKnowledgeDoc(docId) {
 
 export function rebuildKnowledgeDoc(docId) {
   return request.post(`/ai/knowledge/docs/${docId}/rebuild`, {}, {
+    timeout: AI_REQUEST_TIMEOUT,
+  })
+}
+
+export function reindexKnowledgeDoc(docId) {
+  return request.post(`/ai/knowledge/docs/${docId}/reindex-vector`, {}, {
     timeout: AI_REQUEST_TIMEOUT,
   })
 }
