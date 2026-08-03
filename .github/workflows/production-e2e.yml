@@ -8,6 +8,15 @@ on:
         required: true
         default: 'https://micor.top'
         type: string
+  push:
+    branches:
+      - dev
+    paths:
+      - '.github/workflows/production-e2e.yml'
+      - 'e2e/**'
+      - 'playwright.config.js'
+      - 'package.json'
+      - 'package-lock.json'
 
 permissions:
   contents: read
@@ -23,7 +32,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      PLAYWRIGHT_BASE_URL: ${{ inputs.base_url }}
+      PLAYWRIGHT_BASE_URL: ${{ inputs.base_url || 'https://micor.top' }}
       E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
 
