@@ -19,7 +19,7 @@ test('登录页可以公开访问', async ({ page }) => {
   await expect(page.getByPlaceholder('请输入用户名')).toBeVisible()
   await expect(page.getByPlaceholder('请输入密码')).toBeVisible()
   await expect(page.getByRole('button', { name: '登录', exact: true })).toBeVisible()
-  await expect(page).toHaveTitle(/\S+/)
+  await expect(page).toHaveTitle('Matrix｜企业财务与 AI 智能平台')
 
   expect(pageErrors, `页面运行错误：\n${pageErrors.join('\n')}`).toEqual([])
   expect(serverErrors, `接口 5xx：\n${serverErrors.join('\n')}`).toEqual([])
