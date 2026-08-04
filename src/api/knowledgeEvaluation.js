@@ -27,6 +27,22 @@ export function createEvaluationQuestion(datasetId, data) {
   })
 }
 
+export function bulkImportEvaluationQuestions(datasetId, questions) {
+  return request.post(
+    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/questions/bulk`,
+    { questions },
+    { timeout: EVALUATION_RUN_TIMEOUT },
+  )
+}
+
+export function updateEvaluationQuestion(datasetId, questionId, data) {
+  return request.put(
+    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/questions/${questionId}`,
+    data,
+    { timeout: EVALUATION_TIMEOUT },
+  )
+}
+
 export function runKnowledgeEvaluation(datasetId, topK = 5) {
   return request.post(
     `/ai/admin/knowledge/evaluations/datasets/${datasetId}/runs`,
