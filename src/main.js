@@ -100,6 +100,13 @@ router.addRoute({
   meta: { title: '财务标准问题标注' },
 })
 
+router.addRoute({
+  path: '/ai/knowledge/evaluations/traces',
+  name: 'KnowledgeEvaluationTraces',
+  component: () => import('./views/ai/KnowledgeEvaluationTraceView.vue'),
+  meta: { title: '知识检索链路诊断' },
+})
+
 const legacyRedirects = new Map([
   ['/expenses', '/expense-reimbursements'],
   ['/cost', '/expense-reimbursements'],
