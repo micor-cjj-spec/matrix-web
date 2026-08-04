@@ -93,6 +93,13 @@ router.addRoute({
   meta: { title: '知识检索评测' },
 })
 
+router.addRoute({
+  path: '/ai/knowledge/evaluations/curation',
+  name: 'KnowledgeEvaluationCuration',
+  component: () => import('./views/ai/KnowledgeEvaluationTemplateView.vue'),
+  meta: { title: '财务标准问题标注' },
+})
+
 const legacyRedirects = new Map([
   ['/expenses', '/expense-reimbursements'],
   ['/cost', '/expense-reimbursements'],
