@@ -3,11 +3,11 @@
     v-if="visible"
     class="evaluation-launcher"
     color="primary"
-    prepend-icon="mdi-chart-box-outline"
+    :prepend-icon="launcherIcon"
     elevation="8"
-    @click="router.push('/ai/knowledge/evaluations')"
+    @click="router.push(targetPath)"
   >
-    检索评测
+    {{ launcherText }}
   </v-btn>
 </template>
 
@@ -17,7 +17,24 @@ import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
-const visible = computed(() => route.path === '/ai/knowledge')
+const visible = computed(() => [
+  '/ai/knowledge',
+  '/ai/knowledge/evaluations',
+  '/ai/knowledge/evaluations/curation',
+].includes(route.path))
+const targetPath = computed(() => {
+  if (route.path === '/ai/knowledge') return '/ai/knowledge/evaluations'
+  if (route.path === '/ai/knowledge/evaluations') return '/ai/knowledge/evaluations/curation'
+  return '/ai/knowledge/evaluations'
+})
+const launcherText = computed(() => {
+  if (route.path === '/ai/knowledge') return '检索评测'
+  if (route.path === '/ai/knowledge/evaluations') return '财务问题标注'
+  return '返回评测'
+})
+const launcherIcon = computed(() => route.path === '/ai/knowledge/evaluations'
+  ? 'mdi-clipboard-text-search-outline'
+  : 'mdi-chart-box-outline')
 </script>
 
 <style scoped>
