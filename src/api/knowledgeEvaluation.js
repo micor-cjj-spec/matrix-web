@@ -45,7 +45,7 @@ export function updateEvaluationQuestion(datasetId, questionId, data) {
 
 export function runKnowledgeEvaluation(datasetId, topK = 5) {
   return request.post(
-    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/runs`,
+    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/trace-runs`,
     {},
     {
       params: { topK },
@@ -62,6 +62,12 @@ export function getKnowledgeEvaluationRun(runId) {
 
 export function listKnowledgeEvaluationResults(runId) {
   return request.get(`/ai/admin/knowledge/evaluations/runs/${runId}/results`, {
+    timeout: EVALUATION_TIMEOUT,
+  })
+}
+
+export function listKnowledgeEvaluationTraces(runId) {
+  return request.get(`/ai/admin/knowledge/evaluations/runs/${runId}/traces`, {
     timeout: EVALUATION_TIMEOUT,
   })
 }
