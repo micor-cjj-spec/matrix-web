@@ -29,6 +29,7 @@ const ReceivableView = () => import('../views/login/finance/ReceivableView.vue')
 const ArapDocView = () => import('../views/login/finance/ArapDocView.vue')
 const AgingCreditView = () => import('../views/login/finance/AgingCreditView.vue')
 const FinanceSystemView = () => import('../views/login/finance/FinanceSystemView.vue')
+const P2pWorkbenchView = () => import('../views/login/p2p/P2pWorkbenchView.vue')
 const FinanceBaseDataView = () => import('../views/login/finance/base-data/FinanceBaseDataView.vue')
 const AccountSubjectView = () => import('../views/login/finance/base-data/AccountSubjectView.vue')
 const AccountSubjectForm = () => import('../views/login/finance/base-data/account-subject/AccountSubjectForm.vue')
@@ -156,16 +157,17 @@ const routes = [
   { path: '/ledger/report-account-map', name: 'ReportAccountMap', component: ReportAccountMapView, meta: { title: '报表科目映射' } },
 
   { path: '/finance', name: 'FinanceSystem', component: FinanceSystemView, meta: { title: '财务系统' } },
+  { path: '/p2p', name: 'P2pWorkbench', component: P2pWorkbenchView, meta: { title: '采购到付款工作台' } },
   { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '财务基础资料' } },
   { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
   { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '会计科目维护' } },
   { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
   { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
   { path: '/estimated-payable', component: EmptyView, meta: { title: '暂估应付' } },
-  { path: '/payment-application', component: EmptyView, meta: { title: '付款申请' } },
-  { path: '/payment-processing', component: EmptyView, meta: { title: '付款处理' } },
+  { path: '/payment-application', redirect: { path: '/p2p', query: { stage: 'payment-application' } }, meta: { title: '付款申请' } },
+  { path: '/payment-processing', redirect: { path: '/p2p', query: { stage: 'payment-order' } }, meta: { title: '付款处理' } },
   { path: '/estimated-receivable', component: EmptyView, meta: { title: '暂估应收' } },
-  { path: '/settlement-processing', component: EmptyView, meta: { title: '结算处理' } },
+  { path: '/settlement-processing', redirect: { path: '/p2p', query: { stage: 'settlement' } }, meta: { title: '结算处理' } },
 
   { path: '/payable', name: 'Payable', component: PayableView, meta: { title: '应付' } },
   { path: '/payable/manage', component: ArapDocView, meta: { title: '应付', docType: 'AP' } },
