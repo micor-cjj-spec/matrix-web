@@ -37,7 +37,7 @@ test('登录页在桌面和移动端宽度下均可渲染', async ({ page }) => 
 
 test('不允许通过 URL token 参数绕过登录', async ({ page }) => {
   await page.goto('/workflow/tasks?token=untrusted-test-token')
-  await expect(page).toHaveURL(/\\/login(?:[?#].*)?$/)
+  await expect(page).toHaveURL(/login(?:[?#].*)?$/)
   const storedToken = await page.evaluate(() => localStorage.getItem('token'))
   expect(storedToken).toBeNull()
   expect(page.url()).not.toContain('untrusted-test-token')
