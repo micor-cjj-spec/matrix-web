@@ -7,7 +7,7 @@
     </header>
     <section class="context">
       <label>租户 ID <input v-model.trim="tenantId" placeholder="必填" /></label>
-      <label>组织 ID <input v-model.trim="orgId" placeholder="可选" /></label>
+      <label>组织 ID <input v-model.trim="orgId" placeholder="必须与 JWT 授权组织一致" required /></label>
       <button @click="reload" :disabled="loading">刷新</button>
     </section>
     <nav><button :class="{ active: tab === 'quotes' }" @click="tab='quotes'">报价 / 投标报价</button>
@@ -17,7 +17,7 @@
     <section v-if="tab==='quotes'" class="layout">
       <article class="panel">
         <h2>报价列表 ({{ quotes.length }})</h2>
-        <p v-if="!quotes.length" class="muted">暂无记录。请填写租户后刷新。</p>
+        <p v-if="!quotes.length" class="muted">暂无记录。请填写租户及授权组织后刷新。</p>
         <div v-else class="scroll"><table>
           <thead><tr><th>单号</th><th>客户</th><th>类型</th><th>含税金额</th><th>状态</th><th>操作</th></tr></thead>
           <tbody><tr v-for="q in quotes" :key="q.fid">
@@ -38,14 +38,20 @@
           <label>币种 <input v-model.trim="quote.fcurrencyCode" required /></label>
           <label>有效期 <input v-model="quote.fvalidUntil" type="date" required /></label>
           <label>付款条款 <input v-model.trim="quote.fpaymentTermCode" placeholder="NET30" /></label>
-          <h3>首批报价明细（单行）</h3>
-          <label>物料 / 服务名称 <input v-model.trim="quote.fdescription" required /></label>
-          <label>物料编码 <input v-model.trim="quote.fmaterialCode" /></label>
-          <div class="three">
-            <label>数量 <input v-model.number="quote.fquantity" type="number" min="0.000001" step="any" required /></label>
-            <label>单价 <input v-model.number="quote.funitPrice" type="number" min="0" step="any" required /></label>
-            <label>税率 % <input v-model.number="quote.ftaxRate" type="number" min="0" max="100" step="any" required /></label>
+          <div class="item-title"><h3>报价明细（{{ quoteLines.length }} 行）</h3>
+            <button type="button" class="light" @click="addLine">+ 添加明细</button></div>
+          <div class="line-card" v-for="(line, index) in quoteLines" :key="line.key">
+            <div class="item-title"><strong>第 {{ index + 1 }} 行</strong>
+              <button type="button" class="light" :disabled="quoteLines.length === 1" @click="removeLine(index)">删除</button></div>
+            <label>物料 / 服务名称 <input v-model.trim="line.fdescription" required /></label>
+            <label>物料编码 <input v-model.trim="line.fmaterialCode" /></label>
+            <div class="three">
+              <label>数量 <input v-model.number="line.fquantity" type="number" min="0.000001" step="any" required /></label>
+              <label>单价 <input v-model.number="line.funitPrice" type="number" min="0" step="any" required /></label>
+              <label>税率 % <input v-model.number="line.ftaxRate" type="number" min="0" max="100" step="any" required /></label>
+            </div>
           </div>
+          <p class="muted">金额以服务端 Decimal 运算结果为准。</p>
           <button :disabled="loading">创建报价</button>
         </form>
       </article>
@@ -75,7 +81,7 @@
         </form>
       </article>
     </section>
-    <p class="muted warning">开发版：审批授权及工作流集成尚待验收，部署到生产前须限制审批操作权限。</p>
+    <p class="muted warning">开发版：服务端要求带销售角色和组织范围的有效 JWT。现有登录令牌若不包含销售角色将被拒绝，正式角色签发和工作流集成仍待完成。</p>
   </main>
 </template>
 <script setup>
@@ -85,7 +91,12 @@ import { listQuotes, createQuote, actQuote, listContracts, createContract, actCo
 const router=useRouter()
 const tenantId=ref(''), orgId=ref(''), tab=ref('quotes'), error=ref(''), notice=ref(''), loading=ref(false)
 const quotes=ref([]), contracts=ref([])
-const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fpaymentTermCode:'',fdescription:'',fmaterialCode:'',fquantity:1,funitPrice:0,ftaxRate:13 })
+const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fpaymentTermCode:'' })
+let lineKey = 0
+function newLine(){return {key:++lineKey,fdescription:'',fmaterialCode:'',fquantity:1,funitPrice:0,ftaxRate:13}}
+const quoteLines = ref([newLine()])
+function addLine(){if(quoteLines.value.length>=100){error.value='最多支持 100 行报价明细';return}quoteLines.value.push(newLine())}
+function removeLine(index){if(quoteLines.value.length>1)quoteLines.value.splice(index,1)}
 const contract=reactive({fquoteId:'',ftitle:'',fstartDate:'',fendDate:''})
 const quoteActions={DRAFT:['submit'],SUBMITTED:['approve'],APPROVED:['send'],SENT:['accept','reject']}
 const contractActions={DRAFT:['submit'],SUBMITTED:['approve']}
@@ -95,7 +106,7 @@ function unwrap(r){if(r?.code != null && Number(r.code)!==200)throw Error(r.mess
 function rows(r){const d=unwrap(r);return Array.isArray(d)?d:Array.isArray(d?.records)?d.records:[]}
 function id(v,label){const value=String(v??'').trim();if(!/^[1-9][0-9]*$/.test(value))throw Error(label+'必须是正整数');return value}
 async function run(job,message){error.value='';notice.value='';loading.value=true;try{await job();notice.value=message||''}catch(e){error.value=e?.response?.data?.message||e?.message||'请求失败'}finally{loading.value=false}}
-function params(){if(!tenantId.value)throw Error('请填写租户 ID');return {tenantId:tenantId.value,orgId:orgId.value?id(orgId.value,'组织 ID'):undefined,size:100}}
+function params(){if(!tenantId.value)throw Error('请填写租户 ID');return {tenantId:tenantId.value,orgId:id(orgId.value,'组织 ID'),size:100}}
 async function refreshData(){const p=params();const [a,b]=await Promise.all([listQuotes(p),listContracts(p)]);quotes.value=rows(a);contracts.value=rows(b)}
 async function reload(){await run(refreshData)}
 async function saveQuote(){await run(async()=>{
@@ -104,7 +115,10 @@ async function saveQuote(){await run(async()=>{
     fopportunityId:id(quote.fopportunityId,'商机 ID'),fbusinessPartnerId:id(quote.fbusinessPartnerId,'客户 ID'),
     fcurrencyCode:quote.fcurrencyCode,fquoteType:quote.fquoteType,ftenderReference:quote.fquoteType==='TENDER'?quote.ftenderReference:null,
     fvalidUntil:quote.fvalidUntil,fpaymentTermCode:quote.fpaymentTermCode,
-    entries:[{fdescription:quote.fdescription,fmaterialCode:quote.fmaterialCode,fquantity:Number(quote.fquantity),funitPrice:Number(quote.funitPrice),ftaxRate:Number(quote.ftaxRate)}]}))
+    entries:quoteLines.value.map(({ fdescription, fmaterialCode, fquantity, funitPrice, ftaxRate }) => ({
+      fdescription, fmaterialCode, fquantity:Number(fquantity),
+      funitPrice:Number(funitPrice), ftaxRate:Number(ftaxRate),
+    }))}))
   quotes.value=rows(await listQuotes(p))
 },'报价草稿创建成功')}
 async function saveContract(){await run(async()=>{
@@ -139,6 +153,6 @@ input,select{border:1px solid #cbdad6;border-radius:7px;padding:10px;font:inheri
 .scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
 td,th{border-bottom:1px solid #e5eeeb;padding:11px 7px;white-space:nowrap}th{color:#6f847f}
 .error,.notice{padding:12px;border-radius:8px}.error{background:#ffefef;color:#ad3131}.notice{background:#e6f6ec;color:#1d6c3a}
-.warning{font-size:12px;margin-top:20px}@media(max-width:920px){.layout{grid-template-columns:1fr}.shell{padding:16px}.three{grid-template-columns:1fr 1fr}}
+.warning{font-size:12px;margin-top:20px}.item-title{display:flex;justify-content:space-between;align-items:center;gap:10px}.line-card{display:grid;gap:10px;padding:14px 0;border-top:1px solid #dbe7e3}.light{background:#e0efea;color:#19695d}@media(max-width:920px){.layout{grid-template-columns:1fr}.shell{padding:16px}.three{grid-template-columns:1fr 1fr}}
 </style>
 
