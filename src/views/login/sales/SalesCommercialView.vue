@@ -93,7 +93,7 @@ const labels={submit:'提交',approve:'审批',send:'发送',accept:'客户接�
 const fmt=(v)=>Number(v||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})
 function unwrap(r){if(r?.code != null && Number(r.code)!==200)throw Error(r.message||'操作失败');return r?.data??r}
 function rows(r){const d=unwrap(r);return Array.isArray(d)?d:Array.isArray(d?.records)?d.records:[]}
-function id(v,label){const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw Error(label+'必须是正整数');return n}
+function id(v,label){const value=String(v??'').trim();if(!/^[1-9][0-9]*$/.test(value))throw Error(label+'必须是正整数');return value}
 async function run(job,message){error.value='';notice.value='';loading.value=true;try{await job();notice.value=message||''}catch(e){error.value=e?.response?.data?.message||e?.message||'请求失败'}finally{loading.value=false}}
 function params(){if(!tenantId.value)throw Error('请填写租户 ID');return {tenantId:tenantId.value,orgId:orgId.value?id(orgId.value,'组织 ID'):undefined,size:100}}
 async function refreshData(){const p=params();const [a,b]=await Promise.all([listQuotes(p),listContracts(p)]);quotes.value=rows(a);contracts.value=rows(b)}
