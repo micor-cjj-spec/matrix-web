@@ -26,6 +26,7 @@
             <td>{{ fmt(q.fgrossAmount) }}</td><td>{{ q.fstatus }}</td>
             <td><button v-for="a in availableQuoteActions(q)" :key="a" :disabled="loading" @click="changeQuote(q,a)">{{ labels[a] }}</button>
               <button type="button" :disabled="loading" @click="showAudit('quotes',q)">记录</button>
+              <button type="button" :disabled="loading" @click="showWorkflow('quotes',q)">审批进度</button>
               <button v-if="q.fstatus==='DRAFT'" :disabled="loading" @click="editQuote(q)">编辑</button>
               <button v-if="q.fstatus==='ACCEPTED'" @click="fromQuote(q)">转合同</button></td>
           </tr></tbody>
@@ -71,6 +72,7 @@
             <td>{{ c.fnumber }}</td><td>{{ c.ftitle }}</td><td>{{ c.fbusinessPartnerName }}</td>
             <td>{{ fmt(c.fgrossAmount) }}</td><td>{{ c.fapprovalStatus }}</td>
             <td><button type="button" :disabled="loading" @click="showAudit('contracts',c)">记录</button>
+              <button type="button" :disabled="loading" @click="showWorkflow('contracts',c)">审批进度</button>
               <button v-for="a in (contractActions[c.fapprovalStatus] || [])" :key="a" :disabled="loading"
               @click="changeContract(c,a)">{{ labels[a] }}</button></td>
           </tr></tbody>
@@ -120,6 +122,14 @@
         <p class="muted">目标用户已签发的旧销售授权 Token 在版本变更后会失效；需重新登录。请勿在数据库中绕过管理接口手工修改授权。</p>
       </article>
     </section>
+    <section v-if="workflowType===tab" class="panel audit-panel">
+      <div class="audit-heading"><h2>{{ workflowTitle }} · Workflow 审批进度</h2>
+        <button type="button" class="light" @click="workflowType=''">关闭</button></div>
+      <p>当前状态：<strong>{{ workflowState.status }}</strong></p>
+      <p v-if="workflowState.instanceId">流程实例 ID：<code>{{ workflowState.instanceId }}</code></p>
+      <p v-if="workflowState.definitionKey">流程定义：{{ workflowState.definitionKey }}</p>
+      <p class="muted">审批请在 Workflow 待办中心进行。ERP 页面仅查看流程进度，不提供直接审批操作。</p>
+    </section>
     <section v-if="auditType===tab" class="panel audit-panel">
       <div class="audit-heading"><h2>{{ auditTitle }} · 操作历史</h2>
         <button type="button" class="light" @click="auditType='';auditEntries=[]">关闭</button></div>
@@ -133,7 +143,7 @@
         </tr></tbody>
       </table></div>
     </section>
-    <p class="muted warning">开发版：服务端要求带销售角色和组织范围的有效 JWT。现有登录令牌若不包含销售角色将被拒绝，正式角色签发和工作流集成仍待完成。</p>
+    <p class="muted warning">开发版：服务端要求带销售角色和组织范围的有效 JWT。现有登录令牌若不包含销售角色将被拒绝，正式角色签发和Workflow 审批需在完成数据库迁移、流程定义发布、回调验签和 E2E 后才能启用。</p>
   </main>
 </template>
 <script setup>
@@ -141,7 +151,8 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { listQuotes, getQuote, createQuote, updateQuote, actQuote, listContracts, createContract, actContract,
   listSalesRoleGrants, grantSalesRole, revokeSalesRole,
-  getQuoteAudit, getContractAudit } from '@/api/salesCommercial'
+  getQuoteAudit, getContractAudit,
+  quoteWorkflowStatus, contractWorkflowStatus } from '@/api/salesCommercial'
 const router=useRouter()
 const tenantId=ref(''), orgId=ref(''), tab=ref('quotes'), error=ref(''), notice=ref(''), loading=ref(false)
 const quotes=ref([]), contracts=ref([])
@@ -149,6 +160,9 @@ const editingQuoteId = ref('')
 const auditType = ref('')
 const auditTitle = ref('')
 const auditEntries = ref([])
+const workflowType = ref('')
+const workflowTitle = ref('')
+const workflowState = ref({status:'',instanceId:null,definitionKey:null})
 const roleTarget = reactive({ userId: '', role: 'SALES_VIEWER' })
 const targetRoles = ref([])
 const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fdeliveryTermCode:'',fpaymentTermCode:'' })
@@ -158,13 +172,13 @@ const quoteLines = ref([newLine()])
 function addLine(){if(quoteLines.value.length>=100){error.value='最多支持 100 行报价明细';return}quoteLines.value.push(newLine())}
 function removeLine(index){if(quoteLines.value.length>1)quoteLines.value.splice(index,1)}
 const contract=reactive({fquoteId:'',ftitle:'',fstartDate:'',fendDate:''})
-const quoteActions={DRAFT:['submit','cancel'],SUBMITTED:['withdraw','approve'],APPROVED:['send'],SENT:['accept','reject'] }
+const quoteActions={DRAFT:['submit','cancel'],SUBMITTED:[],APPROVED:['send'],SENT:['accept','reject'] }
 function availableQuoteActions(q) {
   const actions = [...(quoteActions[q.fstatus] || [])]
   if (q.fstatus === 'SENT' && q.fvalidUntil && q.fvalidUntil < new Date().toISOString().slice(0,10)) actions.push('expire')
   return actions
 }
-const contractActions={DRAFT:['submit'],SUBMITTED:['approve']}
+const contractActions={DRAFT:['submit'],SUBMITTED:[]}
 const labels={submit:'提交',approve:'审批',send:'发送',accept:'客户接受',reject:'客户拒绝',withdraw:'撤回',cancel:'作废',expire:'标记过期'}
 const fmt=(v)=>Number(v||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})
 function unwrap(r){if(r?.code != null && Number(r.code)!==200)throw Error(r.message||'操作失败');return r?.data??r}
@@ -233,6 +247,17 @@ async function changeQuote(q,action){
 async function changeContract(c,action){
   if(!window.confirm(`确认对 ${c.fnumber} 执行 ${labels[action]}？`))return
   await run(async()=>{const p=params();unwrap(await actContract(c.fid,action,p.tenantId));contracts.value=rows(await listContracts(p))},'合同状态已更新')
+}
+async function showWorkflow(type, document) {
+  await run(async () => {
+    const context = params()
+    const result = type === 'quotes'
+      ? await quoteWorkflowStatus(document.fid, context.tenantId)
+      : await contractWorkflowStatus(document.fid, context.tenantId)
+    workflowState.value=unwrap(result) || {status:'UNKNOWN'}
+    workflowTitle.value=document.fnumber || ''
+    workflowType.value=type
+  })
 }
 async function showAudit(type, document) {
   await run(async () => {
