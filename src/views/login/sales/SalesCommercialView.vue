@@ -23,19 +23,21 @@
           <tbody><tr v-for="q in quotes" :key="q.fid">
             <td>{{ q.fnumber }}</td><td>{{ q.fbusinessPartnerName }}</td><td>{{ q.fquoteType }}</td>
             <td>{{ fmt(q.fgrossAmount) }}</td><td>{{ q.fstatus }}</td>
-            <td><button v-for="a in (quoteActions[q.fstatus] || [])" :key="a" :disabled="loading" @click="changeQuote(q,a)">{{ labels[a] }}</button>
+            <td><button v-for="a in availableQuoteActions(q)" :key="a" :disabled="loading" @click="changeQuote(q,a)">{{ labels[a] }}</button>
+              <button v-if="q.fstatus==='DRAFT'" :disabled="loading" @click="editQuote(q)">编辑</button>
               <button v-if="q.fstatus==='ACCEPTED'" @click="fromQuote(q)">转合同</button></td>
           </tr></tbody>
         </table></div>
       </article>
       <article class="panel">
-        <h2>新建报价草稿</h2>
+        <h2>{{ editingQuoteId ? '编辑报价草稿' : '新建报价草稿' }}</h2>
+        <button v-if="editingQuoteId" type="button" class="light" @click="clearEdit">取消编辑</button>
         <form @submit.prevent="saveQuote">
-          <label>商机 ID <input v-model.trim="quote.fopportunityId" required /></label>
-          <label>客户 BusinessPartner ID <input v-model.trim="quote.fbusinessPartnerId" required /></label>
-          <label>报价类型 <select v-model="quote.fquoteType"><option value="QUOTE">普通报价</option><option value="TENDER">投标报价</option></select></label>
-          <label v-if="quote.fquoteType==='TENDER'">招标编号 <input v-model.trim="quote.ftenderReference" required /></label>
-          <label>币种 <input v-model.trim="quote.fcurrencyCode" required /></label>
+          <label>商机 ID <input v-model.trim="quote.fopportunityId" :disabled="Boolean(editingQuoteId)" required /></label>
+          <label>客户 BusinessPartner ID <input v-model.trim="quote.fbusinessPartnerId" :disabled="Boolean(editingQuoteId)" required /></label>
+          <label>报价类型 <select v-model="quote.fquoteType" :disabled="Boolean(editingQuoteId)"><option value="QUOTE">普通报价</option><option value="TENDER">投标报价</option></select></label>
+          <label v-if="quote.fquoteType==='TENDER'">招标编号 <input v-model.trim="quote.ftenderReference" :disabled="Boolean(editingQuoteId)" required /></label>
+          <label>币种 <input v-model.trim="quote.fcurrencyCode" :disabled="Boolean(editingQuoteId)" required /></label>
           <label>有效期 <input v-model="quote.fvalidUntil" type="date" required /></label>
           <label>付款条款 <input v-model.trim="quote.fpaymentTermCode" placeholder="NET30" /></label>
           <div class="item-title"><h3>报价明细（{{ quoteLines.length }} 行）</h3>
@@ -52,7 +54,7 @@
             </div>
           </div>
           <p class="muted">金额以服务端 Decimal 运算结果为准。</p>
-          <button :disabled="loading">创建报价</button>
+          <button :disabled="loading">{{ editingQuoteId ? '保存草稿修改' : '创建报价' }}</button>
         </form>
       </article>
     </section>
@@ -87,10 +89,11 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { listQuotes, createQuote, actQuote, listContracts, createContract, actContract } from '@/api/salesCommercial'
+import { listQuotes, getQuote, createQuote, updateQuote, actQuote, listContracts, createContract, actContract } from '@/api/salesCommercial'
 const router=useRouter()
 const tenantId=ref(''), orgId=ref(''), tab=ref('quotes'), error=ref(''), notice=ref(''), loading=ref(false)
 const quotes=ref([]), contracts=ref([])
+const editingQuoteId = ref('')
 const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fpaymentTermCode:'' })
 let lineKey = 0
 function newLine(){return {key:++lineKey,fdescription:'',fmaterialCode:'',fquantity:1,funitPrice:0,ftaxRate:13}}
@@ -98,9 +101,14 @@ const quoteLines = ref([newLine()])
 function addLine(){if(quoteLines.value.length>=100){error.value='最多支持 100 行报价明细';return}quoteLines.value.push(newLine())}
 function removeLine(index){if(quoteLines.value.length>1)quoteLines.value.splice(index,1)}
 const contract=reactive({fquoteId:'',ftitle:'',fstartDate:'',fendDate:''})
-const quoteActions={DRAFT:['submit'],SUBMITTED:['approve'],APPROVED:['send'],SENT:['accept','reject']}
+const quoteActions={DRAFT:['submit','cancel'],SUBMITTED:['withdraw','approve'],APPROVED:['send'],SENT:['accept','reject'] }
+function availableQuoteActions(q) {
+  const actions = [...(quoteActions[q.fstatus] || [])]
+  if (q.fstatus === 'SENT' && q.fvalidUntil && q.fvalidUntil < new Date().toISOString().slice(0,10)) actions.push('expire')
+  return actions
+}
 const contractActions={DRAFT:['submit'],SUBMITTED:['approve']}
-const labels={submit:'提交',approve:'审批',send:'发送',accept:'客户接受',reject:'客户拒绝'}
+const labels={submit:'提交',approve:'审批',send:'发送',accept:'客户接受',reject:'客户拒绝',withdraw:'撤回',cancel:'作废',expire:'标记过期'}
 const fmt=(v)=>Number(v||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})
 function unwrap(r){if(r?.code != null && Number(r.code)!==200)throw Error(r.message||'操作失败');return r?.data??r}
 function rows(r){const d=unwrap(r);return Array.isArray(d)?d:Array.isArray(d?.records)?d.records:[]}
@@ -109,18 +117,51 @@ async function run(job,message){error.value='';notice.value='';loading.value=tru
 function params(){if(!tenantId.value)throw Error('请填写租户 ID');return {tenantId:tenantId.value,orgId:id(orgId.value,'组织 ID'),size:100}}
 async function refreshData(){const p=params();const [a,b]=await Promise.all([listQuotes(p),listContracts(p)]);quotes.value=rows(a);contracts.value=rows(b)}
 async function reload(){await run(refreshData)}
+function clearEdit(){editingQuoteId.value='';quoteLines.value=[newLine()]}
+async function editQuote(q){
+  await run(async()=>{
+    const p=params()
+    const detail=unwrap(await getQuote(q.fid,p.tenantId))
+    if (String(detail?.header?.forgId) !== String(p.orgId)) throw Error('报价所属组织与当前组织不一致')
+    if (detail.header.fstatus !== 'DRAFT') throw Error('只能编辑草稿报价')
+    editingQuoteId.value=String(q.fid)
+    Object.assign(quote,{
+      fopportunityId:String(detail.header.fopportunityId),
+      fbusinessPartnerId:String(detail.header.fbusinessPartnerId),
+      fquoteType:detail.header.fquoteType,
+      ftenderReference:detail.header.ftenderReference || '',
+      fcurrencyCode:detail.header.fcurrencyCode,
+      fvalidUntil:detail.header.fvalidUntil,
+      fpaymentTermCode:detail.header.fpaymentTermCode || '',
+    })
+    quoteLines.value=(detail.entries||[]).map(e=>({
+      key:++lineKey,fdescription:e.fdescription,fmaterialCode:e.fmaterialCode||'',
+      fquantity:Number(e.fquantity),funitPrice:Number(e.funitPrice),ftaxRate:Number(e.ftaxRate),
+    }))
+    if (!quoteLines.value.length) quoteLines.value=[newLine()]
+  })
+}
 async function saveQuote(){await run(async()=>{
   const p=params()
-  unwrap(await createQuote({ftenantId:p.tenantId,forgId:p.orgId,
+  const payload={ftenantId:p.tenantId,forgId:p.orgId,
     fopportunityId:id(quote.fopportunityId,'商机 ID'),fbusinessPartnerId:id(quote.fbusinessPartnerId,'客户 ID'),
     fcurrencyCode:quote.fcurrencyCode,fquoteType:quote.fquoteType,ftenderReference:quote.fquoteType==='TENDER'?quote.ftenderReference:null,
     fvalidUntil:quote.fvalidUntil,fpaymentTermCode:quote.fpaymentTermCode,
     entries:quoteLines.value.map(({ fdescription, fmaterialCode, fquantity, funitPrice, ftaxRate }) => ({
       fdescription, fmaterialCode, fquantity:Number(fquantity),
       funitPrice:Number(funitPrice), ftaxRate:Number(ftaxRate),
-    }))}))
+    }))})
+  if (editingQuoteId.value) {
+    unwrap(await updateQuote(editingQuoteId.value,{
+      ftenantId:p.tenantId,fvalidUntil:quote.fvalidUntil,
+      fpaymentTermCode:quote.fpaymentTermCode,entries:payload.entries,
+    }))
+  } else {
+    unwrap(await createQuote(payload))
+  }
   quotes.value=rows(await listQuotes(p))
-},'报价草稿创建成功')}
+  clearEdit()
+},'报价草稿已保存')}
 async function saveContract(){await run(async()=>{
   const p=params()
   unwrap(await createContract({ftenantId:p.tenantId,fquoteId:id(contract.fquoteId,'报价 ID'),
