@@ -17,3 +17,7 @@ export const getQuoteAudit = (id, tenantId) =>
   request.get(`/sales/quotes/${id}/audit`, { params: { tenantId } })
 export const getContractAudit = (id, tenantId) =>
   request.get(`/sales/contracts/${id}/audit`, { params: { tenantId } })
+export const quoteWorkflowStatus = (id, tenantId) =>
+  request.get(`/sales/quotes/${id}/workflow`, { params: { tenantId } })
+export const contractWorkflowStatus = (id, tenantId) =>
+  request.get(`/sales/contracts/${id}/workflow`, { params: { tenantId } })
