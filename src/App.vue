@@ -2,6 +2,7 @@
   <v-app>
     <router-view />
     <KnowledgeEvaluationLauncher />
+    <KnowledgeRagQualityLauncher />
     <KnowledgeAclLauncher />
     <AiAssistantLauncher />
     <NotificationCenterLauncher />
@@ -10,6 +11,7 @@
 
 <script setup>
 import KnowledgeEvaluationLauncher from '@/components/ai/KnowledgeEvaluationLauncher.vue'
+import KnowledgeRagQualityLauncher from '@/components/ai/KnowledgeRagQualityLauncher.vue'
 import KnowledgeAclLauncher from '@/components/ai/KnowledgeAclLauncher.vue'
 import AiAssistantLauncher from '@/components/ai/AiAssistantLauncher.vue'
 import NotificationCenterLauncher from '@/components/im/NotificationCenterLauncher.vue'
