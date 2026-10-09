@@ -200,9 +200,6 @@ async function loadOrgOptions() {
       label: `${item.fcode || '-'} - ${item.fname || '-'}`,
       value: item.fid,
     }))
-    if (!query.forg && records.length) {
-      query.forg = records[0].fid
-    }
   } catch (error) {
     orgOptions.value = []
   }

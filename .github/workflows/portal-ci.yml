@@ -1,0 +1,44 @@
+name: Portal Web CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'src/views/login/Portal.vue'
+      - 'src/components/platform/**'
+      - 'src/api/platform.js'
+      - 'src/utils/matrixIcons.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/portal-ci.yml'
+  push:
+    branches:
+      - 'feature/application-center-*'
+    paths:
+      - 'src/views/login/Portal.vue'
+      - 'src/components/platform/**'
+      - 'src/api/platform.js'
+      - 'src/utils/matrixIcons.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/portal-ci.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build portal
+        run: npm run build

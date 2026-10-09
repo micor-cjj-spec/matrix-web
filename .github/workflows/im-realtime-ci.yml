@@ -1,0 +1,18 @@
+name: IM Realtime Web CI
+on:
+  push:
+    branches: [dev]
+    paths: ['src/api/im.js','src/services/imRealtime.js','src/components/im/**','src/views/im/**','src/App.vue','src/main.js','vite.config.js','package.json','package-lock.json','.github/workflows/im-realtime-ci.yml']
+  pull_request:
+    paths: ['src/api/im.js','src/services/imRealtime.js','src/components/im/**','src/views/im/**','src/App.vue','src/main.js','vite.config.js','package.json','package-lock.json','.github/workflows/im-realtime-ci.yml']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build

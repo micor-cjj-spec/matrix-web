@@ -53,6 +53,38 @@
         </v-col>
       </v-row>
 
+      <div v-if="hasResolveContext" class="resolve-panel" :class="{ 'is-saved': resolveSaved }">
+        <div class="resolve-main">
+          <div class="resolve-eyebrow">缺口治理上下文</div>
+          <div class="resolve-title">{{ resolveContextTitle }}</div>
+          <div class="resolve-subtitle">
+            {{ reportTypeLabel(normalizeQueryValue(route.query.reportType)) }} / {{ templateName(filters.ftemplateId) }} / 来源：{{ sourceReportLabel }}
+          </div>
+          <div v-if="resolveQueuePositionText" class="resolve-hint">
+            {{ resolveQueuePositionText }}
+          </div>
+          <div v-if="sourceRecommendationText" class="resolve-hint">
+            来源建议：{{ sourceRecommendationText }}
+          </div>
+          <div v-if="recommendedReportItem" class="resolve-hint">
+            已推荐报表项目：{{ reportItemName(recommendedReportItem.fid) }}
+          </div>
+          <div v-else class="resolve-hint">
+            暂无可靠推荐项目，请在弹窗中选择报表项目后保存。
+          </div>
+        </div>
+        <div class="resolve-actions">
+          <v-btn color="primary" variant="flat" @click="openCreateDialog">打开新增映射</v-btn>
+          <v-btn v-if="resolveQueueTotal > 1" variant="tonal" :disabled="!hasPreviousQueueGap" @click="openQueueGap(resolveGapIndex - 1)">
+            上一条缺口
+          </v-btn>
+          <v-btn v-if="resolveQueueTotal > 1" variant="tonal" :disabled="!hasNextQueueGap" @click="openQueueGap(resolveGapIndex + 1)">
+            下一条缺口
+          </v-btn>
+          <v-btn variant="tonal" @click="returnToSourceReport">返回来源报表复核</v-btn>
+        </div>
+      </div>
+
       <div class="selected-tip">
         当前选中：{{ selectedItem ? selectedSummary(selectedItem) : '未选择，请点击表格行' }}
       </div>
@@ -96,6 +128,18 @@
       <v-card>
         <v-card-title>{{ dialog.mode === 'create' ? '新增报表科目映射' : '编辑报表科目映射' }}</v-card-title>
         <v-card-text>
+          <div v-if="hasResolveContext && dialog.mode === 'create'" class="dialog-resolve-note">
+            <div class="dialog-resolve-title">正在处理：{{ resolveContextTitle }}</div>
+            <div v-if="resolveQueuePositionText" class="dialog-resolve-text">
+              {{ resolveQueuePositionText }}
+            </div>
+            <div class="dialog-resolve-text">
+              模板、科目和映射类型已根据缺口带入；请确认报表项目后创建映射。
+            </div>
+            <div v-if="sourceRecommendationText" class="dialog-resolve-text">
+              来源建议：{{ sourceRecommendationText }}
+            </div>
+          </div>
           <v-form ref="formRef" v-model="dialog.valid">
             <v-row dense>
               <v-col cols="12" md="6">
@@ -181,18 +225,23 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import reportAccountMapApi from '@/api/reportAccountMap'
 import reportTemplateApi from '@/api/reportTemplate'
 import reportItemApi from '@/api/reportItem'
 import accountSubjectApi from '@/api/accountSubject'
 
+const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
 const pages = ref(1)
 const selectedItem = ref(null)
 const formRef = ref()
+const resolveAutoOpened = ref(false)
+const resolveSaved = ref(false)
 
 const templates = ref([])
 const reportItems = ref([])
@@ -247,6 +296,61 @@ const accountOptions = computed(() =>
   })),
 )
 
+const hasResolveContext = computed(() =>
+  normalizeQueryValue(route.query.mode) === 'resolve'
+  && Boolean(normalizeQueryValue(route.query.accountCode) || normalizeQueryValue(route.query.templateId)),
+)
+
+const contextAccount = computed(() =>
+  accounts.value.find((item) => item.fid === filters.faccountId) || null,
+)
+
+const resolveGapQueue = computed(() => parseGapQueue(route.query.gapQueue))
+const resolveGapIndex = computed(() => resolveCurrentGapIndex())
+const resolveQueueTotal = computed(() => resolveGapQueue.value.length)
+const currentQueueGap = computed(() => resolveGapQueue.value[resolveGapIndex.value] || null)
+const hasPreviousQueueGap = computed(() => resolveGapIndex.value > 0)
+const hasNextQueueGap = computed(() => resolveGapIndex.value >= 0 && resolveGapIndex.value < resolveQueueTotal.value - 1)
+const resolveQueuePositionText = computed(() => {
+  if (!resolveQueueTotal.value || resolveGapIndex.value < 0) {
+    return ''
+  }
+  return `队列进度：第 ${resolveGapIndex.value + 1} / ${resolveQueueTotal.value} 项`
+})
+
+const routeRecommendedItemCode = computed(() =>
+  (normalizeQueryValue(route.query.recommendedItemCode) || normalizeQueryValue(currentQueueGap.value?.recommendedItemCode)).toUpperCase(),
+)
+const sourceRecommendationText = computed(() =>
+  normalizeQueryValue(route.query.recommendationReason) || normalizeQueryValue(currentQueueGap.value?.recommendationReason),
+)
+
+const recommendedReportItem = computed(() => {
+  const itemId = inferRecommendedReportItemId()
+  return itemId ? reportItems.value.find((item) => item.fid === itemId) || null : null
+})
+
+const resolveContextTitle = computed(() => {
+  const account = contextAccount.value
+  if (account) {
+    return `${account.fcode || '-'} - ${account.fname || '-'}`
+  }
+  const accountCode = normalizeQueryValue(route.query.accountCode)
+  const accountName = normalizeQueryValue(route.query.accountName) || normalizeQueryValue(currentQueueGap.value?.accountName)
+  return accountCode ? `${accountCode} - ${accountName || '待定位科目'}` : '待治理映射缺口'
+})
+
+const sourceReportLabel = computed(() => {
+  const sourcePath = normalizeQueryValue(route.query.sourcePath)
+  if (sourcePath === '/ledger/enterprise-tax') {
+    return '企业纳税表'
+  }
+  if (sourcePath === '/ledger/financial-indicators') {
+    return '财务指标'
+  }
+  return '来源报表'
+})
+
 const filterItemOptions = computed(() =>
   reportItems.value
     .filter((item) => !filters.ftemplateId || item.ftemplateId === filters.ftemplateId)
@@ -289,6 +393,27 @@ async function fetchLookups() {
   templates.value = templateRes.data?.records || []
   reportItems.value = itemRes.data?.records || []
   accounts.value = accountRes.data?.records || []
+}
+
+function applyRouteQueryFilters() {
+  const templateId = normalizeNumber(normalizeQueryValue(route.query.templateId))
+  if (templateId) {
+    filters.ftemplateId = templateId
+  }
+
+  const accountCode = normalizeQueryValue(route.query.accountCode)
+  if (!accountCode) {
+    return
+  }
+
+  const matchedAccount = accounts.value.find((item) => String(item.fcode || '').trim() === accountCode)
+  if (!matchedAccount) {
+    showMsg(`未找到会计科目 ${accountCode}`, 'warning')
+    return
+  }
+
+  filters.faccountId = matchedAccount.fid
+  showMsg(`已定位会计科目 ${matchedAccount.fcode} - ${matchedAccount.fname}`, 'info')
 }
 
 async function fetchData() {
@@ -336,8 +461,15 @@ function getRowProps({ item }) {
 function openCreateDialog() {
   dialog.visible = true
   dialog.mode = 'create'
+  const recommendedItemId = inferRecommendedReportItemId()
   Object.assign(dialog.form, defaultDialogForm(), {
-    ftemplateId: templates.value[0]?.fid ?? null,
+    ftemplateId: filters.ftemplateId || templates.value[0]?.fid || null,
+    faccountId: filters.faccountId || null,
+    fitemId: filters.fitemId || recommendedItemId || null,
+    fmappingType: defaultMappingTypeFromRoute(),
+  })
+  nextTick(() => {
+    dialog.form.fitemId = filters.fitemId || recommendedItemId || null
   })
 }
 
@@ -351,6 +483,10 @@ function handleEditSelected() {
     fitemId: normalizeNumber(selectedItem.value.fitemId),
     faccountId: normalizeNumber(selectedItem.value.faccountId),
   })
+  const selectedItemId = normalizeNumber(selectedItem.value.fitemId)
+  nextTick(() => {
+    dialog.form.fitemId = selectedItemId
+  })
 }
 
 function closeDialog() {
@@ -362,6 +498,7 @@ async function handleConfirm() {
   if (!validationPassed(validation)) {
     return
   }
+  const shouldAutoReview = hasResolveContext.value && dialog.mode === 'create'
 
   const payload = {
     ...dialog.form,
@@ -381,6 +518,13 @@ async function handleConfirm() {
     }
     closeDialog()
     await fetchData()
+    if (hasResolveContext.value) {
+      resolveSaved.value = true
+    }
+    if (shouldAutoReview) {
+      await nextTick()
+      returnToSourceReport({ review: true })
+    }
   } catch (error) {
     showMsg('报表科目映射保存失败', 'error')
   }
@@ -449,6 +593,225 @@ function normalizeNumber(value) {
   return Number.isFinite(next) ? next : null
 }
 
+function normalizeQueryValue(value) {
+  if (Array.isArray(value)) {
+    return String(value[0] || '').trim()
+  }
+  return String(value || '').trim()
+}
+
+function parseGapQueue(value) {
+  const raw = normalizeQueryValue(value)
+  if (!raw) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+    return parsed.map(normalizeQueueGap).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+function normalizeQueueGap(value) {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+  const accountCode = normalizeQueryValue(value.accountCode)
+  const templateId = normalizeNumber(value.templateId)
+  if (!accountCode && !templateId) {
+    return null
+  }
+  return compactQuery({
+    accountCode,
+    accountName: normalizeQueryValue(value.accountName),
+    reportType: normalizeQueryValue(value.reportType),
+    templateId,
+    templateName: normalizeQueryValue(value.templateName),
+    mappingType: normalizeQueryValue(value.mappingType),
+    recommendedItemCode: normalizeQueryValue(value.recommendedItemCode),
+    recommendationReason: normalizeQueryValue(value.recommendationReason),
+  })
+}
+
+function resolveCurrentGapIndex() {
+  const queue = resolveGapQueue.value
+  if (!queue.length) {
+    return -1
+  }
+  const requestedIndex = Number(normalizeQueryValue(route.query.gapIndex))
+  if (Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < queue.length) {
+    return requestedIndex
+  }
+
+  const accountCode = normalizeQueryValue(route.query.accountCode)
+  const templateId = normalizeNumber(normalizeQueryValue(route.query.templateId))
+  const matchedIndex = queue.findIndex((item) =>
+    normalizeQueryValue(item.accountCode) === accountCode
+    && (!templateId || normalizeNumber(item.templateId) === templateId),
+  )
+  return matchedIndex >= 0 ? matchedIndex : 0
+}
+
+function defaultMappingTypeFromRoute() {
+  const reportType = normalizeQueryValue(route.query.reportType)
+  if (reportType === 'PROFIT_STATEMENT') {
+    return 'PL'
+  }
+  if (reportType === 'CASH_FLOW') {
+    return 'CASHFLOW'
+  }
+  return 'DIRECT'
+}
+
+function reportTypeLabel(value) {
+  const labels = {
+    PROFIT_STATEMENT: '利润表',
+    BALANCE_SHEET: '资产负债表',
+    CASH_FLOW: '现金流量表',
+  }
+  return labels[value] || value || '报表'
+}
+
+function returnToSourceReport(options = {}) {
+  const sourcePath = normalizeQueryValue(route.query.sourcePath) || '/ledger/enterprise-tax'
+  const account = contextAccount.value
+  const reviewQuery = options.review ? {
+    review: 'reportMappingResolution',
+    resolvedAccountCode: account?.fcode || normalizeQueryValue(route.query.accountCode),
+    resolvedAccountName: account?.fname || '',
+    resolvedTemplateId: filters.ftemplateId || normalizeNumber(normalizeQueryValue(route.query.templateId)),
+  } : {}
+  router.push({
+    path: sourcePath,
+    query: compactQuery({
+      period: normalizeQueryValue(route.query.sourcePeriod),
+      currency: normalizeQueryValue(route.query.sourceCurrency),
+      orgId: normalizeQueryValue(route.query.sourceOrgId),
+      ...reviewQuery,
+    }),
+  })
+}
+
+function openQueueGap(index) {
+  const queue = resolveGapQueue.value
+  const gap = queue[index]
+  if (!gap) {
+    return
+  }
+  router.push({
+    path: route.path,
+    query: buildQueueGapQuery(gap, index),
+  })
+}
+
+function buildQueueGapQuery(gap, index) {
+  const queuePayload = normalizeQueryValue(route.query.gapQueue) || JSON.stringify(resolveGapQueue.value)
+  return compactQuery({
+    mode: 'resolve',
+    accountCode: gap.accountCode,
+    accountName: gap.accountName,
+    reportType: gap.reportType,
+    templateId: gap.templateId,
+    recommendedItemCode: gap.recommendedItemCode,
+    recommendationReason: gap.recommendationReason,
+    sourcePath: normalizeQueryValue(route.query.sourcePath) || '/ledger/enterprise-tax',
+    sourcePeriod: normalizeQueryValue(route.query.sourcePeriod),
+    sourceCurrency: normalizeQueryValue(route.query.sourceCurrency),
+    sourceOrgId: normalizeQueryValue(route.query.sourceOrgId),
+    gapQueue: queuePayload,
+    gapIndex: index,
+  })
+}
+
+function openResolveDialogOnce() {
+  if (!hasResolveContext.value || resolveAutoOpened.value || !filters.faccountId) {
+    return
+  }
+  resolveAutoOpened.value = true
+  openCreateDialog()
+}
+
+function inferRecommendedReportItemId() {
+  const templateId = filters.ftemplateId || normalizeNumber(normalizeQueryValue(route.query.templateId))
+  const account = contextAccount.value
+  if (!templateId) {
+    return null
+  }
+
+  if (routeRecommendedItemCode.value) {
+    const recommendedItemId = findItemIdByCode(routeRecommendedItemCode.value, templateId)
+    if (recommendedItemId) {
+      return recommendedItemId
+    }
+  }
+
+  if (!account) {
+    return null
+  }
+
+  const accountReportItem = normalizeNumber(account.freportItem)
+  if (accountReportItem && itemBelongsToTemplate(accountReportItem, templateId)) {
+    return accountReportItem
+  }
+
+  const reportType = normalizeQueryValue(route.query.reportType)
+  const accountText = [
+    account.fpltype,
+    account.ftype,
+    account.fname,
+    account.fcode,
+  ].join(' ').toLowerCase()
+
+  if (reportType === 'PROFIT_STATEMENT') {
+    if (containsAny(accountText, ['收入', 'revenue', 'income'])) {
+      return findItemIdByCode('PL_REVENUE', templateId)
+    }
+    if (containsAny(accountText, ['成本', '费用', 'cost', 'expense'])) {
+      return findItemIdByCode('PL_COST', templateId)
+    }
+    return null
+  }
+
+  if (reportType === 'BALANCE_SHEET') {
+    if (Number(account.fcash || 0) === 1 || Number(account.fbank || 0) === 1 || Number(account.fequivalent || 0) === 1) {
+      return findItemIdByCode('BS_CASH', templateId)
+    }
+    if (containsAny(accountText, ['资产', 'asset'])) {
+      return findItemIdByCode('BS_ASSET', templateId)
+    }
+    if (containsAny(accountText, ['负债', '权益', 'liability', 'equity'])) {
+      return findItemIdByCode('BS_LIAB_EQ', templateId)
+    }
+  }
+
+  return null
+}
+
+function itemBelongsToTemplate(itemId, templateId) {
+  return reportItems.value.some((item) => item.fid === itemId && item.ftemplateId === templateId)
+}
+
+function findItemIdByCode(code, templateId) {
+  const match = reportItems.value.find(
+    (item) => item.ftemplateId === templateId && String(item.fcode || '').toUpperCase() === code,
+  )
+  return match?.fid || null
+}
+
+function containsAny(value, keywords) {
+  return keywords.some((keyword) => value.includes(keyword.toLowerCase()))
+}
+
+function compactQuery(value) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null && entry !== ''),
+  )
+}
+
 function validationPassed(result) {
   if (result === undefined) return true
   if (typeof result === 'boolean') return result
@@ -463,8 +826,32 @@ function showMsg(text, color = 'success') {
 
 onMounted(async () => {
   await fetchLookups()
+  applyRouteQueryFilters()
   await fetchData()
+  openResolveDialogOnce()
 })
+
+watch(
+  () => [
+    route.query.accountCode,
+    route.query.accountName,
+    route.query.templateId,
+    route.query.mode,
+    route.query.recommendedItemCode,
+    route.query.recommendationReason,
+    route.query.gapQueue,
+    route.query.gapIndex,
+  ],
+  async () => {
+    if (!accounts.value.length) return
+    resolveAutoOpened.value = false
+    resolveSaved.value = false
+    applyRouteQueryFilters()
+    filters.page = 1
+    await fetchData()
+    openResolveDialogOnce()
+  },
+)
 </script>
 
 <style scoped>
@@ -505,6 +892,73 @@ onMounted(async () => {
   gap: 8px;
 }
 
+.resolve-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+  border: 1px solid #bfd8ff;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #f4f8ff;
+}
+
+.resolve-panel.is-saved {
+  border-color: #a9dbc2;
+  background: #f2fbf6;
+}
+
+.resolve-main {
+  min-width: 0;
+}
+
+.resolve-eyebrow {
+  color: #315f9f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.resolve-title {
+  margin-top: 4px;
+  color: #25324a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.resolve-subtitle,
+.resolve-hint {
+  margin-top: 4px;
+  color: #627084;
+  font-size: 13px;
+}
+
+.resolve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dialog-resolve-note {
+  margin-bottom: 14px;
+  border: 1px solid #d6e4ff;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f7faff;
+}
+
+.dialog-resolve-title {
+  color: #25324a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dialog-resolve-text {
+  margin-top: 4px;
+  color: #637083;
+  font-size: 13px;
+}
+
 .selected-tip {
   margin-bottom: 12px;
   color: #5f6b84;
@@ -526,5 +980,12 @@ onMounted(async () => {
 
 :deep(.selected-row) {
   background: #e8f1ff !important;
+}
+
+@media (max-width: 960px) {
+  .resolve-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 </style>

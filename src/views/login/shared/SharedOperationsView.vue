@@ -1,616 +1,237 @@
 <template>
-  <v-container class="shared-operations" fluid>
-    <v-breadcrumbs :items="breadcrumbs" class="mb-6" divider="mdi-chevron-right" />
+  <main class="shared-page">
+    <section class="hero">
+      <div>
+        <span>SHARED OPERATIONS</span>
+        <h1>共享运营任务池</h1>
+        <p>真实连接共享服务 API，统一管理任务创建、认领、执行、验收、评论和 SLA。</p>
+      </div>
+      <div class="hero-actions">
+        <v-btn variant="tonal" prepend-icon="mdi-refresh" :loading="loading" @click="refreshAll">刷新</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreate">创建任务</v-btn>
+      </div>
+    </section>
 
-    <v-row class="mb-6" align="stretch" no-gutters>
-      <v-col cols="12" md="4" class="pr-md-4 mb-6 mb-md-0">
-        <v-card class="info-card" elevation="2">
-          <v-card-title class="d-flex align-center">
-            <v-avatar color="primary" size="40" class="mr-3">
-              <v-icon icon="mdi-account-group-outline" size="26" />
-            </v-avatar>
-            <div>
-              <div class="text-h6 font-weight-bold">共享运营管理</div>
-              <div class="text-body-2 text-medium-emphasis">统一管理共享服务运营任务</div>
-            </div>
-          </v-card-title>
-          <v-divider class="my-3" />
-          <v-card-text>
-            <div class="text-body-2 text-medium-emphasis mb-4">
-              通过标准化任务池，实现跨团队协作、进度追踪与质量管控，支撑共享服务体系的高效运营。
-            </div>
-            <v-chip-group column class="chip-group" selected-class="bg-primary">
-              <v-chip color="primary" class="text-body-2" variant="tonal" prepend-icon="mdi-format-list-checks">
-                共享任务
-              </v-chip>
-              <v-chip color="primary" class="text-body-2" variant="text" prepend-icon="mdi-account-arrow-left">
-                拉式认领
-              </v-chip>
-              <v-chip color="primary" class="text-body-2" variant="text" prepend-icon="mdi-shield-check">
-                风险防控
-              </v-chip>
-              <v-chip color="primary" class="text-body-2" variant="text" prepend-icon="mdi-chart-areaspline">
-                运营看板
-              </v-chip>
-            </v-chip-group>
-            <v-alert type="info" variant="tonal" density="comfortable" class="mt-4">
-              共享任务涵盖了任务创建、认领、执行、验收与复盘的全生命周期。
-            </v-alert>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="8">
-        <v-card elevation="2" class="task-card">
-          <v-card-title class="d-flex align-center justify-space-between">
-            <div class="d-flex align-center">
-              <v-icon icon="mdi-clipboard-list-outline" color="primary" size="28" class="mr-3" />
-              <div>
-                <div class="text-h6 font-weight-bold">共享任务</div>
-                <div class="text-caption text-medium-emphasis">请完善任务信息，确保入池标准与风险可控</div>
-              </div>
-            </div>
-            <div>
-              <v-btn class="mr-2" color="primary" variant="tonal" @click="resetForm">重置</v-btn>
-              <v-btn color="primary" @click="simulateSubmit">提交</v-btn>
-            </div>
-          </v-card-title>
-          <v-divider />
-          <v-card-text>
-            <v-form ref="taskForm">
-              <section-title title="基础信息" />
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="form.title"
-                    label="title｜标题"
-                    :rules="titleRules"
-                    maxlength="120"
-                    counter
-                    placeholder="请用“模块-场景-关键词”命名"
-                    required
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-select
-                    v-model="form.priority"
-                    :items="priorityOptions"
-                    label="priority｜优先级"
-                    item-title="label"
-                    item-value="value"
-                    required
-                    :chips="false"
-                    class="priority-select"
-                  >
-                    <template #selection="{ item }">
-                      <v-chip :color="priorityColor(item.value)" size="small" variant="flat">{{ item.value }}</v-chip>
-                    </template>
-                    <template #item="{ props, item }">
-                      <v-list-item v-bind="props">
-                        <template #prepend>
-                          <v-avatar :color="priorityColor(item.value)" size="18" />
-                        </template>
-                        <template #title>
-                          {{ item.value }}
-                        </template>
-                      </v-list-item>
-                    </template>
-                  </v-select>
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="form.description"
-                    label="description｜描述"
-                    rows="3"
-                    counter
-                    :rules="descriptionRules"
-                    placeholder="请描述复现场景 / 期望 / 验收方式"
-                    auto-grow
-                    required
-                  />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-text-field v-model="form.requester" label="requester｜提交人" readonly variant="outlined" />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-autocomplete v-model="form.assignee" :items="assigneeOptions" label="assignee｜负责人" clearable chips hide-no-data />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.status" :items="statusOptions" label="status｜状态" required />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-text-field
-                    v-model="form.dueDate"
-                    label="dueDate｜截止日期"
-                    type="date"
-                    :min="minDueDate"
-                    clearable
-                  />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-combobox
-                    v-model="form.labels"
-                    label="labels｜标签"
-                    multiple
-                    chips
-                    clearable
-                    hint="最多 3 个标签"
-                    persistent-hint
-                  />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.module" :items="moduleOptions" label="module｜模块" required />
-                </v-col>
-                <v-col cols="12">
-                  <v-combobox
-                    v-model="form.acceptanceCriteria"
-                    label="acceptanceCriteria｜验收标准"
-                    multiple
-                    chips
-                    hint="至少添加 1 条可验证的验收标准"
-                    persistent-hint
-                  />
-                </v-col>
-              </v-row>
+    <section class="summary-grid">
+      <article><span>任务总数</span><strong>{{ summary.totalCreated || 0 }}</strong><small>当前统计周期创建量</small></article>
+      <article><span>已完成</span><strong>{{ summary.completed || 0 }}</strong><small>完成率 {{ completionRate }}%</small></article>
+      <article><span>已逾期</span><strong>{{ summary.overdue || 0 }}</strong><small>需要优先处理</small></article>
+      <article><span>平均任务年龄</span><strong>{{ summary.avgAgeDays || 0 }} 天</strong><small>从创建至当前</small></article>
+    </section>
 
-              <section-title title="影响与来源" />
-              <v-row>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.impactScope" :items="impactScopeOptions" label="impactScope｜影响范围" clearable />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.ticketSource" :items="ticketSourceOptions" label="ticketSource｜来源" clearable />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.taskType" :items="taskTypeOptions" label="taskType｜类型" required />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-text-field v-model.number="form.estimate" label="estimate｜预估 (h / pts)" type="number" min="0" suffix="h" />
-                </v-col>
-                <v-col cols="12" md="8">
-                  <v-combobox v-model="form.dependencies" label="dependencies｜依赖项" multiple chips clearable />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.slaClass" :items="slaOptions" label="slaClass｜SLA等级" />
-                </v-col>
-              </v-row>
+    <v-card class="filter-card" elevation="0">
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" md="3"><v-text-field v-model.trim="filters.search" label="搜索标题或描述" prepend-inner-icon="mdi-magnify" variant="outlined" density="comfortable" hide-details clearable @keydown.enter="applyFilters" /></v-col>
+          <v-col cols="12" md="2"><v-select v-model="filters.status" label="状态" :items="statusOptions" variant="outlined" density="comfortable" hide-details clearable /></v-col>
+          <v-col cols="12" md="2"><v-select v-model="filters.priority" label="优先级" :items="priorityOptions" variant="outlined" density="comfortable" hide-details clearable /></v-col>
+          <v-col cols="12" md="3"><v-text-field v-model.trim="filters.module" label="模块" variant="outlined" density="comfortable" hide-details clearable /></v-col>
+          <v-col cols="12" md="2"><v-btn color="primary" block height="44" @click="applyFilters">查询</v-btn></v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
 
-              <section-title title="子任务与执行" />
-              <v-row class="align-center mb-2">
-                <v-col cols="12" md="8">
-                  <div class="text-body-2 text-medium-emphasis">
-                    请拆解子任务并更新完成状态，进度条将随完成率变化。
-                  </div>
-                </v-col>
-                <v-col cols="12" md="4" class="text-md-right">
-                  <v-btn color="primary" variant="text" prepend-icon="mdi-plus" @click="addSubtask">新增子任务</v-btn>
-                </v-col>
-              </v-row>
-              <v-row v-for="(subtask, index) in form.subtasks" :key="index" class="subtask-row" align="center">
-                <v-col cols="12" md="8">
-                  <v-text-field v-model="subtask.title" :label="`子任务 ${index + 1}`" required />
-                </v-col>
-                <v-col cols="6" md="2">
-                  <v-switch v-model="subtask.done" inset color="success" :label="subtask.done ? '已完成' : '未完成'" />
-                </v-col>
-                <v-col cols="6" md="2" class="text-right">
-                  <v-btn icon variant="text" color="default" @click="removeSubtask(index)" :disabled="form.subtasks.length === 1">
-                    <v-icon icon="mdi-delete-outline" />
-                  </v-btn>
-                </v-col>
-              </v-row>
-              <v-progress-linear :model-value="subtaskProgress" color="primary" class="mb-6" rounded height="8" />
+    <v-card class="table-card" elevation="0">
+      <div class="table-heading">
+        <div><span>TASK POOL</span><strong>共享任务</strong></div>
+        <small>共 {{ total }} 条 · 第 {{ page }} / {{ pageCount }} 页</small>
+      </div>
+      <v-data-table :headers="headers" :items="tasks" :loading="loading" item-value="id" :items-per-page="pageSize" hide-default-footer @click:row="openRow">
+        <template #item.title="{ item }"><button type="button" class="task-link" @click.stop="openDetail(item)"><strong>{{ item.title }}</strong><small>{{ item.id }}</small></button></template>
+        <template #item.priority="{ item }"><v-chip size="small" :color="priorityColor(item.priority)" variant="tonal">{{ item.priority || '-' }}</v-chip></template>
+        <template #item.status="{ item }"><v-chip size="small" :color="statusColor(item.status)" variant="tonal">{{ item.status || '-' }}</v-chip></template>
+        <template #item.assignee="{ item }">{{ item.assignee?.name || item.assignee?.id || '未认领' }}</template>
+        <template #item.dueDate="{ item }">{{ item.dueDate || '-' }}</template>
+        <template #item.actions="{ item }"><div class="row-actions">
+          <v-btn v-if="!item.assignee" size="small" variant="tonal" color="primary" @click.stop="claimTask(item)">认领</v-btn>
+          <v-btn size="small" variant="text" @click.stop="openTransition(item)">流转</v-btn>
+          <v-btn size="small" variant="text" @click.stop="openEdit(item)">编辑</v-btn>
+          <v-btn size="small" variant="text" color="error" @click.stop="removeTask(item)">删除</v-btn>
+        </div></template>
+        <template #no-data><div class="empty-state"><v-icon size="44">mdi-clipboard-text-outline</v-icon><strong>暂无共享任务</strong><span>调整筛选条件或创建一个新任务。</span></div></template>
+      </v-data-table>
+      <div class="pagination-bar"><v-pagination v-model="page" :length="pageCount" :total-visible="7" @update:model-value="loadTasks" /></div>
+    </v-card>
 
-              <section-title title="时间追踪" />
-              <v-row>
-                <v-col cols="12" md="3">
-                  <v-text-field v-model="form.firstResponseAt" label="firstResponseAt｜首次响应" readonly />
-                </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field v-model="form.createdAt" label="createdAt｜创建时间" readonly />
-                </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field v-model="form.completedAt" label="completedAt｜完成时间" readonly />
-                </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field :model-value="ageDays" label="ageDays｜任务年龄 (天)" readonly />
-                </v-col>
-              </v-row>
+    <v-dialog v-model="formDialog.visible" max-width="820" persistent>
+      <v-card>
+        <v-card-title>{{ formDialog.mode === 'create' ? '创建共享任务' : '编辑共享任务' }}</v-card-title>
+        <v-card-text>
+          <v-form ref="taskFormRef">
+            <v-row dense>
+              <v-col cols="12" md="8"><v-text-field v-model.trim="formDialog.form.title" label="标题" maxlength="120" counter variant="outlined" :rules="requiredRules" /></v-col>
+              <v-col cols="12" md="4"><v-select v-model="formDialog.form.priority" label="优先级" :items="priorityOptions" variant="outlined" /></v-col>
+              <v-col cols="12"><v-textarea v-model.trim="formDialog.form.description" label="描述" rows="4" auto-grow counter variant="outlined" hint="至少 20 个字符" persistent-hint :rules="descriptionRules" /></v-col>
+              <v-col cols="12" md="4"><v-select v-model="formDialog.form.taskType" label="任务类型" :items="taskTypeOptions" variant="outlined" /></v-col>
+              <v-col cols="12" md="4"><v-text-field v-model.trim="formDialog.form.module" label="模块" variant="outlined" :rules="requiredRules" /></v-col>
+              <v-col cols="12" md="4"><v-select v-model="formDialog.form.riskLevel" label="风险等级" :items="riskOptions" variant="outlined" /></v-col>
+              <v-col cols="12" md="6"><v-text-field v-model="formDialog.form.dueDate" type="date" label="截止日期" variant="outlined" /></v-col>
+              <v-col cols="12" md="6"><v-combobox v-model="formDialog.form.labels" label="标签" multiple chips clearable variant="outlined" /></v-col>
+              <v-col cols="12"><v-textarea v-model="formDialog.form.acceptanceText" label="验收标准" rows="3" variant="outlined" hint="每行一条，至少一条" persistent-hint :rules="requiredRules" /></v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        <v-card-actions><v-spacer /><v-btn variant="text" @click="formDialog.visible = false">取消</v-btn><v-btn color="primary" :loading="formDialog.loading" @click="saveTask">保存</v-btn></v-card-actions>
+      </v-card>
+    </v-dialog>
 
-              <section-title title="沟通与关联" />
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-file-input v-model="form.attachments" label="attachments｜附件" multiple prepend-icon="mdi-paperclip" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-combobox v-model="form.relatedLinks" label="relatedLinks｜关联链接" multiple chips clearable />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field v-model="form.milestone" label="milestone｜里程碑" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-select v-model="form.quarter" :items="quarterOptions" label="quarter｜归属季度" clearable />
-                </v-col>
-              </v-row>
+    <v-dialog v-model="transitionDialog.visible" max-width="560" persistent>
+      <v-card><v-card-title>任务状态流转</v-card-title><v-card-text>
+        <v-alert type="info" variant="tonal" class="mb-4">{{ transitionDialog.task?.title }} · 当前状态 {{ transitionDialog.task?.status }}</v-alert>
+        <v-select v-model="transitionDialog.targetStatus" label="目标状态" :items="statusOptions" variant="outlined" />
+        <v-textarea v-model.trim="transitionDialog.note" label="流转备注" variant="outlined" rows="4" :rules="requiredRules" />
+      </v-card-text><v-card-actions><v-spacer /><v-btn variant="text" @click="transitionDialog.visible = false">取消</v-btn><v-btn color="primary" :loading="transitionDialog.loading" @click="submitTransition">确认流转</v-btn></v-card-actions></v-card>
+    </v-dialog>
 
-              <section-title title="质量与风险" />
-              <v-row>
-                <v-col cols="12">
-                  <v-combobox
-                    v-model="form.dorCheck"
-                    label="dorCheck｜入池标准"
-                    multiple
-                    chips
-                    hint="示例：场景清晰 / 可测 / 口径明确"
-                    persistent-hint
-                  />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.riskLevel" :items="riskOptions" label="riskLevel｜风险等级" />
-                </v-col>
-                <v-col cols="12" md="8">
-                  <v-textarea v-model="form.rollbackPlan" label="rollbackPlan｜回滚方案" auto-grow rows="2" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-file-input v-model="form.testEvidence" label="testEvidence｜测试证据" multiple prepend-icon="mdi-clipboard-check" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-combobox v-model="form.testEvidenceLinks" label="testEvidence｜测试链接" multiple chips />
-                </v-col>
-              </v-row>
+    <v-dialog v-model="detailDialog.visible" max-width="900" scrollable>
+      <v-card><v-card-title class="detail-title"><div><small>{{ detailDialog.task?.id }}</small><strong>{{ detailDialog.task?.title }}</strong></div><v-btn icon="mdi-close" variant="text" @click="detailDialog.visible = false" /></v-card-title>
+        <v-card-text v-if="detailDialog.task">
+          <div class="detail-metrics">
+            <article><span>状态</span><strong>{{ detailDialog.task.status }}</strong></article>
+            <article><span>优先级</span><strong>{{ detailDialog.task.priority }}</strong></article>
+            <article><span>负责人</span><strong>{{ detailDialog.task.assignee?.name || '未认领' }}</strong></article>
+            <article><span>SLA</span><strong>{{ detailDialog.sla?.targetHours ?? '-' }} h</strong></article>
+          </div>
+          <v-alert type="info" variant="tonal" class="my-4">{{ detailDialog.task.description }}</v-alert>
+          <v-list lines="two" density="comfortable">
+            <v-list-item title="模块" :subtitle="detailDialog.task.module || '-'" />
+            <v-list-item title="验收标准" :subtitle="(detailDialog.task.acceptanceCriteria || []).join('；') || '-'" />
+            <v-list-item title="创建人" :subtitle="detailDialog.task.requester?.name || detailDialog.task.requester?.id || '-'" />
+            <v-list-item title="创建时间" :subtitle="formatTime(detailDialog.task.createdAt)" />
+          </v-list>
+          <v-divider class="my-4" />
+          <div class="comment-heading"><strong>评论记录</strong><v-chip size="small" variant="tonal">{{ detailDialog.comments.length }} 条</v-chip></div>
+          <div v-if="detailDialog.comments.length" class="comment-list"><article v-for="comment in detailDialog.comments" :key="comment.id"><header><strong>{{ comment.author?.name || comment.author?.id || '用户' }}</strong><small>{{ formatTime(comment.createdAt) }}</small></header><p>{{ comment.body }}</p></article></div>
+          <div v-else class="comment-empty">暂无评论</div>
+          <div class="comment-form"><v-textarea v-model.trim="detailDialog.newComment" label="添加评论" rows="2" auto-grow variant="outlined" hide-details /><v-btn color="primary" :loading="detailDialog.commentLoading" @click="submitComment">发送</v-btn></div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
-              <section-title title="执行与发布" />
-              <v-row>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.ownerTeam" :items="ownerTeamOptions" label="ownerTeam｜负责人团队" clearable />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-combobox v-model="form.coOwners" label="coOwners｜协作者" multiple chips clearable />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.env" :items="envOptions" label="env｜环境" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field v-model="form.releaseLink" label="releaseLink｜发布单" type="url" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-combobox v-model="form.prLinks" label="prLinks｜代码PR链接" multiple chips />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-chip color="success" class="mt-5" variant="tonal">CI 状态：{{ form.ciStatus }}</v-chip>
-                </v-col>
-              </v-row>
-
-              <section-title title="追踪与审计" />
-              <v-row>
-                <v-col cols="12" md="3">
-                  <v-text-field v-model="form.reopenCount" type="number" label="reopenCount｜退回次数" readonly />
-                </v-col>
-                <v-col cols="12" md="5">
-                  <v-text-field v-model="form.duplicateOf" label="duplicateOf｜重复任务指向" />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-select v-model="form.securityLevel" :items="securityOptions" label="securityLevel｜敏感级别" />
-                </v-col>
-                <v-col cols="12">
-                  <v-card variant="tonal" class="mt-2">
-                    <v-card-title class="text-subtitle-2">eventLog｜事件流水</v-card-title>
-                    <v-divider />
-                    <v-list density="comfortable">
-                      <v-list-item v-for="(event, idx) in form.eventLog" :key="idx">
-                        <v-list-item-title>{{ event.title }}</v-list-item-title>
-                        <v-list-item-subtitle>{{ event.time }} · {{ event.actor }}</v-list-item-subtitle>
-                      </v-list-item>
-                    </v-list>
-                  </v-card>
-                </v-col>
-              </v-row>
-
-              <section-title title="业务价值" />
-              <v-row>
-                <v-col cols="12" md="4">
-                  <v-text-field v-model="form.expectedValue" label="expectedValue｜预期价值" />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-text-field v-model="form.postmortem" label="postmortem｜复盘链接" type="url" />
-                </v-col>
-                <v-col cols="12" md="4">
-                  <div class="d-flex align-center">
-                    <span class="text-body-2 mr-4">csat｜验收满意度</span>
-                    <v-slider v-model="form.csat" min="1" max="5" step="1" thumb-label ticks show-ticks="always" />
-                  </div>
-                </v-col>
-              </v-row>
-            </v-form>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="2800">{{ snackbar.text }}</v-snackbar>
+  </main>
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { addSharedTaskComment, createSharedTask, deleteSharedTask, getSharedOperationsSummary, getSharedTask, getSharedTaskSla, listSharedTaskComments, listSharedTasks, transitionSharedTask, updateSharedTask } from '@/api/sharedOperations'
+import { getCurrentUserId } from '@/utils/currentUser'
 
-const breadcrumbs = [
-  { title: '共享云', disabled: false, href: '#' },
-  { title: '共享运营管理', disabled: false, href: '#' },
-  { title: '共享任务', disabled: true },
-]
-
-const taskForm = ref(null)
-
-const form = reactive({
-  title: '',
-  description: '',
-  priority: 'P2',
-  requester: '当前用户',
-  assignee: null,
-  status: '待分诊',
-  dueDate: '',
-  labels: [],
-  module: '共享运营',
-  acceptanceCriteria: ['输入→处理→输出可验证'],
-  impactScope: null,
-  ticketSource: null,
-  taskType: '运营',
-  estimate: null,
-  subtasks: [
-    { title: '梳理需求背景', done: false },
-    { title: '制定执行方案', done: false },
-  ],
-  dependencies: [],
-  slaClass: 'SLA-P2',
-  firstResponseAt: '',
-  createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-  completedAt: '',
-  attachments: [],
-  relatedLinks: [],
-  milestone: '',
-  quarter: null,
-  dorCheck: ['场景清晰'],
-  riskLevel: '中',
-  rollbackPlan: '',
-  testEvidence: [],
-  testEvidenceLinks: [],
-  ownerTeam: null,
-  coOwners: [],
-  env: '测试',
-  releaseLink: '',
-  prLinks: [],
-  ciStatus: '进行中',
-  eventLog: [
-    { title: '任务创建', time: new Date().toLocaleString(), actor: '当前用户' },
-  ],
-  reopenCount: 0,
-  duplicateOf: '',
-  securityLevel: '内部',
-  expectedValue: '',
-  postmortem: '',
-  csat: 3,
-})
-
-const titleRules = [
-  v => !!v || '标题为必填项',
-  v => (v && v.length <= 120) || '标题长度需在 120 字以内',
-]
-
-const descriptionRules = [
-  v => !!v || '描述为必填项',
-  v => (v && v.length >= 20) || '描述需至少 20 字',
-]
-
-const priorityOptions = [
-  { label: '最高优先级', value: 'P0' },
-  { label: '高优先级', value: 'P1' },
-  { label: '默认优先级', value: 'P2' },
-  { label: '低优先级', value: 'P3' },
-]
-
+const currentUserId = getCurrentUserId() || 'current-user'
+const loading = ref(false)
+const tasks = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const taskFormRef = ref(null)
+const summary = reactive({ totalCreated: 0, completed: 0, overdue: 0, avgAgeDays: 0 })
+const filters = reactive({ search: '', status: null, priority: null, module: '' })
+const snackbar = reactive({ show: false, text: '', color: 'success' })
 const statusOptions = ['待分诊', '待办', '进行中', '待验收', '已完成', '搁置', '阻塞']
-const moduleOptions = ['共享运营', '共享客服', '共享财务', '共享法务']
-const impactScopeOptions = ['单用户', '≤1%', '1–5%', '>5%', '关键客户', '金额区间']
-const ticketSourceOptions = ['客户', '运营', '监控', '内部', '渠道名']
+const priorityOptions = ['P0', 'P1', 'P2', 'P3']
 const taskTypeOptions = ['缺陷', '需求', '运营', '支持', '数据', '自动化']
-const slaOptions = ['SLA-P0', 'SLA-P1', 'SLA-P2']
-const assigneeOptions = ['张敏', '王涛', '李静', '陈岚']
-const quarterOptions = ['FY25Q1', 'FY25Q2', 'FY25Q3', 'FY25Q4']
 const riskOptions = ['高', '中', '低']
-const ownerTeamOptions = ['共享运营组', '共享质检组', '共享客服组']
-const envOptions = ['生产', '预发', '测试']
-const securityOptions = ['公开', '内部', '涉密']
+const requiredRules = [value => Boolean(Array.isArray(value) ? value.length : String(value || '').trim()) || '此项不能为空']
+const descriptionRules = [value => String(value || '').trim().length >= 20 || '描述至少 20 个字符']
+const headers = [
+  { title: '任务', key: 'title', minWidth: 260 },
+  { title: '优先级', key: 'priority', width: 100 },
+  { title: '状态', key: 'status', width: 120 },
+  { title: '模块', key: 'module', width: 140 },
+  { title: '负责人', key: 'assignee', width: 140 },
+  { title: '截止日期', key: 'dueDate', width: 130 },
+  { title: '操作', key: 'actions', width: 260, sortable: false },
+]
+const formDialog = reactive({ visible: false, loading: false, mode: 'create', taskId: null, form: emptyForm() })
+const transitionDialog = reactive({ visible: false, loading: false, task: null, targetStatus: '进行中', note: '' })
+const detailDialog = reactive({ visible: false, task: null, sla: null, comments: [], newComment: '', commentLoading: false })
+const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const completionRate = computed(() => summary.totalCreated ? Math.round((summary.completed / summary.totalCreated) * 100) : 0)
 
-const minDueDate = computed(() => new Date().toISOString().split('T')[0])
+onMounted(refreshAll)
 
-const ageDays = computed(() => {
-  const created = new Date(form.createdAt)
-  if (Number.isNaN(created.getTime())) return '-'
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
-  return diff >= 0 ? diff : 0
-})
-
-const subtaskProgress = computed(() => {
-  const total = form.subtasks.length
-  if (!total) return 0
-  const done = form.subtasks.filter(item => item.done).length
-  return Math.round((done / total) * 100)
-})
-
-watch(() => form.priority, value => {
-  const mapping = {
-    P0: 'SLA-P0',
-    P1: 'SLA-P1',
-    P2: 'SLA-P2',
-    P3: 'SLA-P2',
-  }
-  form.slaClass = mapping[value] || 'SLA-P2'
-})
-
-watch(
-  () => form.labels,
-  labels => {
-    if (labels.length > 3) {
-      labels.splice(3)
+function emptyForm() { return { title: '', description: '', priority: 'P2', taskType: '运营', module: '共享运营', riskLevel: '中', dueDate: '', labels: [], acceptanceText: '输入、处理和输出均可验证' } }
+async function refreshAll() { await Promise.all([loadTasks(), loadSummary()]) }
+async function loadTasks() {
+  loading.value = true
+  try {
+    const response = await listSharedTasks({ status: filters.status || undefined, module: filters.module || undefined, priority: filters.priority || undefined, search: filters.search || undefined, page: page.value, pageSize: pageSize.value, sort: '-createdAt' })
+    tasks.value = Array.isArray(response?.data) ? response.data : []
+    total.value = Number(response?.pagination?.total || response?.pagination?.totalCount || tasks.value.length)
+  } catch (error) { tasks.value = []; total.value = 0; showMessage(apiMessage(error, '共享任务加载失败'), 'error') } finally { loading.value = false }
+}
+async function loadSummary() {
+  try { const response = await getSharedOperationsSummary(); Object.assign(summary, response?.data || {}) }
+  catch { Object.assign(summary, { totalCreated: 0, completed: 0, overdue: 0, avgAgeDays: 0 }) }
+}
+function applyFilters() { page.value = 1; loadTasks() }
+function openCreate() { formDialog.mode = 'create'; formDialog.taskId = null; formDialog.form = emptyForm(); formDialog.visible = true }
+function openEdit(task) { formDialog.mode = 'edit'; formDialog.taskId = task.id; formDialog.form = { title: task.title || '', description: task.description || '', priority: task.priority || 'P2', taskType: task.taskType || '运营', module: task.module || '共享运营', riskLevel: task.riskLevel || '中', dueDate: task.dueDate || '', labels: [...(task.labels || [])], acceptanceText: (task.acceptanceCriteria || []).join('\n') }; formDialog.visible = true }
+async function saveTask() {
+  const validation = await taskFormRef.value?.validate()
+  if (validation && !validation.valid) return
+  const form = formDialog.form
+  const acceptanceCriteria = String(form.acceptanceText || '').split('\n').map(value => value.trim()).filter(Boolean)
+  if (!acceptanceCriteria.length) return showMessage('至少填写一条验收标准', 'warning')
+  formDialog.loading = true
+  try {
+    if (formDialog.mode === 'create') {
+      await createSharedTask({ title: form.title, description: form.description, priority: form.priority, taskType: form.taskType, module: form.module, status: '待分诊', riskLevel: form.riskLevel, dueDate: form.dueDate || undefined, labels: form.labels || [], acceptanceCriteria, securityLevel: '内部' })
+      showMessage('共享任务已创建并写入任务池')
+    } else {
+      await updateSharedTask(formDialog.taskId, { title: form.title, description: form.description, priority: form.priority, dueDate: form.dueDate || null, labels: form.labels || [], acceptanceCriteria })
+      showMessage('共享任务已更新')
     }
-  },
-  { deep: true }
-)
-
-function priorityColor(priority) {
-  switch (priority) {
-    case 'P0':
-      return 'error'
-    case 'P1':
-      return 'warning'
-    case 'P2':
-      return 'info'
-    default:
-      return 'grey'
-  }
+    formDialog.visible = false
+    await refreshAll()
+  } catch (error) { showMessage(apiMessage(error, '任务保存失败'), 'error') } finally { formDialog.loading = false }
 }
-
-function addSubtask() {
-  form.subtasks.push({ title: '', done: false })
+async function claimTask(task) {
+  try { await updateSharedTask(task.id, { assignee: { id: currentUserId, name: currentUserId, email: '' } }); showMessage('任务已认领'); await loadTasks() }
+  catch (error) { showMessage(apiMessage(error, '任务认领失败'), 'error') }
 }
-
-function removeSubtask(index) {
-  if (form.subtasks.length > 1) {
-    form.subtasks.splice(index, 1)
-  }
+function openTransition(task) { transitionDialog.task = task; transitionDialog.targetStatus = nextStatus(task.status); transitionDialog.note = ''; transitionDialog.visible = true }
+async function submitTransition() {
+  if (!transitionDialog.note) return showMessage('流转备注不能为空', 'warning')
+  transitionDialog.loading = true
+  try { await transitionSharedTask(transitionDialog.task.id, { targetStatus: transitionDialog.targetStatus, note: transitionDialog.note }); transitionDialog.visible = false; showMessage('任务状态已更新'); await refreshAll() }
+  catch (error) { showMessage(apiMessage(error, '状态流转失败'), 'error') } finally { transitionDialog.loading = false }
 }
-
-function resetForm() {
-  form.title = ''
-  form.description = ''
-  form.priority = 'P2'
-  form.assignee = null
-  form.status = '待分诊'
-  form.dueDate = ''
-  form.labels = []
-  form.module = '共享运营'
-  form.acceptanceCriteria = ['输入→处理→输出可验证']
-  form.impactScope = null
-  form.ticketSource = null
-  form.taskType = '运营'
-  form.estimate = null
-  form.subtasks = [
-    { title: '梳理需求背景', done: false },
-    { title: '制定执行方案', done: false },
-  ]
-  form.dependencies = []
-  form.slaClass = 'SLA-P2'
-  form.firstResponseAt = ''
-  form.completedAt = ''
-  form.attachments = []
-  form.relatedLinks = []
-  form.milestone = ''
-  form.quarter = null
-  form.dorCheck = ['场景清晰']
-  form.riskLevel = '中'
-  form.rollbackPlan = ''
-  form.testEvidence = []
-  form.testEvidenceLinks = []
-  form.ownerTeam = null
-  form.coOwners = []
-  form.env = '测试'
-  form.releaseLink = ''
-  form.prLinks = []
-  form.ciStatus = '进行中'
-  form.eventLog = [
-    { title: '任务创建', time: new Date().toLocaleString(), actor: '当前用户' },
-  ]
-  form.reopenCount = 0
-  form.duplicateOf = ''
-  form.securityLevel = '内部'
-  form.expectedValue = ''
-  form.postmortem = ''
-  form.csat = 3
+async function removeTask(task) {
+  if (!window.confirm(`确认删除任务“${task.title}”吗？`)) return
+  try { await deleteSharedTask(task.id); showMessage('任务已删除'); await refreshAll() }
+  catch (error) { showMessage(apiMessage(error, '任务删除失败'), 'error') }
 }
-
-function simulateSubmit() {
-  if (!taskForm.value) return
-  taskForm.value.validate().then(result => {
-    if (result.valid) {
-      form.firstResponseAt = form.firstResponseAt || new Date().toISOString().slice(0, 16).replace('T', ' ')
-      if (form.status === '已完成' && !form.completedAt) {
-        form.completedAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
-      }
-      form.eventLog.push({ title: '任务信息已保存', time: new Date().toLocaleString(), actor: '当前用户' })
-      alert('共享任务信息已保存（模拟）')
-    }
-  })
+function openRow(_, row) { if (row?.item) openDetail(row.item) }
+async function openDetail(task) {
+  detailDialog.visible = true; detailDialog.task = task; detailDialog.sla = null; detailDialog.comments = []; detailDialog.newComment = ''
+  try {
+    const [taskResponse, slaResponse, commentResponse] = await Promise.all([getSharedTask(task.id), getSharedTaskSla(task.id), listSharedTaskComments(task.id, { page: 1, pageSize: 50, sort: '-createdAt' })])
+    detailDialog.task = taskResponse?.data || task
+    detailDialog.sla = slaResponse?.data || null
+    detailDialog.comments = Array.isArray(commentResponse?.data) ? commentResponse.data : []
+  } catch (error) { showMessage(apiMessage(error, '任务详情加载失败'), 'error') }
 }
-</script>
-
-<script>
-export default {
-  components: {
-    SectionTitle: {
-      props: {
-        title: {
-          type: String,
-          required: true,
-        },
-      },
-      template: `
-        <div class="section-title">
-          <div class="d-flex align-center mb-3 mt-6">
-            <div class="section-indicator mr-3"></div>
-            <div class="text-subtitle-1 font-weight-medium">{{ title }}</div>
-          </div>
-        </div>
-      `,
-    },
-  },
+async function submitComment() {
+  if (!detailDialog.newComment) return showMessage('评论内容不能为空', 'warning')
+  detailDialog.commentLoading = true
+  try { await addSharedTaskComment(detailDialog.task.id, { body: detailDialog.newComment, mentions: [], attachments: [] }); detailDialog.newComment = ''; const response = await listSharedTaskComments(detailDialog.task.id, { page: 1, pageSize: 50, sort: '-createdAt' }); detailDialog.comments = Array.isArray(response?.data) ? response.data : []; showMessage('评论已添加') }
+  catch (error) { showMessage(apiMessage(error, '评论发送失败'), 'error') } finally { detailDialog.commentLoading = false }
 }
+function nextStatus(status) { const index = statusOptions.indexOf(status); return statusOptions[Math.min(index + 1, statusOptions.length - 1)] || '进行中' }
+function priorityColor(value) { return ({ P0: 'error', P1: 'warning', P2: 'primary', P3: 'default' }[value] || 'default') }
+function statusColor(value) { if (value === '已完成') return 'success'; if (value === '阻塞') return 'error'; if (value === '搁置') return 'warning'; if (['进行中', '待验收'].includes(value)) return 'primary'; return 'default' }
+function formatTime(value) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false }) }
+function showMessage(text, color = 'success') { snackbar.text = text; snackbar.color = color; snackbar.show = true }
+function apiMessage(error, fallback) { return error?.response?.data?.message || error?.response?.data?.msg || fallback }
 </script>
 
 <style scoped>
-.shared-operations {
-  padding: 24px 32px 48px;
-  background: linear-gradient(180deg, #f7faff 0%, #ffffff 60%);
-}
-
-.info-card {
-  border-radius: 18px;
-  height: 100%;
-}
-
-.task-card {
-  border-radius: 18px;
-}
-
-.section-title {
-  margin-bottom: 8px;
-}
-
-.section-indicator {
-  width: 6px;
-  height: 24px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #4d7cfe 0%, #90b4ff 100%);
-}
-
-.subtask-row {
-  background-color: rgba(79, 129, 255, 0.04);
-  border-radius: 12px;
-  margin-bottom: 12px;
-  padding: 4px 8px;
-}
-
-.priority-select :deep(.v-field__outline) {
-  border-radius: 12px;
-}
-
-.chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-@media (max-width: 960px) {
-  .shared-operations {
-    padding: 16px;
-  }
-}
+.shared-page { min-height: 100vh; padding: 30px; color: #20322f; background: #f4f7f6; }
+.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 30px 34px; border-radius: 24px; color: white; background: linear-gradient(135deg, #674b24, #a37b3e); }.hero span, .table-heading span { font-size: 11px; font-weight: 800; letter-spacing: .15em; opacity: .75; }.hero h1 { margin: 8px 0 0; font-size: 36px; }.hero p { margin: 12px 0 0; opacity: .8; }.hero-actions, .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 18px 0; }.summary-grid article { padding: 20px; border: 1px solid #dfe8e5; border-radius: 16px; background: white; }.summary-grid span, .summary-grid strong, .summary-grid small { display: block; }.summary-grid span, .summary-grid small { color: #778a83; }.summary-grid strong { margin: 8px 0 4px; font-size: 25px; }
+.filter-card, .table-card { border: 1px solid #dfe8e5; border-radius: 18px; background: white; }.filter-card { margin-bottom: 18px; }.table-heading { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 12px; }.table-heading strong { display: block; margin-top: 5px; font-size: 19px; }.table-heading small { color: #7b8d87; }
+.task-link { display: grid; gap: 4px; padding: 0; border: 0; color: #275e51; background: transparent; text-align: left; cursor: pointer; }.task-link small { color: #83928e; }.pagination-bar { display: flex; justify-content: center; padding: 14px 20px 22px; }.empty-state { display: grid; justify-items: center; gap: 8px; padding: 50px; color: #81918d; }.empty-state strong { color: #435b55; }
+.detail-title { display: flex; justify-content: space-between; }.detail-title small, .detail-title strong { display: block; }.detail-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }.detail-metrics article { padding: 14px; border-radius: 12px; background: #f4f7f6; }.detail-metrics span, .detail-metrics strong { display: block; }.detail-metrics span { color: #7b8d87; font-size: 12px; }.detail-metrics strong { margin-top: 6px; }.comment-heading { display: flex; align-items: center; justify-content: space-between; }.comment-list { display: grid; gap: 10px; margin-top: 12px; }.comment-list article { padding: 14px; border-radius: 12px; background: #f4f7f6; }.comment-list header { display: flex; justify-content: space-between; }.comment-list small, .comment-empty { color: #81918d; }.comment-list p { margin: 8px 0 0; }.comment-form { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin-top: 14px; }.comment-empty { padding: 20px 0; }
+@media (max-width: 960px) { .shared-page { padding: 16px; }.hero { align-items: flex-start; flex-direction: column; padding: 24px; }.hero h1 { font-size: 28px; }.summary-grid { grid-template-columns: repeat(2, 1fr); }.detail-metrics { grid-template-columns: repeat(2, 1fr); }.comment-form { grid-template-columns: 1fr; } }
 </style>

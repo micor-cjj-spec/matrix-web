@@ -346,9 +346,6 @@ async function loadOrgOptions() {
       value: item.fid,
     }))
 
-    if (!query.orgId && records.length) {
-      query.orgId = records[0].fid
-    }
   } catch (error) {
     showMsg('业务单元加载失败', 'warning')
   }

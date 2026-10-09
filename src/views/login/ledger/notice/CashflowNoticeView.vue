@@ -159,9 +159,6 @@ async function loadOrgOptions() {
       label: `${item.fcode || '-'} - ${item.fname || '-'}`,
       value: item.fid,
     }))
-    if (!query.orgId && records.length) {
-      query.orgId = records[0].fid
-    }
   } catch (error) {
     orgOptions.value = []
   }
