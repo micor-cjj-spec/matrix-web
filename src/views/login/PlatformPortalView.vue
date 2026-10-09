@@ -163,6 +163,7 @@ const defaultApps = [
   { key: 'botp', name: 'BOTP 单据转换平台', desc: '配置单据转换规则、字段映射、下推反写、执行追踪和异常对账。', meta: '业务单据集成', status: '已上线', category: 'integration', tags: ['单据转换', '映射规则', '反写'], icon: Promotion, accent: '#8b5d3b', path: '/botp', available: true, order: 100 },
   { key: 'ai-assistant', name: 'AI 助手', desc: '围绕财务、数据、知识和平台文档提供智能问答与业务辅助。', meta: '智能协作入口', status: '已上线', category: 'intelligence', tags: ['智能问答', '流式输出'], icon: ChatDotRound, accent: '#365bc0', path: '/ai/assistant', available: true, order: 110 },
   { key: 'master-data', name: '企业建模与主数据', desc: '维护组织、人员、客户、供应商、物料、币种和公共基础资料。', meta: '平台基础服务', status: '已上线', category: 'platform', tags: ['组织', '人员', '客户', '供应商'], icon: OfficeBuilding, accent: '#596d72', path: '/enterprise-modeling', available: true, order: 120 },
+  { key: 'sales-commercial', name: '销售报价与合同', desc: '商机报价与销售合同管理', meta: 'P2-IMP-03 开发版', status: '开发中', category: 'business', tags: ['报价', '销售合同'], icon: Tickets, accent: '#167668', path: '/sales/commercial', available: true, order: 95 },
   { key: 'scheduler-operations', name: '调度运行与可靠性中心', desc: '集中查看调度执行、失败记录、补偿任务和异常恢复操作。', meta: '运行保障', status: '已上线', category: 'platform', tags: ['运行中心', '补偿', '异常恢复'], icon: Cpu, accent: '#4c758a', path: '/scheduler/operations', available: true, order: 130 },
 ]
 

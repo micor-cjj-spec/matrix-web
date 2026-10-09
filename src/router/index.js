@@ -283,6 +283,7 @@ const routes = [
   { path: '/country', name: 'Country', component: CountryView, meta: { title: '国家管理' } },
   { path: '/region', name: 'Region', component: RegionView, meta: { title: '地区管理' } },
   { path: '/unit', name: 'Unit', component: UnitView, meta: { title: '计量单位管理' } },
+  { path: '/sales/commercial', name: 'SalesCommercial', component: () => import('../views/login/sales/SalesCommercialView.vue'), meta: { title: '销售报价与合同' } },
   ...supplementalRoutes,
 ]
 
