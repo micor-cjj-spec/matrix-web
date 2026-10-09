@@ -8,10 +8,11 @@
     <section class="context">
       <label>租户 ID <input v-model.trim="tenantId" placeholder="必填" /></label>
       <label>组织 ID <input v-model.trim="orgId" placeholder="必须与 JWT 授权组织一致" required /></label>
-      <button @click="reload" :disabled="loading">刷新</button>
+      <button @click="tab === 'grants' ? loadGrants() : reload()" :disabled="loading">刷新</button>
     </section>
     <nav><button :class="{ active: tab === 'quotes' }" @click="tab='quotes'">报价 / 投标报价</button>
-      <button :class="{ active: tab === 'contracts' }" @click="tab='contracts'">销售合同</button></nav>
+      <button :class="{ active: tab === 'contracts' }" @click="tab='contracts'">销售合同</button>
+      <button :class="{ active: tab === 'grants' }" @click="tab='grants'">销售权限管理（管理员）</button></nav>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status" class="notice">{{ notice }}</p>
     <section v-if="tab==='quotes'" class="layout">
@@ -59,7 +60,7 @@
         </form>
       </article>
     </section>
-    <section v-else class="layout">
+    <section v-else-if="tab === 'contracts'" class="layout">
       <article class="panel">
         <h2>销售合同 ({{ contracts.length }})</h2>
         <p v-if="!contracts.length" class="muted">暂无合同，需先从已接受报价创建。</p>
@@ -84,17 +85,53 @@
         </form>
       </article>
     </section>
+
+    <section v-else class="layout">
+      <article class="panel">
+        <h2>销售角色授权</h2>
+        <p class="muted">只有拥有当前租户、组织有效 SALES_ADMIN 权限的管理员可操作。所有更新均由服务端验证和记录审计。</p>
+        <form @submit.prevent="loadGrants">
+          <label>目标用户 ID <input v-model.trim="roleTarget.userId" required /></label>
+          <button :disabled="loading">查询当前角色</button>
+        </form>
+        <p v-if="!targetRoles.length" class="muted">暂无已授权销售角色，或尚未执行查询。</p>
+        <ul v-else class="role-list">
+          <li v-for="role in targetRoles" :key="role">{{ role }}</li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h2>变更用户角色</h2>
+        <p class="muted">首次管理员需通过受控 DBA 流程初始化，不能在本页面自助创建。</p>
+        <form @submit.prevent="submitRoleGrant(true)">
+          <label>目标用户 ID <input v-model.trim="roleTarget.userId" required /></label>
+          <label>角色
+            <select v-model="roleTarget.role">
+              <option value="SALES_VIEWER">销售查看</option>
+              <option value="SALES_EDITOR">销售编辑</option>
+              <option value="SALES_APPROVER">销售审批</option>
+              <option value="SALES_ADMIN">销售管理员</option>
+            </select>
+          </label>
+          <button :disabled="loading">授予角色</button>
+          <button type="button" :disabled="loading" class="light" @click="submitRoleGrant(false)">撤销角色</button>
+        </form>
+        <p class="muted">目标用户已签发的旧销售授权 Token 在版本变更后会失效；需重新登录。请勿在数据库中绕过管理接口手工修改授权。</p>
+      </article>
+    </section>
     <p class="muted warning">开发版：服务端要求带销售角色和组织范围的有效 JWT。现有登录令牌若不包含销售角色将被拒绝，正式角色签发和工作流集成仍待完成。</p>
   </main>
 </template>
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { listQuotes, getQuote, createQuote, updateQuote, actQuote, listContracts, createContract, actContract } from '@/api/salesCommercial'
+import { listQuotes, getQuote, createQuote, updateQuote, actQuote, listContracts, createContract, actContract,
+  listSalesRoleGrants, grantSalesRole, revokeSalesRole } from '@/api/salesCommercial'
 const router=useRouter()
 const tenantId=ref(''), orgId=ref(''), tab=ref('quotes'), error=ref(''), notice=ref(''), loading=ref(false)
 const quotes=ref([]), contracts=ref([])
 const editingQuoteId = ref('')
+const roleTarget = reactive({ userId: '', role: 'SALES_VIEWER' })
+const targetRoles = ref([])
 const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fdeliveryTermCode:'',fpaymentTermCode:'' })
 let lineKey = 0
 function newLine(){return {key:++lineKey,fdescription:'',fmaterialCode:'',fquantity:1,funitPrice:0,ftaxRate:13}}
@@ -179,6 +216,29 @@ async function changeContract(c,action){
   await run(async()=>{const p=params();unwrap(await actContract(c.fid,action,p.tenantId));contracts.value=rows(await listContracts(p))},'合同状态已更新')
 }
 function fromQuote(q){contract.fquoteId=String(q.fid);contract.ftitle=q.fbusinessPartnerName+'销售合同';tab.value='contracts'}
+function grantPayload() {
+  const p=params()
+  return { tenantId:p.tenantId,orgId:p.orgId,userId:id(roleTarget.userId,'目标用户 ID'),role:roleTarget.role }
+}
+async function loadGrants() {
+  await run(async()=>{
+    const { role: _role, ...query } = grantPayload()
+    const result=unwrap(await listSalesRoleGrants(query))
+    targetRoles.value=Array.isArray(result)?result:[]
+  })
+}
+async function submitRoleGrant(shouldGrant){
+  let payload
+  try { payload=grantPayload() } catch(e){error.value=e.message;return}
+  const action=shouldGrant?'授予':'撤销'
+  if (!window.confirm(`确定对用户 ${payload.userId} ${action}角色 ${payload.role}？此操作将使旧销售 Token 失效。`)) return
+  await run(async()=>{
+    unwrap(await (shouldGrant?grantSalesRole(payload):revokeSalesRole(payload)))
+    const {role: _role,...query}=payload
+    const response=unwrap(await listSalesRoleGrants(query))
+    targetRoles.value=Array.isArray(response)?response:[]
+  },'销售角色已更新')
+}
 </script>
 <style scoped>
 .shell{min-height:100vh;padding:30px;max-width:1500px;margin:auto;background:#f4f8f7;color:#213936}
@@ -196,6 +256,6 @@ input,select{border:1px solid #cbdad6;border-radius:7px;padding:10px;font:inheri
 .scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
 td,th{border-bottom:1px solid #e5eeeb;padding:11px 7px;white-space:nowrap}th{color:#6f847f}
 .error,.notice{padding:12px;border-radius:8px}.error{background:#ffefef;color:#ad3131}.notice{background:#e6f6ec;color:#1d6c3a}
-.warning{font-size:12px;margin-top:20px}.item-title{display:flex;justify-content:space-between;align-items:center;gap:10px}.line-card{display:grid;gap:10px;padding:14px 0;border-top:1px solid #dbe7e3}.light{background:#e0efea;color:#19695d}@media(max-width:920px){.layout{grid-template-columns:1fr}.shell{padding:16px}.three{grid-template-columns:1fr 1fr}}
+.warning{font-size:12px;margin-top:20px}.role-list{padding:0;display:flex;gap:8px;flex-wrap:wrap;list-style:none}.role-list li{padding:8px 12px;border-radius:7px;background:#edf4f2;color:#216e62}.item-title{display:flex;justify-content:space-between;align-items:center;gap:10px}.line-card{display:grid;gap:10px;padding:14px 0;border-top:1px solid #dbe7e3}.light{background:#e0efea;color:#19695d}@media(max-width:920px){.layout{grid-template-columns:1fr}.shell{padding:16px}.three{grid-template-columns:1fr 1fr}}
 </style>
 

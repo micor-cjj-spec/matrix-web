@@ -8,3 +8,7 @@ export const listContracts = (params) => request.get('/sales/contracts', { param
 export const createContract = (payload) => request.post('/sales/contracts', payload)
 export const actContract = (id, action, tenantId) => request.post(`/sales/contracts/${id}/${action}`, null, { params: { tenantId } })
 
+
+export const listSalesRoleGrants = (params) => request.get('/auth/sales-role-grants', { params })
+export const grantSalesRole = (payload) => request.post('/auth/sales-role-grants', payload)
+export const revokeSalesRole = (payload) => request.delete('/auth/sales-role-grants', { data: payload })
