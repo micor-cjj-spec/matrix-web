@@ -152,7 +152,7 @@ async function saveQuote(){await run(async()=>{
     entries:quoteLines.value.map(({ fdescription, fmaterialCode, fquantity, funitPrice, ftaxRate }) => ({
       fdescription, fmaterialCode, fquantity:Number(fquantity),
       funitPrice:Number(funitPrice), ftaxRate:Number(ftaxRate),
-    }))})
+    }))}
   if (editingQuoteId.value) {
     unwrap(await updateQuote(editingQuoteId.value,{
       ftenantId:p.tenantId,fvalidUntil:quote.fvalidUntil,
