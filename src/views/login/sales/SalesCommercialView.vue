@@ -39,6 +39,7 @@
           <label v-if="quote.fquoteType==='TENDER'">招标编号 <input v-model.trim="quote.ftenderReference" :disabled="Boolean(editingQuoteId)" required /></label>
           <label>币种 <input v-model.trim="quote.fcurrencyCode" :disabled="Boolean(editingQuoteId)" required /></label>
           <label>有效期 <input v-model="quote.fvalidUntil" type="date" required /></label>
+          <label>交货条款 <input v-model.trim="quote.fdeliveryTermCode" placeholder="DDP" /></label>
           <label>付款条款 <input v-model.trim="quote.fpaymentTermCode" placeholder="NET30" /></label>
           <div class="item-title"><h3>报价明细（{{ quoteLines.length }} 行）</h3>
             <button type="button" class="light" @click="addLine">+ 添加明细</button></div>
@@ -94,7 +95,7 @@ const router=useRouter()
 const tenantId=ref(''), orgId=ref(''), tab=ref('quotes'), error=ref(''), notice=ref(''), loading=ref(false)
 const quotes=ref([]), contracts=ref([])
 const editingQuoteId = ref('')
-const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fpaymentTermCode:'' })
+const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fdeliveryTermCode:'',fpaymentTermCode:'' })
 let lineKey = 0
 function newLine(){return {key:++lineKey,fdescription:'',fmaterialCode:'',fquantity:1,funitPrice:0,ftaxRate:13}}
 const quoteLines = ref([newLine()])
@@ -132,6 +133,7 @@ async function editQuote(q){
       ftenderReference:detail.header.ftenderReference || '',
       fcurrencyCode:detail.header.fcurrencyCode,
       fvalidUntil:detail.header.fvalidUntil,
+      fdeliveryTermCode:detail.header.fdeliveryTermCode || '',
       fpaymentTermCode:detail.header.fpaymentTermCode || '',
     })
     quoteLines.value=(detail.entries||[]).map(e=>({
@@ -146,7 +148,7 @@ async function saveQuote(){await run(async()=>{
   const payload={ftenantId:p.tenantId,forgId:p.orgId,
     fopportunityId:id(quote.fopportunityId,'商机 ID'),fbusinessPartnerId:id(quote.fbusinessPartnerId,'客户 ID'),
     fcurrencyCode:quote.fcurrencyCode,fquoteType:quote.fquoteType,ftenderReference:quote.fquoteType==='TENDER'?quote.ftenderReference:null,
-    fvalidUntil:quote.fvalidUntil,fpaymentTermCode:quote.fpaymentTermCode,
+    fvalidUntil:quote.fvalidUntil,fdeliveryTermCode:quote.fdeliveryTermCode,fpaymentTermCode:quote.fpaymentTermCode,
     entries:quoteLines.value.map(({ fdescription, fmaterialCode, fquantity, funitPrice, ftaxRate }) => ({
       fdescription, fmaterialCode, fquantity:Number(fquantity),
       funitPrice:Number(funitPrice), ftaxRate:Number(ftaxRate),
@@ -154,7 +156,7 @@ async function saveQuote(){await run(async()=>{
   if (editingQuoteId.value) {
     unwrap(await updateQuote(editingQuoteId.value,{
       ftenantId:p.tenantId,fvalidUntil:quote.fvalidUntil,
-      fpaymentTermCode:quote.fpaymentTermCode,entries:payload.entries,
+      fdeliveryTermCode:quote.fdeliveryTermCode,fpaymentTermCode:quote.fpaymentTermCode,entries:payload.entries,
     }))
   } else {
     unwrap(await createQuote(payload))
