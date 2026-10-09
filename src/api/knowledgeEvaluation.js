@@ -1,90 +1,73 @@
 import request from '@/utils/request'
 
-const EVALUATION_TIMEOUT = 60000
+const EVALUATION_TIMEOUT = 120000
+const EVALUATION_RUN_TIMEOUT = 300000
 
-export function getRagEvaluationConfig() {
-  return request.get('/ai/knowledge/evaluation/config', {
+export function listEvaluationDatasets() {
+  return request.get('/ai/admin/knowledge/evaluations/datasets', {
     timeout: EVALUATION_TIMEOUT,
   })
 }
 
-export function listRagEvaluationSets(kbId) {
-  return request.get('/ai/knowledge/evaluation/sets', {
-    params: { kbId },
+export function createEvaluationDataset(data) {
+  return request.post('/ai/admin/knowledge/evaluations/datasets', data, {
     timeout: EVALUATION_TIMEOUT,
   })
 }
 
-export function createRagEvaluationSet(kbId, data) {
-  return request.post('/ai/knowledge/evaluation/sets', data, {
-    params: { kbId },
+export function listEvaluationQuestions(datasetId) {
+  return request.get(`/ai/admin/knowledge/evaluations/datasets/${datasetId}/questions`, {
     timeout: EVALUATION_TIMEOUT,
   })
 }
 
-export function updateRagEvaluationSet(setId, data) {
-  return request.put(`/ai/knowledge/evaluation/sets/${setId}`, data, {
+export function createEvaluationQuestion(datasetId, data) {
+  return request.post(`/ai/admin/knowledge/evaluations/datasets/${datasetId}/questions`, data, {
     timeout: EVALUATION_TIMEOUT,
   })
 }
 
-export function deleteRagEvaluationSet(setId) {
-  return request.delete(`/ai/knowledge/evaluation/sets/${setId}`, {
+export function bulkImportEvaluationQuestions(datasetId, questions) {
+  return request.post(
+    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/questions/bulk`,
+    { questions },
+    { timeout: EVALUATION_RUN_TIMEOUT },
+  )
+}
+
+export function updateEvaluationQuestion(datasetId, questionId, data) {
+  return request.put(
+    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/questions/${questionId}`,
+    data,
+    { timeout: EVALUATION_TIMEOUT },
+  )
+}
+
+export function runKnowledgeEvaluation(datasetId, topK = 5) {
+  return request.post(
+    `/ai/admin/knowledge/evaluations/datasets/${datasetId}/trace-runs`,
+    {},
+    {
+      params: { topK },
+      timeout: EVALUATION_RUN_TIMEOUT,
+    },
+  )
+}
+
+export function getKnowledgeEvaluationRun(runId) {
+  return request.get(`/ai/admin/knowledge/evaluations/runs/${runId}`, {
     timeout: EVALUATION_TIMEOUT,
   })
 }
 
-export function listRagEvaluationCases(setId) {
-  return request.get(`/ai/knowledge/evaluation/sets/${setId}/cases`, {
+export function listKnowledgeEvaluationResults(runId) {
+  return request.get(`/ai/admin/knowledge/evaluations/runs/${runId}/results`, {
     timeout: EVALUATION_TIMEOUT,
   })
 }
 
-export function createRagEvaluationCase(setId, data) {
-  return request.post(`/ai/knowledge/evaluation/sets/${setId}/cases`, data, {
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function updateRagEvaluationCase(setId, caseId, data) {
-  return request.put(`/ai/knowledge/evaluation/sets/${setId}/cases/${caseId}`, data, {
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function deleteRagEvaluationCase(setId, caseId) {
-  return request.delete(`/ai/knowledge/evaluation/sets/${setId}/cases/${caseId}`, {
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function listRagEvaluationRuns(setId, limit = 30) {
-  return request.get(`/ai/knowledge/evaluation/sets/${setId}/runs`, {
-    params: { limit },
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function createRagEvaluationRun(setId) {
-  return request.post(`/ai/knowledge/evaluation/sets/${setId}/runs`, {}, {
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function getRagEvaluationRun(runId) {
-  return request.get(`/ai/knowledge/evaluation/runs/${runId}`, {
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function listRagEvaluationResults(runId) {
-  return request.get(`/ai/knowledge/evaluation/runs/${runId}/results`, {
-    timeout: EVALUATION_TIMEOUT,
-  })
-}
-
-export function retryRagEvaluationRun(runId) {
-  return request.post(`/ai/knowledge/evaluation/runs/${runId}/retry`, {}, {
+export function listKnowledgeEvaluationTraces(runId) {
+  return request.get(`/ai/admin/knowledge/evaluations/runs/${runId}/traces`, {
     timeout: EVALUATION_TIMEOUT,
   })
 }

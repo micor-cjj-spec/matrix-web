@@ -341,7 +341,7 @@ import {
   retryRagEvaluationRun,
   updateRagEvaluationCase,
   updateRagEvaluationSet,
-} from '@/api/knowledgeEvaluation'
+} from '@/api/knowledgeRagQuality'
 
 const props = defineProps({
   kbId: { type: String, required: true },

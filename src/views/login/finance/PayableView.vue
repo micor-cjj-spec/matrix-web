@@ -43,8 +43,8 @@ const stats = [
 ]
 
 const actions = [
-  { name: '应付单据', path: '/payable/manage', icon: Files, primary: true },
-  { name: '付款申请', path: '/payable/application', icon: Money },
+  { name: 'P2P工作台', path: '/p2p', icon: Files, primary: true },
+  { name: '付款申请', path: '/p2p?stage=payment-application', icon: Money },
 ]
 
 const topActions = [
@@ -53,14 +53,14 @@ const topActions = [
 ]
 
 const focusItems = [
-  { name: '付款申请审批', status: '9 笔', path: '/payable/application' },
+  { name: '付款申请审批', status: '9 笔', path: '/p2p?stage=payment-application' },
   { name: '暂估冲回', status: '14 笔', path: '/payable/estimate' },
   { name: '供应商账龄', status: '预警', path: '/payable/aging-credit' },
 ]
 
 const shortcuts = [
-  { name: '应付单据', path: '/payable/manage', icon: Files },
-  { name: '付款处理', path: '/payable/processing', icon: Operation },
+  { name: '正式应付', path: '/p2p?stage=payable', icon: Files },
+  { name: '付款处理', path: '/p2p?stage=payment-order', icon: Operation },
   { name: '往来对账', path: '/ledger/counterparty-statement', icon: DocumentChecked },
   { name: '自动核销', path: '/ledger/counterparty-auto-writeoff', icon: Switch },
 ]
@@ -72,7 +72,8 @@ const groups = [
     eyebrow: 'DOCUMENTS',
     icon: Files,
     modules: [
-      { name: '应付单据', description: '发票、采购与应付确认', path: '/payable/manage', icon: Files },
+      { name: 'P2P端到端', description: '采购订单到付款凭证全链路', path: '/p2p', icon: Files },
+      { name: '正式应付', description: '应付余额、占用与核销', path: '/p2p?stage=payable', icon: DocumentChecked },
       { name: '暂估应付', description: '采购暂估与冲回', path: '/payable/estimate', icon: DocumentChecked },
       { name: '账龄与信用预警', description: '供应商账龄与信用风险', path: '/payable/aging-credit', icon: TrendCharts },
     ],
@@ -83,8 +84,8 @@ const groups = [
     eyebrow: 'PAYMENT',
     icon: Wallet,
     modules: [
-      { name: '付款申请', description: '付款流程发起与审批', path: '/payable/application', icon: Money },
-      { name: '付款处理', description: '付款执行与状态跟踪', path: '/payable/processing', icon: Operation },
+      { name: '付款申请', description: '证据、预算、审批与应付占用', path: '/p2p?stage=payment-application', icon: Money },
+      { name: '付款处理', description: '付款单、银行流水与核销', path: '/p2p?stage=payment-order', icon: Operation },
       { name: '付款排程', description: '按付款优先级组织排程', ready: false, status: '规划中', icon: Calendar },
     ],
   },

@@ -1,138 +1,64 @@
 <template>
-  <div v-if="visible">
-    <v-btn
-      class="evaluation-launcher"
-      color="cyan-darken-2"
-      icon="mdi-chart-box-outline"
-      size="large"
-      elevation="8"
-      title="RAG 检索评测"
-      @click="open"
-    />
-
-    <v-dialog v-model="dialog" max-width="1440" scrollable>
-      <v-card class="evaluation-dialog-card">
-        <v-card-title class="dialog-title">
-          <div>
-            <span>RAG Quality</span>
-            <strong>检索质量评测</strong>
-          </div>
-          <v-btn icon="mdi-close" variant="text" @click="dialog = false" />
-        </v-card-title>
-        <v-card-text>
-          <v-select
-            v-model="selectedKbId"
-            :items="baseItems"
-            item-title="title"
-            item-value="value"
-            label="评测知识库"
-            variant="outlined"
-            density="comfortable"
-            :loading="loadingBases"
-            class="base-select"
-          />
-
-          <KnowledgeEvaluationPanel
-            v-if="selectedKbId"
-            :kb-id="selectedKbId"
-            :kb-name="selectedBaseName"
-          />
-          <div v-else class="empty-state">当前账号没有ADMIN或OWNER权限的知识库</div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-  </div>
+  <v-btn
+    v-if="visible"
+    class="evaluation-launcher"
+    color="primary"
+    :prepend-icon="launcherIcon"
+    elevation="8"
+    @click="router.push(targetPath)"
+  >
+    {{ launcherText }}
+  </v-btn>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { listKnowledgeBases } from '@/api/ai'
-import { getKnowledgeBaseAccess } from '@/api/knowledgeAcl'
-import KnowledgeEvaluationPanel from '@/views/ai/components/KnowledgeEvaluationPanel.vue'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
-const dialog = ref(false)
-const loadingBases = ref(false)
-const bases = ref([])
-const selectedKbId = ref('')
+const router = useRouter()
+const visible = computed(() => [
+  '/ai/knowledge',
+  '/ai/knowledge/evaluations',
+  '/ai/knowledge/evaluations/curation',
+  '/ai/knowledge/evaluations/traces',
+].includes(route.path))
 
-const visible = computed(() => route.path === '/ai/knowledge')
-const baseItems = computed(() => bases.value.map(item => ({ title: item.name, value: item.kbId })))
-const selectedBaseName = computed(() => bases.value.find(item => item.kbId === selectedKbId.value)?.name || selectedKbId.value)
+const targetPath = computed(() => {
+  if (route.path === '/ai/knowledge') return '/ai/knowledge/evaluations'
+  if (route.path === '/ai/knowledge/evaluations') return '/ai/knowledge/evaluations/traces'
+  if (route.path === '/ai/knowledge/evaluations/traces') return '/ai/knowledge/evaluations/curation'
+  return '/ai/knowledge/evaluations'
+})
 
-async function open() {
-  dialog.value = true
-  loadingBases.value = true
-  try {
-    const response = await listKnowledgeBases()
-    const visibleBases = response?.data || []
-    const accessResults = await Promise.allSettled(
-      visibleBases.map(item => getKnowledgeBaseAccess(item.kbId)),
-    )
-    bases.value = visibleBases.filter((item, index) => {
-      const result = accessResults[index]
-      return result.status === 'fulfilled' && Boolean(result.value?.data?.canAdmin)
-    })
-    if (!bases.value.some(item => item.kbId === selectedKbId.value)) {
-      selectedKbId.value = bases.value[0]?.kbId || ''
-    }
-  } finally {
-    loadingBases.value = false
-  }
-}
+const launcherText = computed(() => {
+  if (route.path === '/ai/knowledge') return '检索评测'
+  if (route.path === '/ai/knowledge/evaluations') return 'Trace 诊断'
+  if (route.path === '/ai/knowledge/evaluations/traces') return '财务问题标注'
+  return '返回评测'
+})
+
+const launcherIcon = computed(() => {
+  if (route.path === '/ai/knowledge/evaluations') return 'mdi-source-branch'
+  if (route.path === '/ai/knowledge/evaluations/traces') return 'mdi-clipboard-text-search-outline'
+  return 'mdi-chart-box-outline'
+})
 </script>
 
 <style scoped>
 .evaluation-launcher {
   position: fixed;
+  top: 22px;
   right: 24px;
-  bottom: 240px;
-  z-index: 1100;
-}
-
-.evaluation-dialog-card {
-  background: #07131f;
-}
-
-.dialog-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dialog-title > div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.dialog-title span {
-  font-size: 11px;
-  color: rgba(207, 250, 254, 0.58);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.dialog-title strong {
-  color: #ecfeff;
-}
-
-.base-select {
-  max-width: 460px;
-  margin: 4px 0 18px;
-}
-
-.empty-state {
-  padding: 48px;
-  text-align: center;
-  color: rgba(226, 232, 240, 0.6);
+  z-index: 1200;
+  border-radius: 999px;
 }
 
 @media (max-width: 720px) {
   .evaluation-launcher {
-    right: 16px;
-    bottom: 220px;
+    top: auto;
+    right: 18px;
+    bottom: 110px;
   }
 }
 </style>

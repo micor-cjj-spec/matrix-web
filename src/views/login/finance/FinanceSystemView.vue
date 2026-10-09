@@ -323,7 +323,7 @@ const financeFocus = [
 
 const financeQuickActions = [
   { name: '新增凭证', path: '/ledger/voucher', icon: Tickets },
-  { name: '应付单据', path: '/payable/manage', icon: Wallet },
+  { name: 'P2P工作台', path: '/p2p', icon: Wallet },
   { name: '应收单据', path: '/receivable/manage', icon: DocumentChecked },
   { name: '资产负债表', path: '/ledger/balance-sheet', icon: DataAnalysis },
 ]
@@ -367,6 +367,7 @@ const clouds = [
             kicker: 'COMMAND CENTER',
             icon: Compass,
             items: [
+              { name: 'P2P采购到付款', desc: '采购、发票、应付与付款端到端工作台', path: '/p2p', icon: Wallet },
               { name: '应付总览', desc: '应付业务工作台', path: '/payable', icon: Wallet },
               { name: '应收总览', desc: '应收业务工作台', path: '/receivable', icon: DocumentChecked },
               { name: '总账首页', desc: '总账模块导航', path: '/ledger', icon: Tickets },
@@ -561,8 +562,8 @@ const clouds = [
           { name: '待付款', value: '5', trend: '今日' },
         ],
         actions: [
-          { name: '应付单据', path: '/payable/manage', icon: Wallet, primary: true },
-          { name: '付款申请', path: '/payable/application', icon: Money },
+          { name: 'P2P工作台', path: '/p2p', icon: Wallet, primary: true },
+          { name: '付款申请', path: '/p2p?stage=payment-application', icon: Money },
         ],
         domains: [
           {
@@ -573,7 +574,8 @@ const clouds = [
             icon: Files,
             items: [
               { name: '应付总览', desc: '应付业务工作台', path: '/payable', icon: Histogram },
-              { name: '应付单据', desc: '发票、采购与应付确认', path: '/payable/manage', icon: Files },
+              { name: 'P2P端到端', desc: '从采购订单追踪到付款凭证', path: '/p2p', icon: Files },
+              { name: '正式应付', desc: '正式应付余额、占用与核销', path: '/p2p?stage=payable', icon: Wallet },
               { name: '暂估应付', desc: '采购暂估与冲回', path: '/payable/estimate', icon: DocumentChecked },
             ],
           },
@@ -584,8 +586,8 @@ const clouds = [
             kicker: 'PAYMENT',
             icon: Wallet,
             items: [
-              { name: '付款申请', desc: '付款流程发起', path: '/payable/application', icon: Money },
-              { name: '付款处理', desc: '付款执行与状态跟踪', path: '/payable/processing', icon: Operation },
+              { name: '付款申请', desc: '证据、预算与审批', path: '/p2p?stage=payment-application', icon: Money },
+              { name: '付款处理', desc: '付款单、银行流水与核销', path: '/p2p?stage=payment-order', icon: Operation },
               { name: '应付账龄预警', desc: '供应商账龄与信用风险', path: '/payable/aging-credit', icon: TrendCharts },
             ],
           },
@@ -742,7 +744,7 @@ const clouds = [
       { name: '订单履约', status: '规划中' },
     ],
     quickActions: [
-      { name: '采购订单', icon: Memo },
+      { name: '采购订单', path: '/p2p?stage=purchase-order', icon: Memo },
       { name: '库存看板', icon: Box },
       { name: '销售订单', icon: Goods },
       { name: '供应商协同', icon: Connection },
@@ -765,7 +767,7 @@ const clouds = [
             kicker: 'CORE',
             icon: Goods,
             items: [
-              { name: '采购订单', desc: '采购申请、订单与到货协同', icon: Memo, ready: false, status: '规划中' },
+              { name: '采购到付款', desc: '采购订单、收货、验收、入库、发票到付款', path: '/p2p', icon: Memo },
               { name: '库存看板', desc: '库存余额、批次和周转分析', icon: Box, ready: false, status: '规划中' },
               { name: '销售订单', desc: '销售订单、发货和收入衔接', icon: Goods, ready: false, status: '规划中' },
               { name: '供应商协同', desc: '供应商确认、交付和质量协同', icon: Connection, ready: false, status: '规划中' },

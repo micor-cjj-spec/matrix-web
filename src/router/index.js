@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { updateActivity } from '@/utils/auth'
 
 import Login from '../views/login/Login.vue'
-import Portal from '../views/login/Portal.vue'
 import Register from '../views/login/Register.vue'
 import BalanceSheetView from '../views/login/ledger/report/BalanceSheetView.vue'
 
@@ -29,6 +28,7 @@ const ReceivableView = () => import('../views/login/finance/ReceivableView.vue')
 const ArapDocView = () => import('../views/login/finance/ArapDocView.vue')
 const AgingCreditView = () => import('../views/login/finance/AgingCreditView.vue')
 const FinanceSystemView = () => import('../views/login/finance/FinanceSystemView.vue')
+const P2pWorkbenchView = () => import('../views/login/p2p/P2pWorkbenchView.vue')
 const FinanceBaseDataView = () => import('../views/login/finance/base-data/FinanceBaseDataView.vue')
 const AccountSubjectView = () => import('../views/login/finance/base-data/AccountSubjectView.vue')
 const AccountSubjectForm = () => import('../views/login/finance/base-data/account-subject/AccountSubjectForm.vue')
@@ -84,11 +84,93 @@ const EmptyView = {
   template: '<div style="padding: 20px; font-size: 18px;">这里是占位页面：{{ $route.path }}</div>',
 }
 
+// Canonical route registration. Do not register routes as a side effect of main.js.
+const supplementalRoutes = [
+{
+  path: '/scheduler/jobs',
+  name: 'SchedulerJobs',
+  component: () => import('../views/scheduler/SchedulerJobsView.vue'),
+  meta: { title: '定时任务调度' },
+},
+{
+  path: '/scheduler/operations',
+  name: 'SchedulerOperations',
+  component: () => import('../views/scheduler/SchedulerOperationsView.vue'),
+  meta: { title: '调度运行中心' },
+},
+{
+  path: '/botp',
+  name: 'BotpManagement',
+  component: () => import('../views/botp/BotpManagementView.vue'),
+  meta: { title: 'BOTP 单据下推反写' },
+},
+{
+  path: '/botp/operations',
+  name: 'BotpOperations',
+  component: () => import('../views/botp/BotpOperationsView.vue'),
+  meta: { title: 'BOTP 异常恢复与对账' },
+},
+{
+  path: '/openapi',
+  name: 'OpenApiManagement',
+  component: () => import('../views/login/openapi/OpenApiManagementView.vue'),
+  meta: { title: 'Matrix 开放平台' },
+},
+{
+  path: '/openapi/reliability',
+  name: 'OpenApiReliability',
+  component: () => import('../views/login/openapi/OpenApiReliabilityView.vue'),
+  meta: { title: '开放平台可靠性中心' },
+},
+{
+  path: '/notifications',
+  name: 'Notifications',
+  component: () => import('../views/im/NotificationsView.vue'),
+  meta: { title: '消息中心' },
+},
+{
+  path: '/workflow/tasks',
+  name: 'WorkflowTaskCenter',
+  component: () => import('../views/login/workflow/WorkflowTaskCenterView.vue'),
+  meta: { title: '工作流任务中心' },
+},
+{
+  path: '/expense-reimbursements',
+  name: 'ExpenseReimbursements',
+  component: () => import('../views/login/expense/ExpenseReimbursementView.vue'),
+  meta: { title: '费用报销' },
+},
+{
+  path: '/im/management',
+  name: 'ImManagement',
+  component: () => import('../views/im/ImManagementView.vue'),
+  meta: { title: 'IM 推送平台' },
+},
+{
+  path: '/ai/knowledge/evaluations',
+  name: 'KnowledgeEvaluation',
+  component: () => import('../views/ai/KnowledgeEvaluationView.vue'),
+  meta: { title: '知识检索评测' },
+},
+{
+  path: '/ai/knowledge/evaluations/curation',
+  name: 'KnowledgeEvaluationCuration',
+  component: () => import('../views/ai/KnowledgeEvaluationTemplateView.vue'),
+  meta: { title: '财务标准问题标注' },
+},
+{
+  path: '/ai/knowledge/evaluations/traces',
+  name: 'KnowledgeEvaluationTraces',
+  component: () => import('../views/ai/KnowledgeEvaluationTraceView.vue'),
+  meta: { title: '知识检索链路诊断' },
+}
+]
+
 const routes = [
   { path: '/', name: 'Login', component: Login, meta: { title: '登录' } },
   { path: '/login', name: 'LoginPage', component: Login, meta: { title: '登录' } },
   { path: '/register', name: 'Register', component: Register, meta: { title: '注册' } },
-  { path: '/portal', name: 'Portal', component: Portal, meta: { title: '个人工作台' } },
+  { path: '/portal', name: 'Portal', component: () => import('../views/login/PlatformPortalView.vue'), meta: { title: '个人工作台' } },
 
   { path: '/tax-connect', component: EmptyView, meta: { title: '税企直连' } },
   { path: '/invoice', component: EmptyView, meta: { title: '开票管理' } },
@@ -156,16 +238,17 @@ const routes = [
   { path: '/ledger/report-account-map', name: 'ReportAccountMap', component: ReportAccountMapView, meta: { title: '报表科目映射' } },
 
   { path: '/finance', name: 'FinanceSystem', component: FinanceSystemView, meta: { title: '财务系统' } },
+  { path: '/p2p', name: 'P2pWorkbench', component: P2pWorkbenchView, meta: { title: '采购到付款工作台' } },
   { path: '/finance/base-data', name: 'FinanceBaseData', component: FinanceBaseDataView, meta: { title: '财务基础资料' } },
   { path: '/finance/base-data/account-subject', name: 'AccountSubject', component: AccountSubjectView, meta: { title: '会计科目' } },
   { path: '/finance/base-data/account-subject/form/:fid?', name: 'AccountSubjectForm', component: AccountSubjectForm, meta: { title: '会计科目维护' } },
   { path: '/cost', component: EmptyView, meta: { title: '费用核算' } },
   { path: '/reports', component: EmptyView, meta: { title: '财务报表' } },
   { path: '/estimated-payable', component: EmptyView, meta: { title: '暂估应付' } },
-  { path: '/payment-application', component: EmptyView, meta: { title: '付款申请' } },
-  { path: '/payment-processing', component: EmptyView, meta: { title: '付款处理' } },
+  { path: '/payment-application', redirect: { path: '/p2p', query: { stage: 'payment-application' } }, meta: { title: '付款申请' } },
+  { path: '/payment-processing', redirect: { path: '/p2p', query: { stage: 'payment-order' } }, meta: { title: '付款处理' } },
   { path: '/estimated-receivable', component: EmptyView, meta: { title: '暂估应收' } },
-  { path: '/settlement-processing', component: EmptyView, meta: { title: '结算处理' } },
+  { path: '/settlement-processing', redirect: { path: '/p2p', query: { stage: 'settlement' } }, meta: { title: '结算处理' } },
 
   { path: '/payable', name: 'Payable', component: PayableView, meta: { title: '应付' } },
   { path: '/payable/manage', component: ArapDocView, meta: { title: '应付', docType: 'AP' } },
@@ -200,6 +283,8 @@ const routes = [
   { path: '/country', name: 'Country', component: CountryView, meta: { title: '国家管理' } },
   { path: '/region', name: 'Region', component: RegionView, meta: { title: '地区管理' } },
   { path: '/unit', name: 'Unit', component: UnitView, meta: { title: '计量单位管理' } },
+  { path: '/sales/commercial', name: 'SalesCommercial', component: () => import('../views/login/sales/SalesCommercialView.vue'), meta: { title: '销售报价与合同' } },
+  ...supplementalRoutes,
 ]
 
 const router = createRouter({
@@ -208,15 +293,12 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const urlToken = typeof to.query?.token === 'string' ? to.query.token : ''
-  if (urlToken) {
-    localStorage.setItem('token', urlToken)
-    localStorage.setItem('lastActivityTime', Date.now().toString())
-
+  // Never treat a token supplied in a URL as proof of authentication.
+  // Query strings are exposed in browser history, logs and referrers.
+  if (Object.prototype.hasOwnProperty.call(to.query, 'token')) {
     const query = { ...to.query }
     delete query.token
-    delete query.from
-    return next({ path: to.path, query, replace: true })
+    return next({ path: to.path, query, hash: to.hash, replace: true })
   }
 
   if (to.meta?.title) {
