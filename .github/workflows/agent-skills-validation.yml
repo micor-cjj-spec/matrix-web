@@ -1,0 +1,71 @@
+name: Agent Skills Validation
+
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '.agents/**'
+      - '.github/copilot-instructions.md'
+      - 'src/**'
+      - 'public/**'
+      - 'vite.config.*'
+      - '.env*'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - '.agents/**'
+      - '.github/copilot-instructions.md'
+      - 'src/**'
+      - 'public/**'
+      - 'vite.config.*'
+      - '.env*'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate skill structure
+        run: python .agents/scripts/validate_skills.py
+
+      - name: Resolve changed frontend files
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${BASE_SHA}" || "${BASE_SHA}" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+          git diff --name-only --diff-filter=ACMR "${BASE_SHA}" "${GITHUB_SHA}" \
+            | grep -E '^(src/|public/|vite\.config\.|\.env)' \
+            > /tmp/changed-frontend-files.txt || true
+          cat /tmp/changed-frontend-files.txt
+
+      - name: Scan changed frontend sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < /tmp/changed-frontend-files.txt
+          if (( ${#files[@]} )); then
+            node .agents/skills/matrix-frontend-review/scripts/scan-sensitive-logs.mjs "${files[@]}"
+          else
+            echo 'No changed runtime frontend files.'
+          fi
