@@ -25,6 +25,7 @@
             <td>{{ q.fnumber }}</td><td>{{ q.fbusinessPartnerName }}</td><td>{{ q.fquoteType }}</td>
             <td>{{ fmt(q.fgrossAmount) }}</td><td>{{ q.fstatus }}</td>
             <td><button v-for="a in availableQuoteActions(q)" :key="a" :disabled="loading" @click="changeQuote(q,a)">{{ labels[a] }}</button>
+              <button type="button" :disabled="loading" @click="showAudit('quotes',q)">记录</button>
               <button v-if="q.fstatus==='DRAFT'" :disabled="loading" @click="editQuote(q)">编辑</button>
               <button v-if="q.fstatus==='ACCEPTED'" @click="fromQuote(q)">转合同</button></td>
           </tr></tbody>
@@ -69,7 +70,8 @@
           <tbody><tr v-for="c in contracts" :key="c.fid">
             <td>{{ c.fnumber }}</td><td>{{ c.ftitle }}</td><td>{{ c.fbusinessPartnerName }}</td>
             <td>{{ fmt(c.fgrossAmount) }}</td><td>{{ c.fapprovalStatus }}</td>
-            <td><button v-for="a in (contractActions[c.fapprovalStatus] || [])" :key="a" :disabled="loading"
+            <td><button type="button" :disabled="loading" @click="showAudit('contracts',c)">记录</button>
+              <button v-for="a in (contractActions[c.fapprovalStatus] || [])" :key="a" :disabled="loading"
               @click="changeContract(c,a)">{{ labels[a] }}</button></td>
           </tr></tbody>
         </table></div>
@@ -118,6 +120,19 @@
         <p class="muted">目标用户已签发的旧销售授权 Token 在版本变更后会失效；需重新登录。请勿在数据库中绕过管理接口手工修改授权。</p>
       </article>
     </section>
+    <section v-if="auditType===tab" class="panel audit-panel">
+      <div class="audit-heading"><h2>{{ auditTitle }} · 操作历史</h2>
+        <button type="button" class="light" @click="auditType='';auditEntries=[]">关闭</button></div>
+      <p v-if="!auditEntries.length" class="muted">暂无操作记录。</p>
+      <div v-else class="scroll"><table>
+        <thead><tr><th>操作时间</th><th>动作</th><th>变更前</th><th>变更后</th><th>操作人 ID</th></tr></thead>
+        <tbody><tr v-for="item in auditEntries" :key="item.fid">
+          <td>{{ item.fcreateTime }}</td><td>{{ item.faction }}</td>
+          <td>{{ item.fbeforeStatus || '-' }}</td><td>{{ item.fafterStatus }}</td>
+          <td>{{ item.foperatorId }}</td>
+        </tr></tbody>
+      </table></div>
+    </section>
     <p class="muted warning">开发版：服务端要求带销售角色和组织范围的有效 JWT。现有登录令牌若不包含销售角色将被拒绝，正式角色签发和工作流集成仍待完成。</p>
   </main>
 </template>
@@ -125,11 +140,15 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { listQuotes, getQuote, createQuote, updateQuote, actQuote, listContracts, createContract, actContract,
-  listSalesRoleGrants, grantSalesRole, revokeSalesRole } from '@/api/salesCommercial'
+  listSalesRoleGrants, grantSalesRole, revokeSalesRole,
+  getQuoteAudit, getContractAudit } from '@/api/salesCommercial'
 const router=useRouter()
 const tenantId=ref(''), orgId=ref(''), tab=ref('quotes'), error=ref(''), notice=ref(''), loading=ref(false)
 const quotes=ref([]), contracts=ref([])
 const editingQuoteId = ref('')
+const auditType = ref('')
+const auditTitle = ref('')
+const auditEntries = ref([])
 const roleTarget = reactive({ userId: '', role: 'SALES_VIEWER' })
 const targetRoles = ref([])
 const quote=reactive({ fopportunityId:'',fbusinessPartnerId:'', fquoteType:'QUOTE',ftenderReference:'',fcurrencyCode:'CNY',fvalidUntil:'',fdeliveryTermCode:'',fpaymentTermCode:'' })
@@ -215,6 +234,17 @@ async function changeContract(c,action){
   if(!window.confirm(`确认对 ${c.fnumber} 执行 ${labels[action]}？`))return
   await run(async()=>{const p=params();unwrap(await actContract(c.fid,action,p.tenantId));contracts.value=rows(await listContracts(p))},'合同状态已更新')
 }
+async function showAudit(type, document) {
+  await run(async () => {
+    const scope = params()
+    const response = type === 'quotes'
+      ? await getQuoteAudit(document.fid, scope.tenantId)
+      : await getContractAudit(document.fid, scope.tenantId)
+    auditEntries.value = Array.isArray(unwrap(response)) ? unwrap(response) : []
+    auditTitle.value = document.fnumber || ''
+    auditType.value = type
+  })
+}
 function fromQuote(q){contract.fquoteId=String(q.fid);contract.ftitle=q.fbusinessPartnerName+'销售合同';tab.value='contracts'}
 function grantPayload() {
   const p=params()
@@ -256,6 +286,6 @@ input,select{border:1px solid #cbdad6;border-radius:7px;padding:10px;font:inheri
 .scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
 td,th{border-bottom:1px solid #e5eeeb;padding:11px 7px;white-space:nowrap}th{color:#6f847f}
 .error,.notice{padding:12px;border-radius:8px}.error{background:#ffefef;color:#ad3131}.notice{background:#e6f6ec;color:#1d6c3a}
-.warning{font-size:12px;margin-top:20px}.role-list{padding:0;display:flex;gap:8px;flex-wrap:wrap;list-style:none}.role-list li{padding:8px 12px;border-radius:7px;background:#edf4f2;color:#216e62}.item-title{display:flex;justify-content:space-between;align-items:center;gap:10px}.line-card{display:grid;gap:10px;padding:14px 0;border-top:1px solid #dbe7e3}.light{background:#e0efea;color:#19695d}@media(max-width:920px){.layout{grid-template-columns:1fr}.shell{padding:16px}.three{grid-template-columns:1fr 1fr}}
+.warning{font-size:12px;margin-top:20px}.audit-panel{margin-top:18px}.audit-heading{display:flex;align-items:center;justify-content:space-between}.role-list{padding:0;display:flex;gap:8px;flex-wrap:wrap;list-style:none}.role-list li{padding:8px 12px;border-radius:7px;background:#edf4f2;color:#216e62}.item-title{display:flex;justify-content:space-between;align-items:center;gap:10px}.line-card{display:grid;gap:10px;padding:14px 0;border-top:1px solid #dbe7e3}.light{background:#e0efea;color:#19695d}@media(max-width:920px){.layout{grid-template-columns:1fr}.shell{padding:16px}.three{grid-template-columns:1fr 1fr}}
 </style>
 
